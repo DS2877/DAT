@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Format = require(ReplicatedStorage.Shared.Util.Format)
 local Loot = require(ReplicatedStorage.Shared.Config.Loot)
 local Goals = require(ReplicatedStorage.Shared.Logic.Goals)
+local Progression = require(ReplicatedStorage.Shared.Logic.Progression)
 local Sound = require(script.Parent.Parent.Sound)
 local Ui = require(script.Parent.Parent.Ui)
 local ClientState = require(script.Parent.ClientState)
@@ -629,6 +630,13 @@ function Hud.showSale(info: { total: number, count: number, cash: number, goal: 
 				)
 			elseif info.nearGoal then
 				Hud.toast("Only " .. Format.cash(goal.missing) .. " to go!", C.Gold, 3)
+			else
+				-- Between shovels, a bigger bag is the next thing to buy.
+				local data = ClientState.data
+				local nextBag = data and Progression.nextUpgrade("Bag", data.bagLevel)
+				if data and nextBag and data.cash >= nextBag.cost then
+					Hud.toast("You can afford a bigger bag: " .. nextBag.name .. "!", C.Purple, 3.5)
+				end
 			end
 		end)
 	end

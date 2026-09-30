@@ -1,22 +1,33 @@
--- Pacing simulator. Usage: lune run scripts/pacing.luau [runs]
+-- Pacing simulator. Usage: lune run scripts/pacing.luau [runs] [pace]
 --
--- Plays the real loot / upgrade config (including clues, mutations and dig
--- streaks) with a simple bot and prints median
--- times to the spec's pacing milestones. Timing assumptions (walking between
--- spots, trips to the sell pad) are rough guesses: tune them against
--- analytics once real players exist. All areas are simulated as enabled so
--- the full progression can be checked before later phases ship.
+-- Plays the real config with a simple bot: loot odds, clues, mutations, dig
+-- streaks, first-find x2, collection set bonuses, playtime gifts and their
+-- boosts, upgrades and the first rebirth. Prints median / p10 / p90 times
+-- to the spec's pacing milestones.
+--
+-- `pace` scales all walking / shopping time: 1.0 is a focused player who
+-- always walks straight to the next spot; 1.5 (default) is a typical kid
+-- who wanders, watches reveals and reads the UI. Tune these assumptions
+-- against analytics once real players exist.
 
 local process = require("@lune/process")
 
 local Loader = require("../tests/loader")
 local Areas = Loader.requireShared("Config/Areas")
+local Bonuses = Loader.requireShared("Logic/Bonuses")
+local Boosts = Loader.requireShared("Logic/Boosts")
+local DataSchema = Loader.requireShared("Logic/DataSchema")
 local Loot = Loader.requireShared("Config/Loot")
 local LootRoller = Loader.requireShared("Logic/LootRoller")
-local Streak = Loader.requireShared("Logic/Streak")
 local Progression = Loader.requireShared("Logic/Progression")
+local Rebirth = Loader.requireShared("Logic/Rebirth")
+local Retention = Loader.requireShared("Config/Retention")
+local Streak = Loader.requireShared("Logic/Streak")
 
--- Assumptions (seconds).
+local runs = tonumber(process.args[1]) or 300
+local PACE = tonumber(process.args[2]) or 1.5
+
+-- Base assumptions for a focused player (seconds), scaled by PACE.
 local WALK_BETWEEN_SPOTS = 4.0
 local ROUND_TRIP_TO_SELL = { Beach = 22, Jungle = 34, Ruins = 44, Volcano = 55 }
 local SHOP_TIME = 4
@@ -42,77 +53,108 @@ local function bestArea(shovelLevel: number): string
 	return best
 end
 
-local MILESTONES =
-	{ "firstFind", "firstSale", "firstUpgrade", "jungle", "ruins", "volcano", "legendaryShovel" }
+local MILESTONES = {
+	"firstFind",
+	"firstSale",
+	"firstUpgrade",
+	"jungle",
+	"ruins",
+	"volcano",
+	"legendaryShovel",
+	"firstRebirth",
+}
 
 local function simulate(seed: number): { [string]: number }
 	local rng = seededRng(seed)
-	local t, cash, shovel, bag = 0, 0, 1, 1
+	local data = DataSchema.template()
+	local t = 0
 	local reached: { [string]: number } = {}
+	local nextGift = 1
 	local function mark(name: string)
 		if reached[name] == nil then
 			reached[name] = t
 		end
 	end
+	-- Playtime gifts (one session; claimed as soon as they're ready).
+	local function claimGifts()
+		while nextGift <= #Retention.playtimeGifts and t >= Retention.playtimeGifts[nextGift].minutes * 60 do
+			local reward = Retention.playtimeGifts[nextGift].reward
+			if reward.kind == "Cash" then
+				data.cash += Bonuses.rewardCash(reward, data)
+			elseif reward.kind == "Boost" then
+				Boosts.add(data.activeBoosts, reward.boost, reward.seconds, t)
+			end
+			nextGift += 1
+		end
+	end
 
-	while shovel < Progression.MaxShovelLevel and t < 6 * 3600 do
-		local area = bestArea(shovel)
-		local def = Progression.getShovel(shovel)
-		local capacity = Progression.bagCapacity(bag)
+	while t < 8 * 3600 do
+		local area = bestArea(data.shovelLevel)
+		local capacity = Progression.bagCapacity(data.bagLevel)
+		local streak = Streak.new()
 		local bagValue = 0
-		for dig = 1, capacity do
-			t += WALK_BETWEEN_SPOTS + def.hits * def.hitInterval
-			-- Clue spots, mutations and the dig streak (the bot chains every dig).
+		for _ = 1, capacity do
+			t += WALK_BETWEEN_SPOTS * PACE + 3 * Bonuses.hitInterval(data, t)
 			local clue = rng() < Loot.clueChance
 			local roll = LootRoller.roll(
 				area,
 				rng,
 				{ oddsMultipliers = if clue then Loot.clueOddsMultipliers else nil }
 			)
-			local _, multiplier = LootRoller.rollMutation(rng)
-			bagValue += math.floor(roll.value * multiplier * (1 + Streak.bonus(dig)))
+			local _, mutation = LootRoller.rollMutation(rng)
+			local firstFind = if data.discovered[roll.id] then 1 else Loot.firstFindMultiplier
+			local multiplier = Bonuses.cashMultiplier(data, 0, t)
+			data.discovered[roll.id] = { normal = true }
+			bagValue += math.floor(
+				roll.value * mutation * firstFind * (1 + Streak.bonus(Streak.onDig(streak, t))) * multiplier
+			)
 			mark("firstFind")
 		end
-		t += ROUND_TRIP_TO_SELL[area]
-		cash += bagValue
+		t += ROUND_TRIP_TO_SELL[area] * PACE
+		data.cash += bagValue
 		mark("firstSale")
+		claimGifts()
 
 		-- Greedy shopping: next shovel first; a bag when it's cheap relative to it.
 		local bought = true
 		while bought do
 			bought = false
-			local nextShovel = Progression.nextUpgrade("Shovel", shovel)
-			local nextBag = Progression.nextUpgrade("Bag", bag)
-			if nextShovel and cash >= nextShovel.cost then
-				cash -= nextShovel.cost
-				shovel = nextShovel.level
+			local nextShovel = Progression.nextUpgrade("Shovel", data.shovelLevel)
+			local nextBag = Progression.nextUpgrade("Bag", data.bagLevel)
+			if nextShovel and data.cash >= nextShovel.cost then
+				data.cash -= nextShovel.cost
+				data.shovelLevel = nextShovel.level
 				bought = true
 			elseif
 				nextBag
-				and cash >= nextBag.cost
+				and data.cash >= nextBag.cost
 				and (not nextShovel or nextBag.cost <= nextShovel.cost * 0.5)
 			then
-				cash -= nextBag.cost
-				bag = nextBag.level
+				data.cash -= nextBag.cost
+				data.bagLevel = nextBag.level
 				bought = true
 			end
 			if bought then
-				t += SHOP_TIME
+				t += SHOP_TIME * PACE
 				mark("firstUpgrade")
 			end
 		end
-		if shovel >= Areas.Defs.Jungle.requiredShovel then
+		if data.shovelLevel >= Areas.Defs.Jungle.requiredShovel then
 			mark("jungle")
 		end
-		if shovel >= Areas.Defs.Ruins.requiredShovel then
+		if data.shovelLevel >= Areas.Defs.Ruins.requiredShovel then
 			mark("ruins")
 		end
-		if shovel >= Areas.Defs.Volcano.requiredShovel then
+		if data.shovelLevel >= Areas.Defs.Volcano.requiredShovel then
 			mark("volcano")
 		end
-	end
-	if shovel >= Progression.MaxShovelLevel then
-		mark("legendaryShovel")
+		if data.shovelLevel >= Progression.MaxShovelLevel then
+			mark("legendaryShovel")
+			if Rebirth.canRebirth(data) then
+				mark("firstRebirth")
+				break
+			end
+		end
 	end
 	return reached
 end
@@ -123,11 +165,12 @@ local function fmt(seconds: number?): string
 	end
 	if seconds < 120 then
 		return string.format("%5.0fs", seconds)
+	elseif seconds < 7200 then
+		return string.format("%5.1fm", seconds / 60)
 	end
-	return string.format("%5.1fm", seconds / 60)
+	return string.format("%5.2fh", seconds / 3600)
 end
 
-local runs = tonumber(process.args[1]) or 300
 local samples: { [string]: { number } } = {}
 for _, name in MILESTONES do
 	samples[name] = {}
@@ -148,10 +191,11 @@ local targets = {
 	jungle = "~10m",
 	ruins = "30-40m",
 	volcano = "~90m",
-	legendaryShovel = "(rebirth ~3-4h)",
+	legendaryShovel = "",
+	firstRebirth = "3-4h",
 }
 
-print(string.format("Pacing over %d simulated players (median / p10 / p90):\n", runs))
+print(string.format("Pacing over %d simulated players at pace %.1f (median / p10 / p90):\n", runs, PACE))
 print(string.format("%-16s %7s %7s %7s   %s", "milestone", "median", "p10", "p90", "spec target"))
 for _, name in MILESTONES do
 	local list = samples[name]

@@ -129,8 +129,12 @@ end)
 test("reward cash scales with the next goal and has a floor", function()
 	local data = DataSchema.template()
 	expect.eq(Bonuses.rewardCash({ goalPercent = 0.1, min = 100 }, data), 100) -- 10% of $250 < floor
-	data.shovelLevel = 5 -- next: Rainbow $100,000
-	expect.eq(Bonuses.rewardCash({ goalPercent = 0.1, min = 100 }, data), 10000)
+	data.shovelLevel = 5 -- next: the Rainbow Shovel
+	local rainbow = requireShared("Logic/Progression").getShovel(6)
+	expect.eq(
+		Bonuses.rewardCash({ goalPercent = 0.1, min = 100 }, data),
+		math.floor(rainbow.cost * 0.1 + 0.5)
+	)
 end)
 
 test("dig speed boost halves the hit interval", function()

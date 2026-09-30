@@ -10,7 +10,7 @@
 local Retention = {
 	rebirth = {
 		requiredShovel = 8, -- the Legendary Shovel
-		baseCost = 1000000, -- cash needed (on top of owning the shovel)
+		baseCost = 3000000, -- cash needed (on top of owning the shovel)
 		costGrowth = 1.3, -- each rebirth costs this much more
 		cashBonusPerRebirth = 0.25,
 		-- One title per rebirth (the last repeats with a number after it).
