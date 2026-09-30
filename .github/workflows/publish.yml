@@ -60,6 +60,11 @@ jobs:
       - name: Verify build
         run: lune run scripts/verify-build.luau "$(jq -r .buildOutput deploy.config.json)"
 
+      - name: Runtime smoke tests (real server + client code, headless)
+        run: |
+          lune run tests/runtime/server_smoke.luau "$(jq -r .buildOutput deploy.config.json)"
+          lune run tests/runtime/client_smoke.luau "$(jq -r .buildOutput deploy.config.json)"
+
       - name: Publish to Roblox
         if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         env:

@@ -182,6 +182,7 @@ local function build()
 	end)
 	setHeaders.Rebirth.Text = "REBIRTH SECRETS - a new one every 5 rebirths"
 	setHeaders.Rebirth.TextColor3 = C.Purple
+	HudController.registerModal(panel)
 	built = true
 end
 

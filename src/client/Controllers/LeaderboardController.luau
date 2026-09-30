@@ -125,6 +125,7 @@ local function build()
 	close.Activated:Connect(function()
 		panel.Visible = false
 	end)
+	HudController.registerModal(panel)
 	for i, board in BOARDS do
 		local x = 20 + (i - 1) * 280
 		Ui.label({

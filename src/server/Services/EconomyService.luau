@@ -8,7 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Bag = require(ReplicatedStorage.Shared.Logic.Bag)
 local Economy = require(ReplicatedStorage.Shared.Config.Economy)
-local Progression = require(ReplicatedStorage.Shared.Logic.Progression)
+local Goals = require(ReplicatedStorage.Shared.Logic.Goals)
 local Analytics = require(script.Parent.Analytics)
 local Net = require(script.Parent.Parent.Net)
 local PlayerData = require(script.Parent.PlayerData)
@@ -75,13 +75,13 @@ function EconomyService.sellAll(player: Player): boolean
 	EconomyService.addCash(player, data, total, "Gameplay", "SellTreasure")
 	Analytics.funnel(player, data, "FirstSale")
 
-	local goal = Progression.nextGoal(data.cash, data.shovelLevel, data.bagLevel)
+	local goal = Goals.current(data)
 	Net.fire("Sold", player, {
 		total = total,
 		count = count,
 		cash = data.cash,
 		goal = goal,
-		nearGoal = goal ~= nil and Progression.isNearGoal(goal),
+		nearGoal = Goals.isNear(goal),
 	})
 	return true
 end

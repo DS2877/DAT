@@ -8,8 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Format = require(ReplicatedStorage.Shared.Util.Format)
 local Loot = require(ReplicatedStorage.Shared.Config.Loot)
-local Progression = require(ReplicatedStorage.Shared.Logic.Progression)
-local Rebirth = require(ReplicatedStorage.Shared.Logic.Rebirth)
+local Goals = require(ReplicatedStorage.Shared.Logic.Goals)
 local Sound = require(script.Parent.Parent.Sound)
 local Ui = require(script.Parent.Parent.Ui)
 local ClientState = require(script.Parent.ClientState)
@@ -312,27 +311,15 @@ local function refreshGoal()
 	if not data then
 		return
 	end
-	-- With the Legendary Shovel, the next goal is the rebirth.
-	if data.shovelLevel >= Progression.MaxShovelLevel then
-		local cost = Rebirth.cost(data.rebirths)
-		Ui.tween(
-			goalFill,
-			0.4,
-			{ Size = UDim2.fromScale(math.max(math.clamp(data.cash / cost, 0, 1), 0.08), 1) }
-		)
-		goalFill.BackgroundColor3 = C.Purple
-		goalLabel.Text = if data.cash >= cost
-			then "REBIRTH READY! Visit the altar"
-			else string.format("Rebirth: %s / %s", Format.cash(data.cash), Format.cash(cost))
-		return
-	end
-	local goal = Progression.nextGoal(data.cash, data.shovelLevel, data.bagLevel)
-	if not goal then
-		return
-	end
+	local goal = Goals.current(data :: any)
 	local progress = math.clamp(data.cash / goal.cost, 0, 1)
 	Ui.tween(goalFill, 0.4, { Size = UDim2.fromScale(math.max(progress, 0.08), 1) })
-	if goal.affordable then
+	if goal.kind == "Rebirth" then
+		goalFill.BackgroundColor3 = C.Purple
+		goalLabel.Text = if goal.affordable
+			then "REBIRTH READY! Visit the altar"
+			else string.format("Rebirth: %s / %s", Format.cash(data.cash), Format.cash(goal.cost))
+	elseif goal.affordable then
 		goalFill.BackgroundColor3 = C.Green
 		goalLabel.Text = goal.name .. ": READY! Visit the shop"
 	else
@@ -365,6 +352,22 @@ end
 
 function Hud.root(): Frame
 	return root
+end
+
+-- Center-screen panels (Collection, Daily, Leaderboards): only one open at a time.
+local modals: { GuiObject } = {}
+
+function Hud.registerModal(frame: GuiObject)
+	table.insert(modals, frame)
+	frame:GetPropertyChangedSignal("Visible"):Connect(function()
+		if frame.Visible then
+			for _, other in modals do
+				if other ~= frame and other.Visible then
+					other.Visible = false
+				end
+			end
+		end
+	end)
 end
 
 -- Adds a round button to the top-right row. Returns it.
@@ -428,7 +431,17 @@ function Hud.setRushText(text: string, active: boolean)
 end
 
 -- Replaces the chip row: { { text = "2x Cash 4:12", color = Color3 } }.
+local lastChipsKey = ""
 function Hud.setChips(chips: { { text: string, color: Color3 } })
+	local parts = {}
+	for _, chip in chips do
+		table.insert(parts, chip.text)
+	end
+	local key = table.concat(parts, "|")
+	if key == lastChipsKey then
+		return
+	end
+	lastChipsKey = key
 	for _, child in chipRow:GetChildren() do
 		if child:IsA("TextLabel") then
 			child:Destroy()
@@ -607,7 +620,13 @@ function Hud.showSale(info: { total: number, count: number, cash: number, goal: 
 	if goal then
 		task.delay(1.0, function()
 			if goal.affordable then
-				Hud.toast("You can afford the " .. goal.name .. "!", C.Green, 3.5)
+				Hud.toast(
+					if goal.kind == "Rebirth"
+						then "Rebirth is ready at the altar!"
+						else "You can afford the " .. goal.name .. "!",
+					C.Green,
+					3.5
+				)
 			elseif info.nearGoal then
 				Hud.toast("Only " .. Format.cash(goal.missing) .. " to go!", C.Gold, 3)
 			end

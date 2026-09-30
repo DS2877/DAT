@@ -75,6 +75,9 @@ local function scoresFor(data: { [string]: any }): { [string]: number }
 end
 
 local lastWritten: { [Player]: { [string]: number } } = {}
+-- When each player's scores are next written (os.clock).
+local nextWriteAt: { [Player]: number } = {}
+local FIRST_WRITE_DELAY = 20
 
 local function writePlayer(player: Player)
 	local data = PlayerData.get(player)
@@ -156,7 +159,7 @@ end
 
 local published: StringValue
 
-local function refreshBoards()
+function LeaderboardService.refresh()
 	local week = weekNumber(os.time())
 	local result = {}
 	local ids = {}
@@ -190,31 +193,44 @@ function LeaderboardService.init()
 	published.Value = "{}"
 	published.Parent = ReplicatedStorage
 
-	PlayerData.Loaded:Connect(function(_player: Player, data)
+	PlayerData.Loaded:Connect(function(player: Player, data)
 		LeaderboardService.rollWeek(data)
+		nextWriteAt[player] = os.clock() + FIRST_WRITE_DELAY
 	end)
 	-- Final write on leave. Connected before PlayerData's own handler (init
 	-- order), so the profile is still readable when this starts.
 	Players.PlayerRemoving:Connect(function(player)
+		nextWriteAt[player] = nil
 		writePlayer(player)
 		lastWritten[player] = nil
 	end)
 end
 
+-- Writes this player's scores on the next loop tick (e.g. after a rebirth).
+function LeaderboardService.requestWrite(player: Player)
+	if nextWriteAt[player] then
+		nextWriteAt[player] = 0
+	end
+end
+
 function LeaderboardService.start()
+	-- Each player is written on their own timer, spread out over time.
 	task.spawn(function()
 		while true do
-			for _, player in Players:GetPlayers() do
-				writePlayer(player)
-				task.wait(0.5)
+			task.wait(5)
+			local now = os.clock()
+			for player, at in nextWriteAt do
+				if now >= at then
+					nextWriteAt[player] = now + Retention.leaderboards.writeInterval
+					writePlayer(player)
+				end
 			end
-			task.wait(Retention.leaderboards.writeInterval)
 		end
 	end)
 	task.spawn(function()
-		task.wait(5)
+		task.wait(30)
 		while true do
-			refreshBoards()
+			LeaderboardService.refresh()
 			task.wait(Retention.leaderboards.readInterval)
 		end
 	end)

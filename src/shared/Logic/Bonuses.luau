@@ -4,8 +4,8 @@
 
 local Boosts = require(script.Parent.Boosts)
 local Collection = require(script.Parent.Collection)
+local Goals = require(script.Parent.Goals)
 local Progression = require(script.Parent.Progression)
-local Rebirth = require(script.Parent.Rebirth)
 local Retention = require(script.Parent.Parent.Config.Retention)
 
 local Bonuses = {}
@@ -38,8 +38,7 @@ end
 
 -- Cash for a { kind = "Cash" } reward: a share of the player's next goal.
 function Bonuses.rewardCash(reward: { [string]: any }, data: { [string]: any }): number
-	local goal = Progression.nextGoal(data.cash, data.shovelLevel, data.bagLevel)
-	local goalCost = if goal then goal.cost else Rebirth.cost(data.rebirths)
+	local goalCost = Goals.current(data).cost
 	return math.max(reward.min or 0, math.floor(goalCost * (reward.goalPercent or 0) + 0.5))
 end
 

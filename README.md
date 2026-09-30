@@ -66,6 +66,8 @@ rokit install
 stylua --check src tests scripts          # format
 selene src                                # lint
 lune run tests/run.luau                   # tests (pure logic + config checks)
+lune run tests/runtime/server_smoke.luau build.rbxl   # runs the real server headless
+lune run tests/runtime/client_smoke.luau build.rbxl   # real client + server, DIG button to sale
 lune run scripts/pacing.luau              # pacing simulator
 rojo build default.project.json -o build.rbxl
 lune run scripts/verify-build.luau build.rbxl

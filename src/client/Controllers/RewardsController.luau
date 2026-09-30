@@ -136,6 +136,7 @@ local function buildDaily()
 	close.Activated:Connect(function()
 		dailyPanel.Visible = false
 	end)
+	HudController.registerModal(dailyPanel)
 
 	local row = Ui.new("Frame", {
 		Position = UDim2.fromOffset(20, 70),
@@ -391,13 +392,17 @@ local function onChanged()
 	refreshChips()
 	refreshGoldenX()
 	local data = ClientState.data
-	-- Show the calendar once per session when today's reward is waiting.
-	if data and data.dailyCanClaim and not openedDailyThisSession then
+	-- Decided once, on the first snapshot: returning players (who already
+	-- know the loop) see today's calendar pop up; brand-new players are never
+	-- interrupted - they just get the "!" badge on the Daily button.
+	if data and not openedDailyThisSession then
 		openedDailyThisSession = true
-		task.delay(3, function()
-			dailyPanel.Visible = true
-			Ui.pop(dailyPanel, 0.06)
-		end)
+		if data.dailyCanClaim and data.sales > 0 then
+			task.delay(3, function()
+				dailyPanel.Visible = true
+				Ui.pop(dailyPanel, 0.06)
+			end)
+		end
 	end
 end
 
