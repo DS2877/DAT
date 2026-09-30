@@ -286,6 +286,14 @@ ProxyMeta.__index = function(proxy, key)
 		return inst[key]
 	end)
 	if not ok then
+		-- Lune special-cases some names (e.g. "Terrain") as properties even on
+		-- instances that merely have a child with that name.
+		local okChild, child = pcall(function()
+			return inst:FindFirstChild(key)
+		end)
+		if okChild and child then
+			return wrap(child)
+		end
 		-- Roblox lets you read Parent (nil) on a destroyed instance.
 		if string.find(tostring(value), "destroyed", 1, true) then
 			if key == "Parent" then
@@ -729,6 +737,8 @@ local function terrainTop(x: number, z: number, fromY: number): (number?, string
 	end
 	return nil, nil
 end
+
+H.terrainTop = terrainTop
 
 methods.Raycast = function(_proxy, _inst, origin, direction)
 	if math.abs(direction.X) > 1e-6 or math.abs(direction.Z) > 1e-6 or direction.Y >= 0 then

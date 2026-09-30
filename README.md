@@ -24,7 +24,8 @@ src/
     Services/        PlayerData, DigSpotService, DigService, LootService,
                      EconomyService, UpgradeService, AreaService,
                      CharacterService, Analytics
-    World/           MapBuilder (builds the island), World (built-world holder)
+    World/           MapBuilder (assembles the island), World (built-world holder)
+      Build/         Terrain, Base, Gates, Beach, Jungle, Ruins, Volcano, Candidates, Kit
     Net.luau         Remotes + per-player rate limiting
   client/            StarterPlayerScripts.Client (init.client.luau = bootstrap)
     Controllers/     HUD, digging, reveal, stations, guide arrow, gates, other players
@@ -68,7 +69,9 @@ selene src                                # lint
 lune run tests/run.luau                   # tests (pure logic + config checks)
 lune run tests/runtime/server_smoke.luau build.rbxl   # runs the real server headless
 lune run tests/runtime/client_smoke.luau build.rbxl   # real client + server, DIG button to sale
-lune run scripts/pacing.luau              # pacing simulator
+lune run scripts/pacing.luau [runs] [pace]  # pacing simulator (pace 1.0 focused .. 2.0 slow)
+lune run scripts/export-map.luau build.rbxl map.json && python3 scripts/render-map.py map.json out/
+                                          # top-down map + view from the base (needs Pillow, numpy)
 rojo build default.project.json -o build.rbxl
 lune run scripts/verify-build.luau build.rbxl
 ```

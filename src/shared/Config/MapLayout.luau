@@ -4,14 +4,18 @@
 -- loaded by the offline test runner.
 --
 --            Volcano (z < volcanoSouthZ)
---     Jungle (x < 0)  |  Ruins (x >= 0)
---   ================ beachNorthZ ================
+--     Jungle (x < 0)  |  Ruins (x >= 0)      <- a raised plateau
+--   ======== cliff at beachNorthZ ========
 --                  Beach + Base (south)
+--
+-- The island steps up: Beach (low) -> plateau (Jungle, Ruins, Volcano floor)
+-- -> the volcano cone. Areas are separated by rock cliffs and ridges with
+-- invisible collision, so every area stays in view from the base.
 
 local MapLayout = {
 	waterLevel = 0,
 	beachHeight = 3,
-	plateauHeight = 9,
+	plateauHeight = 14,
 
 	-- Area boundaries.
 	beachNorthZ = -10,
@@ -49,6 +53,16 @@ local MapLayout = {
 		Jungle = { minX = -125, maxX = -8, minZ = -112, maxZ = -18 },
 		Ruins = { minX = 8, maxX = 125, minZ = -112, maxZ = -18 },
 		Volcano = { minX = -90, maxX = 90, minZ = -172, maxZ = -128 },
+	},
+
+	-- Decor landmarks.
+	waterfall = { x = -100, z = -10 }, -- falls from the Jungle cliff into a beach pool
+	dock = { x = 64, z = 146, length = 52 }, -- runs south into the sea
+	-- Lava rivers on the Volcano floor (polylines of { x, z }).
+	lavaRivers = {
+		{ { -18, -160 }, { -34, -148 }, { -56, -140 }, { -84, -133 } },
+		{ { 22, -158 }, { 12, -146 }, { 20, -136 }, { 8, -127 } },
+		{ { -2, -162 }, { 4, -152 } },
 	},
 
 	-- Gates: openings in the boundary walls. `side` is the direction the
