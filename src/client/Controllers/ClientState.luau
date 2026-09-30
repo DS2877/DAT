@@ -18,6 +18,7 @@ export type Snapshot = {
 	finds: number,
 	sales: number,
 	guideDone: boolean,
+	discovered: { [string]: { normal: boolean?, shiny: boolean?, golden: boolean? } },
 }
 
 local ClientState = {}

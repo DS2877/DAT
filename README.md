@@ -8,10 +8,11 @@ Every push to `main` is checked and published to the Roblox place automatically.
 
 ## Status
 
-**Phase 2 — Fun** on top of the Phase 1 core: full rarity presentation,
-clue spots, Shiny / Golden mutations, dig streaks, guaranteed early finds,
-and the Jungle (gate opens with the Iron Shovel). The Ruins and Volcano are
-built and visible, but their gates stay shut ("opening soon") until Phase 3.
+**Phase 3 — Content** done: all four areas open (Jungle with the Iron Shovel,
+Ruins with Diamond, Volcano with Magma), all 34 treasures, the Collection
+screen with set bonuses, first-find bonus, Deep Dig events, the trophy shelf
+and server announcements. On top of Phase 2 (rarity presentation, clues,
+Shiny / Golden, streaks, guaranteed early finds) and the Phase 1 core.
 
 ## Layout
 
@@ -46,7 +47,8 @@ Every number lives in `src/shared/Config/`:
 | `Areas.luau` | Area odds, unlock shovel, spot counts, `enabled` flag |
 | `Upgrades.luau` | Shovel and bag ladders (cost, dig speed, capacity) |
 | `Economy.luau` | Value variance, "Only $X to go!" threshold |
-| `Loot.luau` | Clue chance and odds boost, mutations, dig streak, early guarantees |
+| `Loot.luau` | Clue chance and odds boost, mutations, dig streak, Deep Dig, first-find bonus, early guarantees |
+| `Collection.luau` | Set bonus, set badges, announcement rules, trophy shelf slots |
 | `Dig.luau` | Dig ranges, respawn timers, anti-cheat tolerances |
 | `MapLayout.luau` | Island geography, base, stations, gates |
 

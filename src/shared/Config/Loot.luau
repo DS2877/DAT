@@ -30,6 +30,18 @@ local Loot = {
 		maxBonus = 0.20,
 	},
 
+	-- Deep Dig: a rare event when finishing a dig outside the Beach. The spot
+	-- needs extra hits, then yields a guaranteed Epic-or-better, shown huge.
+	deepDig = {
+		chance = 1 / 150,
+		extraHits = 6,
+		minRarity = "Epic",
+		areas = { Jungle = true, Ruins = true, Volcano = true },
+	},
+
+	-- The first time a player ever finds a treasure, it's worth this much more.
+	firstFindMultiplier = 2,
+
 	guarantees = {
 		-- A new player's first Rare-or-better is forced on a random dig in this
 		-- range (only if luck hasn't already given them one).

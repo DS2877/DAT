@@ -483,6 +483,9 @@ function Hud.init()
 			if kind == "Denied" then
 				Sound.play("Denied", 0.5)
 				Hud.toast(text, C.Red)
+			elseif kind == "Big" then
+				Sound.play("Upgrade", 0.8)
+				Hud.bigText(text, C.Green, 3)
 			else
 				Hud.toast(text)
 			end

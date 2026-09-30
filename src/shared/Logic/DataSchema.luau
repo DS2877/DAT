@@ -23,6 +23,8 @@ function DataSchema.template(): { [string]: any }
 		bagContents = {}, -- { { id = string, v = number, m = "Shiny" | "Golden" | nil } }
 		rebirths = 0,
 		discovered = {}, -- [treasureId] = { normal = true?, shiny = true?, golden = true? }
+		bestFind = {}, -- { id = treasureId, m = mutation? } shown on the trophy shelf; {} = none
+		setsAwarded = {}, -- [areaId] = true once the set-complete reward was given
 		dailyState = {}, -- Phase 4
 		playtimeGiftState = {}, -- Phase 4
 		processedPurchaseIds = {}, -- Phase 5

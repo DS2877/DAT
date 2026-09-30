@@ -19,6 +19,9 @@ export type Spot = {
 	candidateIndex: number,
 	model: Model,
 	clue: string?,
+	-- Set during a Deep Dig: only this player may dig the spot until then.
+	reservedBy: Player?,
+	reservedUntil: number,
 }
 
 local DigSpotService = {}
@@ -320,6 +323,8 @@ local function spawnSpot(areaId: string): Spot?
 		candidateIndex = index,
 		model = model,
 		clue = clue,
+		reservedBy = nil,
+		reservedUntil = 0,
 	}
 	occupied[areaId][index] = true
 	active[nextId] = spot

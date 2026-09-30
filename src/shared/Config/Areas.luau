@@ -1,7 +1,7 @@
 --!strict
 -- The four island areas. Unlocks are derived from shovel level (never saved).
--- `enabled = false` keeps an area's gate shut with an "opening soon" sign until
--- its content ships (Ruins and Volcano arrive in Phase 3).
+-- `enabled = false` keeps an area's gate shut with an "opening soon" sign
+-- (use it for areas whose content isn't ready yet).
 -- Odds are percentages per rarity; missing rarities have 0% chance.
 
 export type AreaDef = {
@@ -42,7 +42,7 @@ Areas.Defs = {
 		order = 3,
 		displayName = "Ancient Ruins",
 		requiredShovel = 5,
-		enabled = false, -- TODO(Phase 3): enable with Ruins content.
+		enabled = true,
 		activeSpots = 20,
 		odds = { Common = 25, Uncommon = 35, Rare = 25, Epic = 12, Legendary = 2.8, Mythic = 0.2 },
 	},
@@ -51,7 +51,7 @@ Areas.Defs = {
 		order = 4,
 		displayName = "Volcano",
 		requiredShovel = 7,
-		enabled = false, -- TODO(Phase 3): enable with Volcano content.
+		enabled = true,
 		activeSpots = 18,
 		odds = {
 			Common = 10,

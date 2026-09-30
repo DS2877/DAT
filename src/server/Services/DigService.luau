@@ -8,10 +8,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Bag = require(ReplicatedStorage.Shared.Logic.Bag)
 local DigConfig = require(ReplicatedStorage.Shared.Config.Dig)
+local Loot = require(ReplicatedStorage.Shared.Config.Loot)
 local Progression = require(ReplicatedStorage.Shared.Logic.Progression)
 local Streak = require(ReplicatedStorage.Shared.Logic.Streak)
 local Zones = require(ReplicatedStorage.Shared.Logic.Zones)
 local Analytics = require(script.Parent.Analytics)
+local AnnouncementService = require(script.Parent.AnnouncementService)
+local CollectionService = require(script.Parent.CollectionService)
 local DigSpotService = require(script.Parent.DigSpotService)
 local LootService = require(script.Parent.LootService)
 local Net = require(script.Parent.Parent.Net)
@@ -24,10 +27,12 @@ type DigState = {
 	hits: number,
 	required: number,
 	lastHit: number,
+	deep: boolean,
 }
 
 local states: { [Player]: DigState } = {}
 local streaks: { [Player]: Streak.State } = {}
+local random = Random.new()
 
 local function reject(player: Player, spotId: number, reason: string)
 	Net.fire("DigResult", player, { spotId = spotId, rejected = reason })
@@ -66,6 +71,11 @@ local function onDigHit(player: Player, spotId: any)
 		reject(player, spotId, "BagFull")
 		return
 	end
+	-- A Deep Dig reserves its spot for the player who found it.
+	if spot.reservedBy and spot.reservedBy ~= player and os.clock() < spot.reservedUntil then
+		reject(player, spotId, "Taken")
+		return
+	end
 
 	local shovel = Progression.getShovel(data.shovelLevel)
 	local now = os.clock()
@@ -75,7 +85,7 @@ local function onDigHit(player: Player, spotId: any)
 		return
 	end
 	if not state or state.spotId ~= spotId or now - state.lastHit > DigConfig.progressTimeout then
-		state = { spotId = spotId, hits = 0, required = shovel.hits, lastHit = now }
+		state = { spotId = spotId, hits = 0, required = shovel.hits, lastHit = now, deep = false }
 		states[player] = state
 	end
 	local s = state :: DigState
@@ -88,14 +98,44 @@ local function onDigHit(player: Player, spotId: any)
 	-- Lets every client play this player's swing (see EffectsController).
 	character:SetAttribute("DigHits", ((character:GetAttribute("DigHits") :: number?) or 0) + 1)
 
+	if s.deep then
+		spot.reservedUntil = now + DigConfig.progressTimeout
+	end
+
+	-- The finishing hit of a normal dig may turn into a Deep Dig.
+	if
+		s.hits >= s.required
+		and not s.deep
+		and Loot.deepDig.areas[spot.areaId]
+		and random:NextNumber() < Loot.deepDig.chance
+	then
+		s.deep = true
+		s.required += Loot.deepDig.extraHits
+		spot.reservedBy = player
+		spot.reservedUntil = now + DigConfig.progressTimeout
+		Analytics.custom(player, "DeepDig")
+		Net.fire(
+			"DigResult",
+			player,
+			{ spotId = spotId, hits = s.hits, required = s.required, deepDig = true }
+		)
+		return
+	end
+
 	if s.hits < s.required then
-		Net.fire("DigResult", player, { spotId = spotId, hits = s.hits, required = s.required })
+		Net.fire(
+			"DigResult",
+			player,
+			{ spotId = spotId, hits = s.hits, required = s.required, deep = s.deep }
+		)
 		return
 	end
 
 	-- Dig complete.
+	local wasDeep = s.deep
 	s.spotId = -1
 	s.hits = 0
+	s.deep = false
 	DigSpotService.consume(spotId)
 	local streak = streaks[player] or Streak.new()
 	streaks[player] = streak
@@ -103,6 +143,7 @@ local function onDigHit(player: Player, spotId: any)
 		areaId = spot.areaId,
 		clue = spot.clue,
 		streak = Streak.onDig(streak, os.clock()),
+		deep = wasDeep,
 	})
 	Bag.add(data.bagContents, { id = find.id, v = find.value, m = find.mutation }, data.bagLevel)
 	data.stats.digs += 1
@@ -120,6 +161,8 @@ local function onDigHit(player: Player, spotId: any)
 		bagCount = Bag.count(data.bagContents),
 		bagValue = Bag.totalValue(data.bagContents),
 	})
+	CollectionService.onFind(player, data, find)
+	AnnouncementService.onFind(player, find, spot.position)
 	PlayerData.changed(player)
 end
 

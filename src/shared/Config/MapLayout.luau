@@ -21,14 +21,17 @@ local MapLayout = {
 	-- Island land masses (circles in XZ).
 	beach = { x = 0, z = 40, radius = 130 },
 	plateau = { x = 0, z = -60, radius = 140 },
-	volcano = { x = 0, z = -195, radius = 85, height = 125 },
+	-- The cone sits at the back so the Volcano area has flat basalt to dig on.
+	volcano = { x = 0, z = -222, radius = 60, height = 115 },
 
 	-- Invisible play-area limits (stops swimming around the gates).
 	bounds = { minX = -215, maxX = 215, minZ = -300, maxZ = 215 },
 
 	-- Base deck (the sell / upgrade hub).
 	base = { minX = -40, maxX = 40, minZ = 100, maxZ = 152, deckHeight = 1.4 },
-	spawn = { x = 0, z = 143 },
+	spawn = { x = 0, z = 139 },
+	-- Trophy shelf along the back of the deck (slots spread along x).
+	trophyShelf = { z = 149.5, minX = -24.5, maxX = 24.5 },
 	sellPad = { x = 0, z = 113, size = 18 },
 	shovelStation = { x = -27, z = 128, radius = 10 },
 	bagStation = { x = 27, z = 128, radius = 10 },
@@ -41,7 +44,7 @@ local MapLayout = {
 		Beach = { minX = -118, maxX = 118, minZ = -2, maxZ = 162 },
 		Jungle = { minX = -125, maxX = -8, minZ = -112, maxZ = -18 },
 		Ruins = { minX = 8, maxX = 125, minZ = -112, maxZ = -18 },
-		Volcano = { minX = -70, maxX = 70, minZ = -170, maxZ = -128 },
+		Volcano = { minX = -90, maxX = 90, minZ = -172, maxZ = -128 },
 	},
 
 	-- Gates: openings in the boundary walls. `side` is the direction the

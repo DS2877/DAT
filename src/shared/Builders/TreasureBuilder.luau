@@ -380,4 +380,45 @@ function TreasureBuilder.build(treasureId: string): Model
 	return model
 end
 
+local GOLD = Color3.fromRGB(255, 201, 51)
+
+-- Gives a built treasure its Shiny (sparkly, reflective) or Golden (solid
+-- gold, glowing) look. Does nothing for nil.
+function TreasureBuilder.applyMutation(model: Model, mutation: string?)
+	if not mutation then
+		return
+	end
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") and d.Transparency < 1 then
+			if mutation == "Golden" then
+				d.Color = if d.Material == Enum.Material.Neon then Color3.fromRGB(255, 240, 160) else GOLD
+				if d.Material ~= Enum.Material.Neon then
+					d.Material = Enum.Material.Metal
+				end
+				d.Reflectance = 0.25
+			else
+				d.Reflectance = math.min(0.5, d.Reflectance + 0.3)
+			end
+		end
+	end
+	local root = model.PrimaryPart :: BasePart
+	local sparkle = Instance.new("ParticleEmitter")
+	sparkle.Color = ColorSequence.new(if mutation == "Golden" then GOLD else Color3.new(1, 1, 1))
+	sparkle.LightEmission = 1
+	sparkle.Size =
+		NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 0) })
+	sparkle.Lifetime = NumberRange.new(0.5, 0.9)
+	sparkle.Speed = NumberRange.new(1, 3)
+	sparkle.SpreadAngle = Vector2.new(180, 180)
+	sparkle.Rate = if mutation == "Golden" then 40 else 22
+	sparkle.Parent = root
+	if mutation == "Golden" then
+		local light = Instance.new("PointLight")
+		light.Color = GOLD
+		light.Range = 16
+		light.Brightness = 3
+		light.Parent = root
+	end
+end
+
 return TreasureBuilder

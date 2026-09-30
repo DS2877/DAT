@@ -11,6 +11,7 @@ local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Areas = require(ReplicatedStorage.Shared.Config.Areas)
+local CollectionConfig = require(ReplicatedStorage.Shared.Config.Collection)
 local DigConfig = require(ReplicatedStorage.Shared.Config.Dig)
 local MapLayout = require(ReplicatedStorage.Shared.Config.MapLayout)
 local Progression = require(ReplicatedStorage.Shared.Logic.Progression)
@@ -747,6 +748,36 @@ local function buildBase(): Folder
 		material = Enum.Material.Fabric,
 	})
 
+	-- Trophy shelf: a pedestal per slot; TrophyShelfService fills them.
+	local shelf = L.trophyShelf
+	part(base, {
+		name = "ShelfBoard",
+		size = Vector3.new(shelf.maxX - shelf.minX + 5, 1.2, 3.4),
+		cframe = CFrame.new((shelf.minX + shelf.maxX) / 2, DECK_TOP + 0.6, shelf.z),
+		color = hex("#7A5230"),
+		material = Enum.Material.WoodPlanks,
+	})
+	local shelfSign = part(base, {
+		name = "ShelfSign",
+		size = Vector3.new(1, 1, 1),
+		cframe = CFrame.new((shelf.minX + shelf.maxX) / 2, DECK_TOP + 8, shelf.z),
+		transparency = 1,
+		canCollide = false,
+	})
+	billboard(shelfSign, "TROPHY SHELF", "Everyone's rarest find", hex("#FFC933"), 0, 12)
+	for i = 1, CollectionConfig.shelfSlots do
+		local x = shelf.minX
+			+ (i - 1) * (shelf.maxX - shelf.minX) / math.max(1, CollectionConfig.shelfSlots - 1)
+		part(base, {
+			name = "ShelfPedestal",
+			shape = Enum.PartType.Cylinder,
+			size = Vector3.new(1.6, 2.6, 2.6),
+			cframe = CFrame.new(x, DECK_TOP + 2, shelf.z) * CFrame.Angles(0, 0, math.rad(90)),
+			color = hex("#F2E6C9"),
+			material = Enum.Material.Marble,
+		})
+	end
+
 	return base
 end
 
@@ -998,6 +1029,27 @@ local function buildDecorations(rng: Random)
 	smoke.Size = 30
 	smoke.TimeScale = 0.6
 	smoke.Parent = glow
+
+	-- Volcano ground: lava rocks and glowing cracks.
+	for _ = 1, 26 do
+		local x, z = rng:NextNumber(-95, 95), rng:NextNumber(-175, -126)
+		if Zones.inCircle(x, z, L.plateau) then
+			if rng:NextNumber() < 0.6 then
+				rock(decor, Vector3.new(x, L.plateauHeight, z), rng:NextNumber(0.8, 1.6), rng, hex("#3A3232"))
+			else
+				part(decor, {
+					name = "LavaCrack",
+					size = Vector3.new(rng:NextNumber(4, 9), 0.3, 0.8),
+					cframe = CFrame.new(x, L.plateauHeight + 0.1, z)
+						* CFrame.Angles(0, rng:NextNumber(0, 6.28), 0),
+					color = hex("#FF6A1A"),
+					material = Enum.Material.Neon,
+					canCollide = false,
+				})
+				addObstacle(Vector3.new(x, L.plateauHeight, z))
+			end
+		end
+	end
 end
 
 ---------------------------------------------------------------------------
@@ -1005,12 +1057,15 @@ end
 ---------------------------------------------------------------------------
 
 local function surfaceAt(x: number, z: number): (Vector3?, Enum.Material?)
+	-- Hit solid parts too (temple, trunks, rocks) so spots never land inside
+	-- them; walk-through decoration (canopies, bushes, paths) is ignored.
 	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Include
-	params.FilterDescendantsInstances = { Terrain }
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = {}
+	params.RespectCanCollide = true
 	params.IgnoreWater = false
 	local result = workspace:Raycast(Vector3.new(x, 250, z), Vector3.new(0, -400, 0), params)
-	if not result then
+	if not result or result.Instance ~= Terrain then
 		return nil, nil
 	end
 	return result.Position, result.Material
@@ -1041,6 +1096,11 @@ local function generateCandidates(areaId: string, rng: Random): { Vector3 }
 		end
 		local surface, material = surfaceAt(x, z)
 		if not surface or material == Enum.Material.Water or surface.Y < L.waterLevel + 0.8 then
+			return false
+		end
+		-- Only flat, walkable ground (not the volcano's slope or the ramps).
+		local groundY = if areaId == "Beach" then L.beachHeight else L.plateauHeight
+		if math.abs(surface.Y - groundY) > 3 then
 			return false
 		end
 		table.insert(points, surface)
@@ -1080,7 +1140,19 @@ export type BuiltWorld = {
 	gates: { [string]: GateInfo },
 	candidates: { [string]: { Vector3 } },
 	baseFront: Vector3,
+	shelfSlots: { CFrame },
 }
+
+local function shelfSlots(): { CFrame }
+	local shelf = L.trophyShelf
+	local slots = {}
+	for i = 1, CollectionConfig.shelfSlots do
+		local x = shelf.minX
+			+ (i - 1) * (shelf.maxX - shelf.minX) / math.max(1, CollectionConfig.shelfSlots - 1)
+		table.insert(slots, CFrame.new(x, DECK_TOP + 2.8, shelf.z))
+	end
+	return slots
+end
 
 function MapBuilder.build(): BuiltWorld
 	local started = os.clock()
@@ -1120,6 +1192,7 @@ function MapBuilder.build(): BuiltWorld
 		},
 		gates = gates,
 		candidates = candidates,
+		shelfSlots = shelfSlots(),
 		baseFront = Vector3.new((L.base.minX + L.base.maxX) / 2, DECK_TOP, L.base.minZ),
 	}
 end

@@ -11,6 +11,8 @@ local StationController = require(Controllers.StationController)
 local GuideController = require(Controllers.GuideController)
 local GateController = require(Controllers.GateController)
 local OtherPlayersController = require(Controllers.OtherPlayersController)
+local AnnouncementController = require(Controllers.AnnouncementController)
+local CollectionController = require(Controllers.CollectionController)
 
 ClientState.init()
 HudController.init()
@@ -19,6 +21,8 @@ StationController.init()
 GuideController.init()
 GateController.init()
 OtherPlayersController.init()
+AnnouncementController.init()
+CollectionController.init()
 
 -- Listeners are connected; request the snapshot (the server also pushes one
 -- on load, this covers the case where it arrived before we were ready).

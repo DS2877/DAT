@@ -34,7 +34,7 @@ local highlight: Highlight
 local button: TextButton
 
 -- Local-only hole visuals per spot model: { part, hits }.
-local holes: { [Model]: { part: Part, hits: number, spotId: number } } = {}
+local holes: { [Model]: { part: Part, hits: number, required: number, spotId: number } } = {}
 
 local function rootPart(): BasePart?
 	local character = player.Character
@@ -89,11 +89,12 @@ local function setHoleProgress(spot: Model, hits: number, required: number)
 		part.Color = Color3.fromRGB(60, 38, 20)
 		part.Material = Enum.Material.Ground
 		part.Parent = Effects.folder()
-		hole = { part = part, hits = 0, spotId = id }
+		hole = { part = part, hits = 0, required = required, spotId = id }
 		holes[spot] = hole
 	end
-	local h = hole :: { part: Part, hits: number, spotId: number }
+	local h = hole :: { part: Part, hits: number, required: number, spotId: number }
 	h.hits = hits
+	h.required = required
 	local progress = math.clamp(hits / math.max(required, 1), 0, 1)
 	local diameter = 1.4 + 3.4 * progress
 	h.part.Size = Vector3.new(0.3, diameter, diameter)
@@ -169,8 +170,10 @@ local function tryHit()
 	Effects.cameraNudge()
 	Sound.play("DigHit", 0.55, 0.9 + math.random() * 0.2)
 	local hole = holes[spot]
-	local predicted = (if hole and hole.spotId == id then hole.hits else 0) + 1
-	setHoleProgress(spot, math.min(predicted, shovel.hits), shovel.hits)
+	local current = hole and hole.spotId == id and hole
+	local required = if current then current.required else shovel.hits
+	local predicted = (if current then current.hits else 0) + 1
+	setHoleProgress(spot, math.min(predicted, required), required)
 
 	-- Face the spot so the swing lands on it.
 	local root = rootPart()
@@ -204,14 +207,31 @@ local function onDigResult(result: { [string]: any })
 			-- Server saw hits too close together; undo the predicted one.
 			if spot and holes[spot] then
 				local hole = holes[spot]
-				setHoleProgress(spot, math.max(0, hole.hits - 1), ClientState.shovel().hits)
+				setHoleProgress(spot, math.max(0, hole.hits - 1), hole.required)
 			end
+		elseif reason == "Taken" then
+			holding = false
+			HudController.toast("Someone is Deep Digging here!", Ui.Colors.Orange)
 		elseif spot then
 			clearHole(spot)
 		end
 		return
 	end
 
+	if result.deepDig then
+		-- The ground rumbles: this spot needs extra hits, and the reward is big.
+		Sound.play("DeepDig", 0.8)
+		HudController.bigText("SOMETHING IS BURIED DEEP...", Ui.Colors.Orange, 2.6)
+		HudController.toast("Keep digging!", Ui.Colors.Gold, 2.6)
+		for i = 0, 4 do
+			task.delay(i * 0.18, function()
+				Effects.cameraNudge(0.3)
+			end)
+		end
+		if spot then
+			Effects.dirtBurst(spotPosition(spot), 20)
+		end
+	end
 	if spot and not result.done then
 		setHoleProgress(spot, result.hits, result.required)
 		return

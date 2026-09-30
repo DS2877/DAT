@@ -14,4 +14,5 @@ return table.freeze({
 	Sold = "Sold", -- (saleInfo)
 	UpgradeResult = "UpgradeResult", -- (result)
 	Notify = "Notify", -- (text, kind?)
+	Announce = "Announce", -- (announcement) to everyone
 })

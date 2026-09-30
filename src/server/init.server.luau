@@ -15,6 +15,9 @@ local DigService = require(Services.DigService)
 local EconomyService = require(Services.EconomyService)
 local UpgradeService = require(Services.UpgradeService)
 local AreaService = require(Services.AreaService)
+local AnnouncementService = require(Services.AnnouncementService)
+local CollectionService = require(Services.CollectionService)
+local TrophyShelfService = require(Services.TrophyShelfService)
 
 -- init: connect remotes and signals. Order matters only for PlayerData.Loaded
 -- listeners, which must exist before PlayerData starts loading players.
@@ -22,6 +25,9 @@ DigSpotService.init()
 DigService.init()
 EconomyService.init()
 UpgradeService.init()
+AnnouncementService.init()
+CollectionService.init() -- before TrophyShelfService: it fills in bestFind on load
+TrophyShelfService.init()
 CharacterService.init()
 PlayerData.init()
 

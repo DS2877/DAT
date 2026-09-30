@@ -39,6 +39,8 @@ type Find = {
 	isNewVariant: boolean,
 	streak: number,
 	streakBonus: number,
+	deep: boolean?,
+	firstFindBonus: boolean?,
 }
 
 type Style = {
@@ -65,8 +67,19 @@ local function styleFor(find: Find): Style
 	local tier = if info then info.fxTier else 0
 	if find.mutation == "Shiny" then
 		tier = math.max(tier, 1)
-	elseif find.mutation == "Golden" then
+	elseif find.mutation == "Golden" or find.deep then
 		tier = math.max(tier, 2)
+	end
+	if find.deep then
+		-- A Deep Dig find emerges huge.
+		local base = STYLES[tier]
+		return {
+			tier = base.tier,
+			rise = base.rise + 0.4,
+			hold = base.hold,
+			scale = base.scale * 1.8,
+			height = base.height + 2,
+		}
 	end
 	return STYLES[tier]
 end
@@ -80,43 +93,6 @@ local function displayName(find: Find): string
 		return "GOLDEN " .. name
 	end
 	return name
-end
-
-local function applyMutationLook(model: Model, mutation: string?)
-	if not mutation then
-		return
-	end
-	for _, d in model:GetDescendants() do
-		if d:IsA("BasePart") and d.Transparency < 1 then
-			if mutation == "Golden" then
-				d.Color = if d.Material == Enum.Material.Neon then Color3.fromRGB(255, 240, 160) else GOLD
-				if d.Material ~= Enum.Material.Neon then
-					d.Material = Enum.Material.Metal
-				end
-				d.Reflectance = 0.25
-			else
-				d.Reflectance = math.min(0.5, d.Reflectance + 0.3)
-			end
-		end
-	end
-	local root = model.PrimaryPart :: BasePart
-	local sparkle = Instance.new("ParticleEmitter")
-	sparkle.Color = ColorSequence.new(if mutation == "Golden" then GOLD else Color3.new(1, 1, 1))
-	sparkle.LightEmission = 1
-	sparkle.Size =
-		NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 0) })
-	sparkle.Lifetime = NumberRange.new(0.5, 0.9)
-	sparkle.Speed = NumberRange.new(1, 3)
-	sparkle.SpreadAngle = Vector2.new(180, 180)
-	sparkle.Rate = if mutation == "Golden" then 40 else 22
-	sparkle.Parent = root
-	if mutation == "Golden" then
-		local light = Instance.new("PointLight")
-		light.Color = GOLD
-		light.Range = 16
-		light.Brightness = 3
-		light.Parent = root
-	end
 end
 
 local function infoCard(adornee: BasePart, find: Find, color: Color3, style: Style): (BillboardGui, TextLabel)
@@ -138,7 +114,7 @@ local function infoCard(adornee: BasePart, find: Find, color: Color3, style: Sty
 	})
 	local tag: string? = nil
 	if find.isNew then
-		tag = "NEW!"
+		tag = if find.firstFindBonus then "NEW! x2 VALUE" else "NEW!"
 	elseif find.isNewVariant and find.mutation then
 		tag = "NEW " .. string.upper(find.mutation) .. "!"
 	end
@@ -301,7 +277,7 @@ function RevealController.reveal(position: Vector3, find: Find)
 	active += 1
 
 	local model = TreasureBuilder.build(find.id)
-	applyMutationLook(model, find.mutation)
+	TreasureBuilder.applyMutation(model, find.mutation)
 	model:PivotTo(CFrame.new(position + Vector3.new(0, 0.6, 0)))
 	model:ScaleTo(0.3)
 	model.Parent = Effects.folder()
