@@ -1,0 +1,5 @@
+std = "roblox"
+
+[lints]
+# Config tables intentionally mix styles; shadowing is common in callbacks.
+shadowing = "allow"

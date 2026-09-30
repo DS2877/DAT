@@ -1,0 +1,372 @@
+--!strict
+-- Digging on the client: finds the nearest dig spot, shows the big DIG
+-- button, turns taps / clicks / holds into paced hit intents, and plays the
+-- instant local feedback (swing, dirt, thunk, camera nudge, growing hole).
+-- The server validates every hit and decides the loot.
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local DigConfig = require(ReplicatedStorage.Shared.Config.Dig)
+local Progression = require(ReplicatedStorage.Shared.Logic.Progression)
+local Zones = require(ReplicatedStorage.Shared.Logic.Zones)
+local Effects = require(script.Parent.Parent.Effects)
+local Sound = require(script.Parent.Parent.Sound)
+local Ui = require(script.Parent.Parent.Ui)
+local ClientState = require(script.Parent.ClientState)
+local HudController = require(script.Parent.HudController)
+local RevealController = require(script.Parent.RevealController)
+
+local C = Ui.Colors
+local player = Players.LocalPlayer
+
+local DigController = {}
+
+local spotsFolder: Folder
+local digHit: RemoteEvent
+local target: Model? = nil
+local holding = false
+local holdInput: InputObject? = nil -- the touch/click that is holding the DIG button
+local nextHitAt = 0
+local highlight: Highlight
+local button: TextButton
+
+-- Local-only hole visuals per spot model: { part, hits }.
+local holes: { [Model]: { part: Part, hits: number, spotId: number } } = {}
+
+local function rootPart(): BasePart?
+	local character = player.Character
+	return character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+end
+
+local function spotPosition(spot: Model): Vector3
+	local mound = spot.PrimaryPart
+	return if mound then mound.Position else spot:GetPivot().Position
+end
+
+local function spotId(spot: Model): number?
+	return spot:GetAttribute("SpotId") :: number?
+end
+
+local function isUnlocked(spot: Model): boolean
+	local data = ClientState.data
+	local areaId = spot:GetAttribute("AreaId") :: string?
+	return data ~= nil and areaId ~= nil and Progression.isAreaUnlocked(areaId, data.shovelLevel)
+end
+
+---------------------------------------------------------------------------
+-- Hole visuals
+---------------------------------------------------------------------------
+
+local function clearHole(spot: Model)
+	local hole = holes[spot]
+	if hole then
+		hole.part:Destroy()
+		holes[spot] = nil
+	end
+end
+
+local function setHoleProgress(spot: Model, hits: number, required: number)
+	local id = spotId(spot)
+	if not id then
+		return
+	end
+	local hole = holes[spot]
+	if hole and hole.spotId ~= id then
+		clearHole(spot)
+		hole = nil
+	end
+	if not hole then
+		local part = Instance.new("Part")
+		part.Name = "Hole"
+		part.Shape = Enum.PartType.Cylinder
+		part.Anchored = true
+		part.CanCollide = false
+		part.CanQuery = false
+		part.CanTouch = false
+		part.Color = Color3.fromRGB(60, 38, 20)
+		part.Material = Enum.Material.Ground
+		part.Parent = Effects.folder()
+		hole = { part = part, hits = 0, spotId = id }
+		holes[spot] = hole
+	end
+	local h = hole :: { part: Part, hits: number, spotId: number }
+	h.hits = hits
+	local progress = math.clamp(hits / math.max(required, 1), 0, 1)
+	local diameter = 1.4 + 3.4 * progress
+	h.part.Size = Vector3.new(0.3, diameter, diameter)
+	h.part.CFrame = CFrame.new(spotPosition(spot) + Vector3.new(0, 0.62, 0))
+		* CFrame.Angles(0, 0, math.rad(90))
+end
+
+---------------------------------------------------------------------------
+-- Targeting
+---------------------------------------------------------------------------
+
+local function findNearest(): Model?
+	local root = rootPart()
+	if not root then
+		return nil
+	end
+	local best, bestDistance = nil, DigConfig.promptRange
+	local pos = root.Position
+	for _, spot in spotsFolder:GetChildren() do
+		if spot:IsA("Model") and spot.PrimaryPart then
+			local p = spotPosition(spot)
+			local d = Zones.flatDistance(pos.X, pos.Z, p.X, p.Z)
+			if d < bestDistance and math.abs(pos.Y - p.Y) < 10 and isUnlocked(spot) then
+				best, bestDistance = spot, d
+			end
+		end
+	end
+	return best
+end
+
+local function refreshButton()
+	local visible = target ~= nil
+	button.Visible = visible
+	if not visible then
+		return
+	end
+	if ClientState.isBagFull() then
+		button.BackgroundColor3 = C.Grey
+		button.Text = "FULL"
+	else
+		button.BackgroundColor3 = C.Gold
+		button.Text = "DIG!"
+	end
+end
+
+---------------------------------------------------------------------------
+-- Hitting
+---------------------------------------------------------------------------
+
+local function tryHit()
+	local spot = target
+	local id = spot and spotId(spot)
+	local character = player.Character
+	if not spot or not id or not character then
+		return
+	end
+	local now = os.clock()
+	if now < nextHitAt then
+		return
+	end
+	if ClientState.isBagFull() then
+		holding = false
+		HudController.flashBagFull()
+		return
+	end
+	local shovel = ClientState.shovel()
+	nextHitAt = now + shovel.hitInterval
+
+	-- Instant local feedback; the server confirms progress in DigResult.
+	local position = spotPosition(spot)
+	Effects.swing(character, math.min(0.36, shovel.hitInterval * 0.95))
+	Effects.dirtBurst(position, 6)
+	Effects.cameraNudge()
+	Sound.play("DigHit", 0.55, 0.9 + math.random() * 0.2)
+	local hole = holes[spot]
+	local predicted = (if hole and hole.spotId == id then hole.hits else 0) + 1
+	setHoleProgress(spot, math.min(predicted, shovel.hits), shovel.hits)
+
+	-- Face the spot so the swing lands on it.
+	local root = rootPart()
+	if root then
+		local look = Vector3.new(position.X, root.Position.Y, position.Z)
+		if (look - root.Position).Magnitude > 0.5 then
+			root.CFrame = CFrame.lookAt(root.Position, look)
+		end
+	end
+
+	digHit:FireServer(id)
+end
+
+local function findSpotById(id: number): Model?
+	for _, spot in spotsFolder:GetChildren() do
+		if spot:IsA("Model") and spotId(spot) == id then
+			return spot
+		end
+	end
+	return nil
+end
+
+local function onDigResult(result: { [string]: any })
+	local spot = findSpotById(result.spotId)
+	if result.rejected then
+		local reason = result.rejected
+		if reason == "BagFull" then
+			holding = false
+			HudController.flashBagFull()
+		elseif reason == "TooFast" then
+			-- Server saw hits too close together; undo the predicted one.
+			if spot and holes[spot] then
+				local hole = holes[spot]
+				setHoleProgress(spot, math.max(0, hole.hits - 1), ClientState.shovel().hits)
+			end
+		elseif spot then
+			clearHole(spot)
+		end
+		return
+	end
+
+	if spot and not result.done then
+		setHoleProgress(spot, result.hits, result.required)
+		return
+	end
+	if result.done then
+		local position = if spot
+			then spotPosition(spot)
+			else (rootPart() and (rootPart() :: BasePart).Position or Vector3.zero)
+		if spot then
+			clearHole(spot)
+		end
+		Effects.dirtBurst(position, 12)
+		RevealController.reveal(position, result.find)
+	end
+end
+
+---------------------------------------------------------------------------
+-- Input
+---------------------------------------------------------------------------
+
+local DIG_KEYS = {
+	[Enum.KeyCode.E] = true,
+	[Enum.KeyCode.ButtonX] = true,
+	[Enum.KeyCode.ButtonR2] = true,
+}
+
+local function startHolding()
+	holding = true
+	tryHit()
+end
+
+local function buildButton()
+	button = Ui.new("TextButton", {
+		Name = "DigButton",
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, -28, 1, -190),
+		Size = UDim2.fromOffset(150, 150),
+		BackgroundColor3 = C.Gold,
+		Font = Ui.TitleFont,
+		Text = "DIG!",
+		TextColor3 = C.White,
+		TextScaled = true,
+		AutoButtonColor = true,
+		Visible = false,
+		Parent = HudController.root(),
+	}, {
+		Ui.corner(UDim.new(1, 0)),
+		Ui.stroke(5),
+		Ui.textStroke(3),
+		Ui.new("UIPadding", {
+			PaddingTop = UDim.new(0, 34),
+			PaddingBottom = UDim.new(0, 34),
+			PaddingLeft = UDim.new(0, 18),
+			PaddingRight = UDim.new(0, 18),
+		}),
+	})
+	Ui.label({
+		Name = "Hint",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 1, 40),
+		Size = UDim2.fromOffset(170, 28),
+		Text = "Click or [E]",
+		Visible = not UserInputService.TouchEnabled,
+		Parent = button,
+	})
+
+	button.InputBegan:Connect(function(input)
+		if
+			input.UserInputType == Enum.UserInputType.Touch
+			or input.UserInputType == Enum.UserInputType.MouseButton1
+		then
+			holdInput = input
+			startHolding()
+		end
+	end)
+	-- Gamepad selection / accessibility activation.
+	button.Activated:Connect(function(input)
+		if
+			input.UserInputType ~= Enum.UserInputType.Touch
+			and input.UserInputType ~= Enum.UserInputType.MouseButton1
+		then
+			tryHit()
+		end
+	end)
+end
+
+local function bindInput()
+	UserInputService.InputBegan:Connect(function(input, gameProcessed)
+		if gameProcessed then
+			return
+		end
+		if DIG_KEYS[input.KeyCode] or input.UserInputType == Enum.UserInputType.MouseButton1 then
+			if target then
+				startHolding()
+			end
+		end
+	end)
+	UserInputService.InputEnded:Connect(function(input)
+		-- Only the finger holding DIG stops digging (not the thumbstick finger).
+		if
+			input == holdInput
+			or DIG_KEYS[input.KeyCode]
+			or input.UserInputType == Enum.UserInputType.MouseButton1
+		then
+			holding = false
+			holdInput = nil
+		end
+	end)
+end
+
+---------------------------------------------------------------------------
+
+function DigController.init()
+	spotsFolder = workspace:WaitForChild("DigSpots") :: Folder
+	digHit = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("DigHit") :: RemoteEvent
+	local digResult = ReplicatedStorage.Remotes:WaitForChild("DigResult") :: RemoteEvent
+	digResult.OnClientEvent:Connect(onDigResult)
+
+	highlight = Instance.new("Highlight")
+	highlight.Name = "DigTarget"
+	highlight.FillColor = C.Gold
+	highlight.FillTransparency = 0.65
+	highlight.OutlineColor = Color3.new(1, 1, 1)
+	highlight.DepthMode = Enum.HighlightDepthMode.Occluded
+	highlight.Enabled = false
+	highlight.Parent = Effects.folder()
+
+	buildButton()
+	bindInput()
+
+	spotsFolder.ChildRemoved:Connect(function(child)
+		if child:IsA("Model") then
+			clearHole(child)
+		end
+	end)
+	ClientState.Changed:Connect(refreshButton)
+
+	-- Retarget ~10x per second; hits are paced every frame while holding.
+	local accumulator = 0
+	RunService.Heartbeat:Connect(function(dt)
+		accumulator += dt
+		if accumulator >= 0.1 then
+			accumulator = 0
+			local nearest = findNearest()
+			if nearest ~= target then
+				target = nearest
+				highlight.Adornee = nearest
+				highlight.Enabled = nearest ~= nil
+				refreshButton()
+			end
+		end
+		if holding and target then
+			tryHit()
+		end
+	end)
+end
+
+return DigController

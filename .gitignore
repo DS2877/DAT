@@ -1,0 +1,7 @@
+build.rbxl
+*.rbxl
+*.rbxlx
+*.rbxm
+roblox.yml
+sourcemap.json
+/node_modules

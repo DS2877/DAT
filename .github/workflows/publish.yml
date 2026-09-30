@@ -1,0 +1,102 @@
+name: Check and publish
+
+# Every push to main is checked (format, lint, tests, build) and, if all pass,
+# published to the Roblox place. Pull requests run the checks only.
+# "Run workflow" in the GitHub app publishes main manually.
+#
+# TODO(before public launch): remove the `push` trigger's publish so live
+# updates only go out through manual runs (see README).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rokit
+        run: |
+          curl -sSLf -o rokit.zip https://github.com/rojo-rbx/rokit/releases/download/v1.0.0/rokit-1.0.0-linux-x86_64.zip
+          mkdir -p "$RUNNER_TEMP/rokit"
+          unzip -q rokit.zip -d "$RUNNER_TEMP/rokit"
+          rm rokit.zip
+          "$RUNNER_TEMP/rokit/rokit" self-install
+          echo "$HOME/.rokit/bin" >> "$GITHUB_PATH"
+
+      - name: Install toolchain (rokit.toml)
+        run: rokit install --no-trust-check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Format check (StyLua)
+        run: stylua --check src tests scripts
+
+      - name: Lint (Selene)
+        run: selene src
+
+      - name: Tests (Lune)
+        run: lune run tests/run.luau
+
+      - name: Build place (Rojo)
+        run: |
+          OUTPUT=$(jq -r .buildOutput deploy.config.json)
+          rojo build "$(jq -r .projectFile deploy.config.json)" -o "$OUTPUT"
+          ls -la "$OUTPUT"
+
+      - name: Verify build
+        run: lune run scripts/verify-build.luau "$(jq -r .buildOutput deploy.config.json)"
+
+      - name: Publish to Roblox
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        env:
+          API_KEY: ${{ secrets.DAT_PUBLISHING_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${API_KEY:-}" ]; then
+            echo "::error::The DAT_PUBLISHING_KEY secret is not set for this repository."
+            exit 1
+          fi
+          UNIVERSE_ID=$(jq -r .universeId deploy.config.json)
+          PLACE_ID=$(jq -r .placeId deploy.config.json)
+          OUTPUT=$(jq -r .buildOutput deploy.config.json)
+          URL="https://apis.roblox.com/universes/v1/${UNIVERSE_ID}/places/${PLACE_ID}/versions?versionType=Published"
+
+          STATUS=$(curl -sS -o response.json -w "%{http_code}" -X POST "$URL" \
+            -H "x-api-key: ${API_KEY}" \
+            -H "Content-Type: application/octet-stream" \
+            --data-binary "@${OUTPUT}")
+
+          echo "HTTP status: ${STATUS}"
+          echo "Response body:"
+          cat response.json
+          echo
+
+          if [ "$STATUS" = "200" ]; then
+            echo "Published place ${PLACE_ID}, version $(jq -r '.versionNumber // "unknown"' response.json)."
+            exit 0
+          fi
+
+          if [ "$STATUS" = "401" ] || [ "$STATUS" = "403" ]; then
+            echo "::error::Roblox rejected the API key (HTTP ${STATUS})."
+            echo "Likely causes:"
+            echo " 1. The key lacks the 'universe-places' Write permission for universe ${UNIVERSE_ID}."
+            echo " 2. The key's IP allowlist blocks GitHub Actions runners (their IPs change; the allowlist usually needs 0.0.0.0/0)."
+            echo " 3. The key expired or was regenerated without updating the DAT_PUBLISHING_KEY secret."
+          else
+            echo "::error::Publishing failed with HTTP ${STATUS}."
+          fi
+          exit 1
