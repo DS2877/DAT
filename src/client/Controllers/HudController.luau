@@ -7,6 +7,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Format = require(ReplicatedStorage.Shared.Util.Format)
+local Loot = require(ReplicatedStorage.Shared.Config.Loot)
 local Progression = require(ReplicatedStorage.Shared.Logic.Progression)
 local Sound = require(script.Parent.Parent.Sound)
 local Ui = require(script.Parent.Parent.Ui)
@@ -29,6 +30,10 @@ local goalLabel: TextLabel
 local bagFullBanner: TextLabel
 local toastHolder: Frame
 local loadingLabel: TextLabel
+local streakFrame: Frame
+local streakCount: TextLabel
+local streakBonus: TextLabel
+local streakToken = 0
 
 local shownCash = 0
 local cashTweenToken = 0
@@ -163,6 +168,33 @@ local function build()
 			Padding = UDim.new(0, 6),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
+	})
+
+	-- Dig streak counter (right side, above the DIG button area).
+	streakFrame = Ui.new("Frame", {
+		Name = "Streak",
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -24, 0.36, 0),
+		Size = UDim2.fromOffset(210, 84),
+		BackgroundTransparency = 1,
+		Visible = false,
+		Parent = root,
+	})
+	streakCount = Ui.label({
+		Name = "Count",
+		Size = UDim2.new(1, 0, 0, 52),
+		Font = Ui.TitleFont,
+		TextColor3 = C.Orange,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		Parent = streakFrame,
+	})
+	streakBonus = Ui.label({
+		Name = "Bonus",
+		Position = UDim2.fromOffset(0, 52),
+		Size = UDim2.new(1, 0, 0, 28),
+		TextColor3 = C.Gold,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		Parent = streakFrame,
 	})
 
 	loadingLabel = Ui.label({
@@ -337,6 +369,41 @@ function Hud.bigText(text: string, color: Color3?, duration: number?)
 		Ui.tween(label:FindFirstChildOfClass("UIStroke") :: UIStroke, 0.35, { Transparency = 1 })
 		task.wait(0.4)
 		label:Destroy()
+	end)
+end
+
+-- Shows "x3 DIG STREAK" after chained digs; fades quietly when the window ends.
+function Hud.showStreak(count: number, bonus: number)
+	streakToken += 1
+	local token = streakToken
+	if count < 2 then
+		streakFrame.Visible = false
+		return
+	end
+	streakCount.Text = "x" .. count .. " DIG STREAK"
+	streakBonus.Text = string.format("+%d%% value", math.floor(bonus * 100 + 0.5))
+	for _, label in { streakCount, streakBonus } do
+		label.TextTransparency = 0
+		local outline = label:FindFirstChildOfClass("UIStroke")
+		if outline then
+			outline.Transparency = 0
+		end
+	end
+	streakFrame.Visible = true
+	Ui.pop(streakFrame, 0.2 + math.min(count, 10) * 0.02)
+	Sound.play("Streak", 0.35, 1 + math.min(count, 10) * 0.05)
+	task.delay(Loot.streak.window, function()
+		if token ~= streakToken then
+			return
+		end
+		for _, label in { streakCount, streakBonus } do
+			Ui.tween(label, 0.4, { TextTransparency = 1 })
+			Ui.tween(label:FindFirstChildOfClass("UIStroke") :: UIStroke, 0.4, { Transparency = 1 })
+		end
+		task.wait(0.45)
+		if token == streakToken then
+			streakFrame.Visible = false
+		end
 	end)
 end
 

@@ -6,6 +6,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Areas = require(ReplicatedStorage.Shared.Config.Areas)
 local Format = require(ReplicatedStorage.Shared.Util.Format)
 local Progression = require(ReplicatedStorage.Shared.Logic.Progression)
 local Effects = require(script.Parent.Parent.Effects)
@@ -179,6 +180,19 @@ local function onUpgradeResult(result: { [string]: any })
 		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 		if root then
 			Effects.sparkles(root.Position, C.Gold, 40)
+		end
+		-- A new shovel can open a new area: celebrate it right after.
+		if result.kind == "Shovel" then
+			for _, areaId in Areas.Order do
+				local def = Areas.Defs[areaId]
+				if def.enabled and def.requiredShovel == result.level then
+					task.delay(1.7, function()
+						Sound.play("AreaUnlocked", 0.8)
+						HudController.bigText(string.upper(def.displayName) .. " UNLOCKED!", C.Green, 2.4)
+						HudController.toast("The gate is open - go explore!", C.Green, 4)
+					end)
+				end
+			end
 		end
 	elseif result.reason == "NotEnoughCash" then
 		HudController.toast("You need " .. Format.cash(result.missing or 0) .. " more!", C.Red)

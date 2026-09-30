@@ -4,6 +4,7 @@
 
 local Areas = require(script.Parent.Parent.Config.Areas)
 local Economy = require(script.Parent.Parent.Config.Economy)
+local Loot = require(script.Parent.Parent.Config.Loot)
 local Rarities = require(script.Parent.Parent.Config.Rarities)
 local Treasures = require(script.Parent.Parent.Config.Treasures)
 
@@ -12,6 +13,8 @@ export type Roll = { id: string, rarity: string, value: number }
 export type RollOptions = {
 	-- Rarities ranked below this are removed from the odds (e.g. guaranteed Rare).
 	minRarity: string?,
+	-- Per-rarity weight multipliers (e.g. Loot.clueOddsMultipliers).
+	oddsMultipliers: { [string]: number }?,
 }
 
 local LootRoller = {}
@@ -52,9 +55,10 @@ function LootRoller.getOdds(areaId: string, options: RollOptions?): { [string]: 
 	assert(area, "Unknown area " .. areaId)
 	local minRank = if options and options.minRarity then Rarities.rank(options.minRarity) else 0
 	local odds = {}
+	local multipliers = options and options.oddsMultipliers
 	for rarity, chance in area.odds do
 		if chance > 0 and Rarities.rank(rarity) >= minRank and #LootRoller.getPool(areaId, rarity) > 0 then
-			odds[rarity] = chance
+			odds[rarity] = chance * (if multipliers then multipliers[rarity] or 1 else 1)
 		end
 	end
 	if next(odds) == nil and minRank > 0 then
@@ -113,6 +117,26 @@ function LootRoller.rollValue(baseValue: number, rng: Rng): number
 	local variance = Economy.valueVariance
 	local factor = 1 + (rng() * 2 - 1) * variance
 	return math.max(1, math.floor(baseValue * factor + 0.5))
+end
+
+-- Rolls a mutation independently of rarity. Returns the mutation id and its
+-- value multiplier, or nil and 1.
+function LootRoller.rollMutation(rng: Rng): (string?, number)
+	for _, mutation in Loot.mutations do
+		if rng() < mutation.chance then
+			return mutation.id, mutation.multiplier
+		end
+	end
+	return nil, 1
+end
+
+function LootRoller.mutationMultiplier(mutationId: string?): number
+	for _, mutation in Loot.mutations do
+		if mutation.id == mutationId then
+			return mutation.multiplier
+		end
+	end
+	return 1
 end
 
 function LootRoller.roll(areaId: string, rng: Rng, options: RollOptions?): Roll

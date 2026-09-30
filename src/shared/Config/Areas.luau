@@ -1,7 +1,7 @@
 --!strict
 -- The four island areas. Unlocks are derived from shovel level (never saved).
 -- `enabled = false` keeps an area's gate shut with an "opening soon" sign until
--- its content ships (Jungle arrives in Phase 2, Ruins and Volcano in Phase 3).
+-- its content ships (Ruins and Volcano arrive in Phase 3).
 -- Odds are percentages per rarity; missing rarities have 0% chance.
 
 export type AreaDef = {
@@ -33,7 +33,7 @@ Areas.Defs = {
 		order = 2,
 		displayName = "Jungle",
 		requiredShovel = 3,
-		enabled = false, -- TODO(Phase 2): enable with Jungle content.
+		enabled = true,
 		activeSpots = 20,
 		odds = { Common = 45, Uncommon = 35, Rare = 15, Epic = 4.5, Legendary = 0.5 },
 	},

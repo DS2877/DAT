@@ -7,10 +7,12 @@
 
 local Progression = require(script.Parent.Progression)
 local Economy = require(script.Parent.Parent.Config.Economy)
+local Rarities = require(script.Parent.Parent.Config.Rarities)
+local Treasures = require(script.Parent.Parent.Config.Treasures)
 
 local DataSchema = {}
 
-DataSchema.CURRENT_VERSION = 1
+DataSchema.CURRENT_VERSION = 2
 
 function DataSchema.template(): { [string]: any }
 	return {
@@ -18,7 +20,7 @@ function DataSchema.template(): { [string]: any }
 		cash = 0,
 		shovelLevel = 1,
 		bagLevel = 1,
-		bagContents = {}, -- { { id = string, v = number } }
+		bagContents = {}, -- { { id = string, v = number, m = "Shiny" | "Golden" | nil } }
 		rebirths = 0,
 		discovered = {}, -- [treasureId] = { normal = true?, shiny = true?, golden = true? }
 		dailyState = {}, -- Phase 4
@@ -29,6 +31,13 @@ function DataSchema.template(): { [string]: any }
 		onboarding = {
 			funnelStep = 0, -- highest analytics onboarding step logged
 			guideDone = false, -- the new-player arrow has finished
+			-- Guaranteed early finds (see Logic/Guarantees).
+			firstRareFound = false,
+			rareGuaranteeDig = 0, -- 0 = not picked yet
+			firstEpicFound = false,
+			epicGuaranteeAt = 0, -- Jungle seconds; 0 = not picked yet
+			jungleSeconds = 0,
+			jungleLastDigAt = 0,
 		},
 		stats = {
 			digs = 0,
@@ -44,9 +53,34 @@ function DataSchema.template(): { [string]: any }
 	}
 end
 
+local function hasFoundRarity(data: { [string]: any }, minRarity: string): boolean
+	if type(data.discovered) ~= "table" then
+		return false
+	end
+	local minRank = Rarities.rank(minRarity)
+	for id in data.discovered do
+		local def = Treasures.ById[id]
+		if def and Rarities.rank(def.rarity) >= minRank then
+			return true
+		end
+	end
+	return false
+end
+
 -- Migrations keyed by the version they upgrade FROM.
--- Example for the future: [1] = function(data) data.newField = 0 end
-local migrations: { [number]: (data: { [string]: any }) -> () } = {}
+local migrations: { [number]: (data: { [string]: any }) -> () } = {
+	-- v1 -> v2: guaranteed early finds. Players who already found a Rare /
+	-- Epic, or are past their first 10 digs, don't get a forced one.
+	[1] = function(data)
+		local onboarding = if type(data.onboarding) == "table" then data.onboarding else {}
+		data.onboarding = onboarding
+		local digs = if type(data.stats) == "table" and type(data.stats.digs) == "number"
+			then data.stats.digs
+			else 0
+		onboarding.firstRareFound = digs >= 10 or hasFoundRarity(data, "Rare")
+		onboarding.firstEpicFound = hasFoundRarity(data, "Epic")
+	end,
+}
 
 -- Fills in missing keys from the template. Only descends into record-like
 -- tables that exist in the template with non-empty defaults.
@@ -80,7 +114,8 @@ local function sanitize(data: { [string]: any })
 			and type(item.v) == "number"
 			and item.v == item.v
 		then
-			table.insert(clean, { id = item.id, v = math.max(0, math.floor(item.v)) })
+			local mutation = if item.m == "Shiny" or item.m == "Golden" then item.m else nil
+			table.insert(clean, { id = item.id, v = math.max(0, math.floor(item.v)), m = mutation })
 		end
 	end
 	data.bagContents = clean

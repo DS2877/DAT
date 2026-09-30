@@ -21,6 +21,21 @@ local function refresh()
 		local open = Progression.isAreaUnlocked(areaId, data.shovelLevel)
 		barrier.CanCollide = not open
 		barrier.Transparency = if open then 0.85 else 0.1
+		-- The sign above the gate (built by the server) reads "UNLOCKED!" for us.
+		local label = barrier:FindFirstChild("Label")
+		local subtitle = label and label:FindFirstChild("Subtitle")
+		if subtitle and subtitle:IsA("TextLabel") then
+			if open then
+				subtitle.Text = "UNLOCKED!"
+				subtitle.TextColor3 = Color3.fromRGB(120, 255, 120)
+			else
+				local original = subtitle:GetAttribute("OriginalText")
+				if original then
+					subtitle.Text = original :: string
+					subtitle.TextColor3 = Color3.new(1, 1, 1)
+				end
+			end
+		end
 	end
 end
 
@@ -29,6 +44,11 @@ function GateController.init()
 	for _, descendant in gates:GetDescendants() do
 		if descendant:IsA("BasePart") and descendant:GetAttribute("AreaId") then
 			table.insert(barriers, descendant)
+			local label = descendant:FindFirstChild("Label")
+			local subtitle = label and label:FindFirstChild("Subtitle")
+			if subtitle and subtitle:IsA("TextLabel") then
+				subtitle:SetAttribute("OriginalText", subtitle.Text)
+			end
 		end
 	end
 	ClientState.Changed:Connect(refresh)

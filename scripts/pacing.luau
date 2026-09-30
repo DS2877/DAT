@@ -1,6 +1,7 @@
 -- Pacing simulator. Usage: lune run scripts/pacing.luau [runs]
 --
--- Plays the real loot / upgrade config with a simple bot and prints median
+-- Plays the real loot / upgrade config (including clues, mutations and dig
+-- streaks) with a simple bot and prints median
 -- times to the spec's pacing milestones. Timing assumptions (walking between
 -- spots, trips to the sell pad) are rough guesses: tune them against
 -- analytics once real players exist. All areas are simulated as enabled so
@@ -10,7 +11,9 @@ local process = require("@lune/process")
 
 local Loader = require("../tests/loader")
 local Areas = Loader.requireShared("Config/Areas")
+local Loot = Loader.requireShared("Config/Loot")
 local LootRoller = Loader.requireShared("Logic/LootRoller")
+local Streak = Loader.requireShared("Logic/Streak")
 local Progression = Loader.requireShared("Logic/Progression")
 
 -- Assumptions (seconds).
@@ -57,9 +60,17 @@ local function simulate(seed: number): { [string]: number }
 		local def = Progression.getShovel(shovel)
 		local capacity = Progression.bagCapacity(bag)
 		local bagValue = 0
-		for _ = 1, capacity do
+		for dig = 1, capacity do
 			t += WALK_BETWEEN_SPOTS + def.hits * def.hitInterval
-			bagValue += LootRoller.roll(area, rng).value
+			-- Clue spots, mutations and the dig streak (the bot chains every dig).
+			local clue = rng() < Loot.clueChance
+			local roll = LootRoller.roll(
+				area,
+				rng,
+				{ oddsMultipliers = if clue then Loot.clueOddsMultipliers else nil }
+			)
+			local _, multiplier = LootRoller.rollMutation(rng)
+			bagValue += math.floor(roll.value * multiplier * (1 + Streak.bonus(dig)))
 			mark("firstFind")
 		end
 		t += ROUND_TRIP_TO_SELL[area]

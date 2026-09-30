@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Bag = require(ReplicatedStorage.Shared.Logic.Bag)
 local DigConfig = require(ReplicatedStorage.Shared.Config.Dig)
 local Progression = require(ReplicatedStorage.Shared.Logic.Progression)
+local Streak = require(ReplicatedStorage.Shared.Logic.Streak)
 local Zones = require(ReplicatedStorage.Shared.Logic.Zones)
 local Analytics = require(script.Parent.Analytics)
 local DigSpotService = require(script.Parent.DigSpotService)
@@ -26,6 +27,7 @@ type DigState = {
 }
 
 local states: { [Player]: DigState } = {}
+local streaks: { [Player]: Streak.State } = {}
 
 local function reject(player: Player, spotId: number, reason: string)
 	Net.fire("DigResult", player, { spotId = spotId, rejected = reason })
@@ -95,8 +97,14 @@ local function onDigHit(player: Player, spotId: any)
 	s.spotId = -1
 	s.hits = 0
 	DigSpotService.consume(spotId)
-	local find = LootService.rollFor(data, spot.areaId)
-	Bag.add(data.bagContents, { id = find.id, v = find.value }, data.bagLevel)
+	local streak = streaks[player] or Streak.new()
+	streaks[player] = streak
+	local find = LootService.rollFor(data, {
+		areaId = spot.areaId,
+		clue = spot.clue,
+		streak = Streak.onDig(streak, os.clock()),
+	})
+	Bag.add(data.bagContents, { id = find.id, v = find.value, m = find.mutation }, data.bagLevel)
 	data.stats.digs += 1
 	data.stats.finds += 1
 	if data.stats.finds == 1 then
@@ -119,6 +127,7 @@ function DigService.init()
 	Net.on("DigHit", DigConfig.maxHitsPerSecond, DigConfig.maxHitsPerSecond, onDigHit)
 	Players.PlayerRemoving:Connect(function(player)
 		states[player] = nil
+		streaks[player] = nil
 	end)
 end
 

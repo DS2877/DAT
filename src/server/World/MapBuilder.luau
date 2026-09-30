@@ -15,6 +15,7 @@ local DigConfig = require(ReplicatedStorage.Shared.Config.Dig)
 local MapLayout = require(ReplicatedStorage.Shared.Config.MapLayout)
 local Progression = require(ReplicatedStorage.Shared.Logic.Progression)
 local ShovelBuilder = require(ReplicatedStorage.Shared.Builders.ShovelBuilder)
+local TreasureBuilder = require(ReplicatedStorage.Shared.Builders.TreasureBuilder)
 local Zones = require(ReplicatedStorage.Shared.Logic.Zones)
 
 local Terrain = workspace.Terrain
@@ -403,6 +404,146 @@ local function jungleTree(parent: Instance, base: Vector3, rng: Random)
 		})
 	end
 	addObstacle(base)
+end
+
+-- Jungle ground path from the gate, as a list of points (used to keep trees off it).
+local JUNGLE_PATH = {
+	Vector2.new(-65, -26),
+	Vector2.new(-60, -46),
+	Vector2.new(-72, -66),
+	Vector2.new(-58, -88),
+	Vector2.new(-80, -104),
+}
+
+local function nearJunglePath(x: number, z: number, distance: number): boolean
+	for i = 1, #JUNGLE_PATH - 1 do
+		local a, b = JUNGLE_PATH[i], JUNGLE_PATH[i + 1]
+		local ab = b - a
+		local t = math.clamp((Vector2.new(x, z) - a):Dot(ab) / ab:Dot(ab), 0, 1)
+		if (a + ab * t - Vector2.new(x, z)).Magnitude < distance then
+			return true
+		end
+	end
+	return false
+end
+
+local function buildJungle(parent: Instance, rng: Random)
+	local y = L.plateauHeight
+
+	-- Dirt path segments (flat, walk-through).
+	for i = 1, #JUNGLE_PATH - 1 do
+		local a, b = JUNGLE_PATH[i], JUNGLE_PATH[i + 1]
+		local from, to = Vector3.new(a.X, y + 0.05, a.Y), Vector3.new(b.X, y + 0.05, b.Y)
+		part(parent, {
+			name = "Path",
+			size = Vector3.new(7, 0.2, (to - from).Magnitude + 6),
+			cframe = CFrame.lookAt((from + to) / 2, to),
+			color = hex("#9C7A4E"),
+			material = Enum.Material.Ground,
+			canCollide = false,
+		})
+	end
+
+	-- Tall trees (their canopies show over the wall from the beach).
+	local placed = 0
+	for _ = 1, 200 do
+		if placed >= 26 then
+			break
+		end
+		local x, z = rng:NextNumber(-125, -10), rng:NextNumber(-115, -20)
+		if Zones.inCircle(x, z, L.plateau) and not nearJunglePath(x, z, 9) then
+			jungleTree(parent, Vector3.new(x, y - 1, z), rng)
+			-- Hanging vines from some canopies.
+			if rng:NextNumber() < 0.5 then
+				local length = rng:NextNumber(6, 12)
+				part(parent, {
+					name = "Vine",
+					size = Vector3.new(0.3, length, 0.3),
+					cframe = CFrame.new(
+						x + rng:NextNumber(-4, 4),
+						y + 17 - length / 2,
+						z + rng:NextNumber(-4, 4)
+					),
+					color = hex("#2F7A34"),
+					material = Enum.Material.Grass,
+					canCollide = false,
+				})
+			end
+			placed += 1
+		end
+	end
+
+	-- Bushes (walk-through) and a few mossy ruin blocks.
+	for _ = 1, 34 do
+		local x, z = rng:NextNumber(-122, -12), rng:NextNumber(-112, -22)
+		if Zones.inCircle(x, z, L.plateau) and not nearJunglePath(x, z, 6) then
+			local size = rng:NextNumber(4, 7)
+			part(parent, {
+				name = "Bush",
+				shape = Enum.PartType.Ball,
+				size = Vector3.new(size, size * 0.7, size),
+				cframe = CFrame.new(x, y + size * 0.15, z),
+				color = if rng:NextNumber() < 0.5 then hex("#3FAE49") else hex("#2F8F3A"),
+				material = Enum.Material.Grass,
+				canCollide = false,
+			})
+			addObstacle(Vector3.new(x, y, z))
+		end
+	end
+	for _, spot in { Vector3.new(-100, y, -45), Vector3.new(-35, y, -90), Vector3.new(-95, y, -95) } do
+		for i = 1, 4 do
+			local h = rng:NextNumber(3, 8)
+			part(parent, {
+				name = "MossyRuin",
+				size = Vector3.new(3, h, 3),
+				cframe = CFrame.new(spot + Vector3.new((i - 2.5) * 3.4, h / 2 - 0.5, rng:NextNumber(-1, 1)))
+					* CFrame.Angles(0, 0, rng:NextNumber(-0.1, 0.1)),
+				color = hex("#7C8C6A"),
+				material = Enum.Material.Cobblestone,
+			})
+		end
+		addObstacle(spot)
+	end
+end
+
+-- A giant, half-buried glowing treasure just behind a gate: the "something
+-- amazing is in there" glimpse players see through the barrier.
+local function gateGlimpse(
+	parent: Instance,
+	areaId: string,
+	treasureId: string,
+	offset: Vector2,
+	scale: number,
+	glowColor: Color3
+)
+	local g = L.gates[areaId]
+	local x, z = g.x + offset.X, g.z + offset.Y
+	-- Sit on the real terrain height (the Volcano's slope starts right behind its gate).
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	params.FilterDescendantsInstances = { Terrain }
+	local hit = workspace:Raycast(Vector3.new(x, 300, z), Vector3.new(0, -400, 0), params)
+	local groundY = if hit then hit.Position.Y else L.plateauHeight
+
+	local model = TreasureBuilder.build(treasureId)
+	model.Name = areaId .. "Glimpse"
+	model:ScaleTo(scale)
+	-- Half buried and tilted, as if just uncovered.
+	model:PivotTo(
+		CFrame.new(x, groundY + scale * 0.35, z) * CFrame.Angles(math.rad(-12), math.rad(25), math.rad(10))
+	)
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.CanCollide = d.Transparency < 1
+		end
+	end
+	local light = Instance.new("PointLight")
+	light.Color = glowColor
+	light.Range = 30
+	light.Brightness = 2.5
+	light.Parent = model.PrimaryPart
+	model.Parent = parent
+	addObstacle(Vector3.new(x, groundY, z))
 end
 
 local function temple(parent: Instance, center: Vector3)
@@ -806,14 +947,14 @@ local function buildDecorations(rng: Random)
 
 	shipwreck(decor, CFrame.new(-92, 1.5, 128) * CFrame.Angles(0, math.rad(35), 0))
 
-	-- Jungle silhouettes (visible over the wall from the beach).
-	for _ = 1, 26 do
-		local x = rng:NextNumber(-125, -10)
-		local z = rng:NextNumber(-115, -20)
-		if Zones.inCircle(x, z, L.plateau) then
-			jungleTree(decor, Vector3.new(x, L.plateauHeight - 1, z), rng)
-		end
-	end
+	-- Jungle: trees (visible over the wall from the beach), vines, bushes,
+	-- mossy ruins and a dirt path from the gate.
+	buildJungle(decor, rng)
+
+	-- Glimpses of what waits behind each gate.
+	gateGlimpse(decor, "Jungle", "GoldenIdol", Vector2.new(9, -60), 6, hex("#FFC933"))
+	gateGlimpse(decor, "Ruins", "AncientStatue", Vector2.new(-8, -32), 6, hex("#4FD1C5"))
+	gateGlimpse(decor, "Volcano", "Meteorite", Vector2.new(0, -22), 6, hex("#FF6A1A"))
 
 	-- Ruins: a stepped temple and scattered pillars.
 	temple(decor, Vector3.new(70, L.plateauHeight - 1, -75))

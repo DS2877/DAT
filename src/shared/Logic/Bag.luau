@@ -1,10 +1,10 @@
 --!strict
 -- Pure bag helpers. Bag contents are saved, so items are tiny records:
--- { id = treasureId, v = value }.
+-- { id = treasureId, v = value, m = mutation id or nil }.
 
 local Progression = require(script.Parent.Progression)
 
-export type BagItem = { id: string, v: number }
+export type BagItem = { id: string, v: number, m: string? }
 
 local Bag = {}
 
@@ -29,7 +29,7 @@ function Bag.add(contents: { BagItem }, item: BagItem, bagLevel: number): boolea
 	if Bag.isFull(contents, bagLevel) then
 		return false
 	end
-	table.insert(contents, { id = item.id, v = item.v })
+	table.insert(contents, { id = item.id, v = item.v, m = item.m })
 	return true
 end
 

@@ -225,6 +225,7 @@ local function onDigResult(result: { [string]: any })
 		end
 		Effects.dirtBurst(position, 12)
 		RevealController.reveal(position, result.find)
+		HudController.showStreak(result.find.streak, result.find.streakBonus)
 	end
 end
 
