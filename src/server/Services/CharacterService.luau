@@ -1,11 +1,13 @@
 --!strict
 -- Spawns characters once the profile is loaded (CharacterAutoLoads is off so
--- nobody plays before their save is ready), respawns them, and keeps the
--- current shovel model in their hand.
+-- nobody plays before their save is ready), respawns them, keeps the current
+-- shovel (with its rebirth tint) in their hand, and shows the rebirth rank
+-- title above their head for everyone.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Rebirth = require(ReplicatedStorage.Shared.Logic.Rebirth)
 local ShovelBuilder = require(ReplicatedStorage.Shared.Builders.ShovelBuilder)
 local PlayerData = require(script.Parent.PlayerData)
 
@@ -17,8 +19,45 @@ function CharacterService.refreshShovel(player: Player)
 	local data = PlayerData.get(player)
 	local character = player.Character
 	if data and character then
-		ShovelBuilder.attach(character, data.shovelLevel)
+		ShovelBuilder.attach(character, data.shovelLevel, Rebirth.tint(data.rebirths))
 	end
+end
+
+function CharacterService.refreshTitle(player: Player)
+	local data = PlayerData.get(player)
+	local character = player.Character
+	local head = character and character:FindFirstChild("Head") :: BasePart?
+	if not data or not head then
+		return
+	end
+	local existing = head:FindFirstChild("RankTitle")
+	if existing then
+		existing:Destroy()
+	end
+	local title = Rebirth.title(data.rebirths)
+	if title == "" then
+		return
+	end
+	local gui = Instance.new("BillboardGui")
+	gui.Name = "RankTitle"
+	gui.Size = UDim2.fromOffset(220, 30)
+	gui.StudsOffsetWorldSpace = Vector3.new(0, 2.6, 0)
+	gui.MaxDistance = 120
+	gui.LightInfluence = 0
+	gui.Adornee = head
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.Size = UDim2.fromScale(1, 1)
+	label.Font = Enum.Font.LuckiestGuy
+	label.Text = title
+	label.TextScaled = true
+	label.TextColor3 = Color3.fromHex(Rebirth.tint(data.rebirths) or "#FFFFFF")
+	label.Parent = gui
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 2
+	stroke.Color = Color3.fromRGB(40, 25, 10)
+	stroke.Parent = label
+	gui.Parent = head
 end
 
 local function onCharacterAdded(player: Player, character: Model)
@@ -37,6 +76,7 @@ local function onCharacterAdded(player: Player, character: Model)
 	end
 	if character.Parent then
 		CharacterService.refreshShovel(player)
+		CharacterService.refreshTitle(player)
 	end
 	if humanoid then
 		humanoid.Died:Connect(function()

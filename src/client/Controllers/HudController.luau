@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Format = require(ReplicatedStorage.Shared.Util.Format)
 local Loot = require(ReplicatedStorage.Shared.Config.Loot)
 local Progression = require(ReplicatedStorage.Shared.Logic.Progression)
+local Rebirth = require(ReplicatedStorage.Shared.Logic.Rebirth)
 local Sound = require(script.Parent.Parent.Sound)
 local Ui = require(script.Parent.Parent.Ui)
 local ClientState = require(script.Parent.ClientState)
@@ -34,6 +35,9 @@ local streakFrame: Frame
 local streakCount: TextLabel
 local streakBonus: TextLabel
 local streakToken = 0
+local topButtons: Frame
+local rushLabel: TextLabel
+local chipRow: Frame
 
 local shownCash = 0
 local cashTweenToken = 0
@@ -136,7 +140,7 @@ local function build()
 	bagFullBanner = Ui.label({
 		Name = "BagFull",
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 64),
+		Position = UDim2.new(0.5, 0, 0, 120),
 		Size = UDim2.fromOffset(520, 52),
 		BackgroundTransparency = 0,
 		BackgroundColor3 = C.Red,
@@ -158,7 +162,7 @@ local function build()
 	toastHolder = Ui.new("Frame", {
 		Name = "Toasts",
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 128),
+		Position = UDim2.new(0.5, 0, 0, 180),
 		Size = UDim2.fromOffset(560, 200),
 		BackgroundTransparency = 1,
 		Parent = root,
@@ -173,8 +177,8 @@ local function build()
 	-- Dig streak counter (right side, above the DIG button area).
 	streakFrame = Ui.new("Frame", {
 		Name = "Streak",
-		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -24, 0.36, 0),
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, -24, 1, -352), -- just above the DIG button
 		Size = UDim2.fromOffset(210, 84),
 		BackgroundTransparency = 1,
 		Visible = false,
@@ -195,6 +199,49 @@ local function build()
 		TextColor3 = C.Gold,
 		TextXAlignment = Enum.TextXAlignment.Right,
 		Parent = streakFrame,
+	})
+
+	-- Top-right button row (Collection, Daily, Top, Invite...).
+	topButtons = Ui.new("Frame", {
+		Name = "TopButtons",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -14, 0, 70),
+		Size = UDim2.fromOffset(420, 80),
+		BackgroundTransparency = 1,
+		Parent = root,
+	}, {
+		Ui.new("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			HorizontalAlignment = Enum.HorizontalAlignment.Right,
+			Padding = UDim.new(0, 8),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+	})
+
+	-- Treasure Rush countdown under the goal bar.
+	rushLabel = Ui.label({
+		Name = "Rush",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 58),
+		Size = UDim2.fromOffset(420, 26),
+		Parent = root,
+	})
+
+	-- Active boosts / bonuses as small chips.
+	chipRow = Ui.new("Frame", {
+		Name = "Chips",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 88),
+		Size = UDim2.fromOffset(600, 26),
+		BackgroundTransparency = 1,
+		Parent = root,
+	}, {
+		Ui.new("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			Padding = UDim.new(0, 8),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
 	})
 
 	loadingLabel = Ui.label({
@@ -265,11 +312,22 @@ local function refreshGoal()
 	if not data then
 		return
 	end
+	-- With the Legendary Shovel, the next goal is the rebirth.
+	if data.shovelLevel >= Progression.MaxShovelLevel then
+		local cost = Rebirth.cost(data.rebirths)
+		Ui.tween(
+			goalFill,
+			0.4,
+			{ Size = UDim2.fromScale(math.max(math.clamp(data.cash / cost, 0, 1), 0.08), 1) }
+		)
+		goalFill.BackgroundColor3 = C.Purple
+		goalLabel.Text = if data.cash >= cost
+			then "REBIRTH READY! Visit the altar"
+			else string.format("Rebirth: %s / %s", Format.cash(data.cash), Format.cash(cost))
+		return
+	end
 	local goal = Progression.nextGoal(data.cash, data.shovelLevel, data.bagLevel)
 	if not goal then
-		goalLabel.Text = "Max gear! Rebirth is coming soon"
-		goalFill.Size = UDim2.fromScale(1, 1)
-		goalFill.BackgroundColor3 = C.Purple
 		return
 	end
 	local progress = math.clamp(data.cash / goal.cost, 0, 1)
@@ -307,6 +365,91 @@ end
 
 function Hud.root(): Frame
 	return root
+end
+
+-- Adds a round button to the top-right row. Returns it.
+function Hud.addTopButton(
+	name: string,
+	icon: string,
+	caption: string,
+	color: Color3,
+	order: number
+): TextButton
+	local button = Ui.new("TextButton", {
+		Name = name,
+		LayoutOrder = order,
+		Size = UDim2.fromOffset(78, 78),
+		BackgroundColor3 = color,
+		Text = "",
+		Parent = topButtons,
+	}, { Ui.corner(UDim.new(1, 0)), Ui.stroke(4) })
+	Ui.label({
+		Name = "Icon",
+		Size = UDim2.new(1, 0, 0.62, 0),
+		Position = UDim2.fromScale(0, 0.06),
+		Text = icon,
+		Parent = button,
+	})
+	Ui.label({
+		Name = "Caption",
+		Position = UDim2.fromScale(0, 0.66),
+		Size = UDim2.fromScale(1, 0.3),
+		Text = caption,
+		Parent = button,
+	})
+	return button
+end
+
+-- Adds / removes a "!" badge on a top button (e.g. a reward is ready).
+function Hud.setBadge(button: GuiObject, on: boolean)
+	local badge = button:FindFirstChild("Badge")
+	if on and not badge then
+		local dot = Ui.label({
+			Name = "Badge",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.88, 0.12),
+			Size = UDim2.fromOffset(28, 28),
+			BackgroundTransparency = 0,
+			BackgroundColor3 = C.Red,
+			Font = Ui.TitleFont,
+			Text = "!",
+			Parent = button,
+		})
+		Ui.corner(UDim.new(1, 0)).Parent = dot
+	elseif not on and badge then
+		badge:Destroy()
+	end
+end
+
+function Hud.setRushText(text: string, active: boolean)
+	rushLabel.Text = text
+	rushLabel.TextColor3 = if active then C.Gold else C.White
+	rushLabel.Font = if active then Ui.TitleFont else Ui.Font
+end
+
+-- Replaces the chip row: { { text = "2x Cash 4:12", color = Color3 } }.
+function Hud.setChips(chips: { { text: string, color: Color3 } })
+	for _, child in chipRow:GetChildren() do
+		if child:IsA("TextLabel") then
+			child:Destroy()
+		end
+	end
+	for i, chip in chips do
+		local label = Ui.label({
+			LayoutOrder = i,
+			AutomaticSize = Enum.AutomaticSize.X,
+			Size = UDim2.fromOffset(0, 26),
+			BackgroundTransparency = 0.2,
+			BackgroundColor3 = Color3.fromRGB(35, 30, 40),
+			TextScaled = false,
+			TextSize = 18,
+			Text = chip.text,
+			TextColor3 = chip.color,
+			Parent = chipRow,
+		})
+		Ui.corner(UDim.new(1, 0)).Parent = label
+		Ui.new("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10), Parent = label })
+	end
 end
 
 function Hud.screenGui(): ScreenGui
@@ -486,6 +629,9 @@ function Hud.init()
 			elseif kind == "Big" then
 				Sound.play("Upgrade", 0.8)
 				Hud.bigText(text, C.Green, 3)
+			elseif kind == "Reward" then
+				Sound.play("Upgrade", 0.7)
+				Hud.toast(text, C.Gold, 3.5)
 			else
 				Hud.toast(text)
 			end

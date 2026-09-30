@@ -5,6 +5,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Bag = require(ReplicatedStorage.Shared.Logic.Bag)
+local Bonuses = require(ReplicatedStorage.Shared.Logic.Bonuses)
 local Progression = require(ReplicatedStorage.Shared.Logic.Progression)
 local Signal = require(ReplicatedStorage.Shared.Util.Signal)
 
@@ -19,6 +20,16 @@ export type Snapshot = {
 	sales: number,
 	guideDone: boolean,
 	discovered: { [string]: { normal: boolean?, shiny: boolean?, golden: boolean? } },
+	-- Retention (from RewardService)
+	giftStart: number, -- server time the session's playtime gifts started counting
+	giftsClaimed: { [string]: boolean }, -- keyed by tostring(gift index)
+	dailyCanClaim: boolean,
+	dailyDay: number,
+	dailyStreak: number,
+	goldenX: { areaId: string, position: Vector3 }?,
+	groupRewardClaimed: boolean,
+	digCharges: { Rare: number, Epic: number },
+	activeBoosts: { [string]: number },
 }
 
 local ClientState = {}
@@ -50,6 +61,15 @@ end
 function ClientState.bagValue(): number
 	local data = ClientState.data
 	return if data then Bag.totalValue(data.bag) else 0
+end
+
+-- Seconds between dig hits right now (shovel + dig speed boost).
+function ClientState.hitInterval(): number
+	local data = ClientState.data
+	if not data then
+		return 0.5
+	end
+	return Bonuses.hitInterval(data :: any, workspace:GetServerTimeNow())
 end
 
 function ClientState.shovel()

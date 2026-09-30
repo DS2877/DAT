@@ -25,11 +25,18 @@ function DataSchema.template(): { [string]: any }
 		discovered = {}, -- [treasureId] = { normal = true?, shiny = true?, golden = true? }
 		bestFind = {}, -- { id = treasureId, m = mutation? } shown on the trophy shelf; {} = none
 		setsAwarded = {}, -- [areaId] = true once the set-complete reward was given
-		dailyState = {}, -- Phase 4
-		playtimeGiftState = {}, -- Phase 4
+		dailyState = {
+			lastDay = 0, -- UTC day number of the last daily claim (0 = never)
+			streak = 0, -- calendar day (1..7) last claimed
+			goldenXDay = 0, -- UTC day the Golden X was last dug
+		},
+		playtimeGiftState = {}, -- unused: playtime gifts are per session (kept for the schema)
+		digCharges = { Rare = 0, Epic = 0 }, -- guaranteed-rarity digs from rewards
+		groupRewardClaimed = false,
+		weekly = { week = 0, cashEarned = 0, rebirths = 0, bestScore = 0 },
 		processedPurchaseIds = {}, -- Phase 5
 		ownedCosmetics = {}, -- Phase 5
-		activeBoosts = {}, -- Phase 5: [boostId] = expiry unix time
+		activeBoosts = {}, -- [boostId] = expiry unix time
 		onboarding = {
 			funnelStep = 0, -- highest analytics onboarding step logged
 			guideDone = false, -- the new-player arrow has finished

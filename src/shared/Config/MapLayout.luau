@@ -35,9 +35,13 @@ local MapLayout = {
 	sellPad = { x = 0, z = 113, size = 18 },
 	shovelStation = { x = -27, z = 128, radius = 10 },
 	bagStation = { x = 27, z = 128, radius = 10 },
+	-- Rebirth altar on the sand beside the deck.
+	rebirthAltar = { x = -57, z = 128, radius = 9 },
+	-- Leaderboard boards behind the trophy shelf (x positions), facing north.
+	leaderboards = { z = 161, xs = { -30, 0, 30 } },
 
 	-- Dig spots never spawn inside this rectangle (the base plus a margin).
-	spotExclusion = { minX = -50, maxX = 50, minZ = 92, maxZ = 162 },
+	spotExclusion = { minX = -68, maxX = 50, minZ = 92, maxZ = 172 },
 
 	-- Candidate rectangles per area (points are further clipped to land/area).
 	spotRegions = {

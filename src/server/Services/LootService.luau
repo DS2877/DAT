@@ -1,16 +1,23 @@
 --!strict
 -- Server-side loot: rolls a treasure for a finished dig and records the find.
--- Applies, in order: early guarantees / Deep Dig minimum rarity, clue odds,
--- the base roll, a mutation roll, then value bonuses (first find, dig streak,
--- collection sets).
+-- Applies, in order:
+--   1. minimum rarity: early guarantees, Deep Dig, Golden X, reward charges
+--   2. odds boosts: clue spot, Treasure Rush
+--   3. the base roll (rebirth-only Secrets included when unlocked)
+--   4. a mutation roll
+--   5. value bonuses: first find, dig streak, and the cash multiplier
+--      (collection sets, rebirths, friends, 2x Cash boost)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Bonuses = require(ReplicatedStorage.Shared.Logic.Bonuses)
 local Collection = require(ReplicatedStorage.Shared.Logic.Collection)
 local Guarantees = require(ReplicatedStorage.Shared.Logic.Guarantees)
 local Loot = require(ReplicatedStorage.Shared.Config.Loot)
 local LootRoller = require(ReplicatedStorage.Shared.Logic.LootRoller)
 local Rarities = require(ReplicatedStorage.Shared.Config.Rarities)
+local Retention = require(ReplicatedStorage.Shared.Config.Retention)
+local Rush = require(ReplicatedStorage.Shared.Logic.Rush)
 local Streak = require(ReplicatedStorage.Shared.Logic.Streak)
 
 local LootService = {}
@@ -30,6 +37,8 @@ export type Find = {
 	streak: number,
 	streakBonus: number,
 	deep: boolean, -- came out of a Deep Dig
+	goldenX: boolean, -- came out of the daily Golden X
+	rush: boolean, -- dug during a Treasure Rush
 	firstFindBonus: boolean, -- value doubled for a first-ever find
 	newBest: boolean, -- became the player's trophy-shelf find
 }
@@ -39,20 +48,56 @@ export type DigContext = {
 	clue: string?,
 	streak: number,
 	deep: boolean,
+	goldenX: boolean,
+	friends: number, -- friends in the server (cash bonus)
 }
 
-function LootService.rollFor(data: { [string]: any }, context: DigContext): Find
-	local digNumber = data.stats.digs + 1
-	local minRarity = Guarantees.beforeRoll(data.onboarding, context.areaId, digNumber, os.time(), rng)
-	if
-		context.deep
-		and (minRarity == nil or Rarities.rank(minRarity) < Rarities.rank(Loot.deepDig.minRarity))
-	then
-		minRarity = Loot.deepDig.minRarity
+local function atLeast(current: string?, minimum: string): string
+	if current == nil or Rarities.rank(current) < Rarities.rank(minimum) then
+		return minimum
 	end
+	return current
+end
+
+local function combineMultipliers(a: { [string]: number }?, b: { [string]: number }?): { [string]: number }?
+	if not a or not b then
+		return a or b
+	end
+	local out = {}
+	for _, rarity in Rarities.Order do
+		out[rarity] = (a[rarity] or 1) * (b[rarity] or 1)
+	end
+	return out
+end
+
+function LootService.rollFor(data: { [string]: any }, context: DigContext): Find
+	local now = os.time()
+	local digNumber = data.stats.digs + 1
+	local minRarity = Guarantees.beforeRoll(data.onboarding, context.areaId, digNumber, now, rng)
+	if context.deep then
+		minRarity = atLeast(minRarity, Loot.deepDig.minRarity)
+	end
+	if context.goldenX then
+		minRarity = atLeast(minRarity, Retention.goldenX.minRarity)
+	end
+	-- Reward charges (from gifts / daily): spent only when they'd matter.
+	local charges = data.digCharges
+	if charges.Epic > 0 and (minRarity == nil or Rarities.rank(minRarity) < Rarities.rank("Epic")) then
+		charges.Epic -= 1
+		minRarity = "Epic"
+	elseif charges.Rare > 0 and minRarity == nil then
+		charges.Rare -= 1
+		minRarity = "Rare"
+	end
+
+	local rushActive = Rush.isActive(workspace:GetServerTimeNow())
 	local roll = LootRoller.roll(context.areaId, rng, {
 		minRarity = minRarity,
-		oddsMultipliers = if context.clue then Loot.clueOddsMultipliers else nil,
+		oddsMultipliers = combineMultipliers(
+			if context.clue then Loot.clueOddsMultipliers else nil,
+			if rushActive then Retention.rush.oddsMultipliers else nil
+		),
+		rebirths = data.rebirths,
 	})
 	Guarantees.afterRoll(data.onboarding, roll.rarity)
 
@@ -61,11 +106,13 @@ function LootService.rollFor(data: { [string]: any }, context: DigContext): Find
 	local entry = data.discovered[roll.id]
 	local isNew = entry == nil
 	local firstFind = if isNew then Loot.firstFindMultiplier else 1
-	-- The set multiplier is taken before recording this find, so the find
-	-- that completes a set isn't boosted by its own bonus.
-	local setMultiplier = Collection.cashMultiplier(data.discovered)
-	local value =
-		math.max(1, math.floor(roll.value * multiplier * firstFind * (1 + streakBonus) * setMultiplier + 0.5))
+	-- Bonuses are taken before recording this find, so the find that
+	-- completes a set isn't boosted by its own set bonus.
+	local cashMultiplier = Bonuses.cashMultiplier(data, context.friends, now)
+	local value = math.max(
+		1,
+		math.floor(roll.value * multiplier * firstFind * (1 + streakBonus) * cashMultiplier + 0.5)
+	)
 
 	if entry == nil then
 		entry = {}
@@ -95,6 +142,8 @@ function LootService.rollFor(data: { [string]: any }, context: DigContext): Find
 		streak = context.streak,
 		streakBonus = streakBonus,
 		deep = context.deep,
+		goldenX = context.goldenX,
+		rush = rushActive,
 		firstFindBonus = isNew,
 		newBest = newBest,
 	}

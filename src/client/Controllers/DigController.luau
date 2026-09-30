@@ -25,6 +25,8 @@ local player = Players.LocalPlayer
 local DigController = {}
 
 local spotsFolder: Folder
+-- Client-only spots (the player's daily Golden X), created by RewardsController.
+local localSpots: Folder
 local digHit: RemoteEvent
 local target: Model? = nil
 local holding = false
@@ -113,7 +115,11 @@ local function findNearest(): Model?
 	end
 	local best, bestDistance = nil, DigConfig.promptRange
 	local pos = root.Position
-	for _, spot in spotsFolder:GetChildren() do
+	local all = spotsFolder:GetChildren()
+	for _, spot in localSpots:GetChildren() do
+		table.insert(all, spot)
+	end
+	for _, spot in all do
 		if spot:IsA("Model") and spot.PrimaryPart then
 			local p = spotPosition(spot)
 			local d = Zones.flatDistance(pos.X, pos.Z, p.X, p.Z)
@@ -161,11 +167,12 @@ local function tryHit()
 		return
 	end
 	local shovel = ClientState.shovel()
-	nextHitAt = now + shovel.hitInterval
+	local interval = ClientState.hitInterval()
+	nextHitAt = now + interval
 
 	-- Instant local feedback; the server confirms progress in DigResult.
 	local position = spotPosition(spot)
-	Effects.swing(character, math.min(0.36, shovel.hitInterval * 0.95))
+	Effects.swing(character, math.min(0.36, interval * 0.95))
 	Effects.dirtBurst(position, 6)
 	Effects.cameraNudge()
 	Sound.play("DigHit", 0.55, 0.9 + math.random() * 0.2)
@@ -188,6 +195,11 @@ local function tryHit()
 end
 
 local function findSpotById(id: number): Model?
+	for _, spot in localSpots:GetChildren() do
+		if spot:IsA("Model") and spotId(spot) == id then
+			return spot
+		end
+	end
 	for _, spot in spotsFolder:GetChildren() do
 		if spot:IsA("Model") and spotId(spot) == id then
 			return spot
@@ -347,6 +359,9 @@ end
 
 function DigController.init()
 	spotsFolder = workspace:WaitForChild("DigSpots") :: Folder
+	localSpots = Instance.new("Folder")
+	localSpots.Name = "LocalSpots"
+	localSpots.Parent = workspace
 	digHit = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("DigHit") :: RemoteEvent
 	local digResult = ReplicatedStorage.Remotes:WaitForChild("DigResult") :: RemoteEvent
 	digResult.OnClientEvent:Connect(onDigResult)
@@ -363,11 +378,13 @@ function DigController.init()
 	buildButton()
 	bindInput()
 
-	spotsFolder.ChildRemoved:Connect(function(child)
-		if child:IsA("Model") then
-			clearHole(child)
-		end
-	end)
+	for _, folder in { spotsFolder, localSpots } do
+		folder.ChildRemoved:Connect(function(child)
+			if child:IsA("Model") then
+				clearHole(child)
+			end
+		end)
+	end
 	ClientState.Changed:Connect(refreshButton)
 
 	-- Retarget ~10x per second; hits are paced every frame while holding.

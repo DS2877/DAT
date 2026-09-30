@@ -40,13 +40,17 @@ local function makePart(
 	return part
 end
 
-function ShovelBuilder.build(level: number): Model
+-- `tint` (hex) recolors the blade toward a rebirth color.
+function ShovelBuilder.build(level: number, tint: string?): Model
 	local def = Progression.getShovel(level)
 	local model = Instance.new("Model")
 	model.Name = "Shovel"
 	model:SetAttribute("ShovelLevel", def.level)
 
 	local bladeColor = Color3.fromHex(def.bladeColor)
+	if tint then
+		bladeColor = bladeColor:Lerp(Color3.fromHex(tint), 0.55)
+	end
 	local handleColor = Color3.fromHex(def.handleColor)
 	local bladeMaterial = (Enum.Material :: any)[def.bladeMaterial] or Enum.Material.SmoothPlastic
 
@@ -124,7 +128,7 @@ end
 
 -- Attaches a shovel model to a character's right hand. Returns the model, or
 -- nil if the character has no recognizable right hand.
-function ShovelBuilder.attach(character: Model, level: number): Model?
+function ShovelBuilder.attach(character: Model, level: number, tint: string?): Model?
 	local hand = character:FindFirstChild("RightHand") :: BasePart?
 	local offset = ShovelBuilder.HandOffsetR15
 	if not hand then
@@ -138,7 +142,7 @@ function ShovelBuilder.attach(character: Model, level: number): Model?
 	if existing then
 		existing:Destroy()
 	end
-	local model = ShovelBuilder.build(level)
+	local model = ShovelBuilder.build(level, tint)
 	local handle = model.PrimaryPart :: BasePart
 	model:PivotTo(hand.CFrame * offset * ShovelBuilder.GripOffset:Inverse())
 	local weld = Instance.new("Weld")

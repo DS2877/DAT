@@ -13,6 +13,10 @@ local GateController = require(Controllers.GateController)
 local OtherPlayersController = require(Controllers.OtherPlayersController)
 local AnnouncementController = require(Controllers.AnnouncementController)
 local CollectionController = require(Controllers.CollectionController)
+local RewardsController = require(Controllers.RewardsController)
+local RushController = require(Controllers.RushController)
+local RebirthController = require(Controllers.RebirthController)
+local LeaderboardController = require(Controllers.LeaderboardController)
 
 ClientState.init()
 HudController.init()
@@ -23,6 +27,10 @@ GateController.init()
 OtherPlayersController.init()
 AnnouncementController.init()
 CollectionController.init()
+RewardsController.init() -- after DigController (uses its LocalSpots folder)
+RushController.init()
+RebirthController.init()
+LeaderboardController.init()
 
 -- Listeners are connected; request the snapshot (the server also pushes one
 -- on load, this covers the case where it arrived before we were ready).

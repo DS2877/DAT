@@ -15,6 +15,8 @@ export type RollOptions = {
 	minRarity: string?,
 	-- Per-rarity weight multipliers (e.g. Loot.clueOddsMultipliers).
 	oddsMultipliers: { [string]: number }?,
+	-- The player's rebirth count (unlocks rebirth-only Secrets).
+	rebirths: number?,
 }
 
 local LootRoller = {}
@@ -23,8 +25,10 @@ local poolCache: { [string]: { Treasures.TreasureDef } } = {}
 
 -- Treasures that can drop for a rarity in an area: the area's own treasures
 -- of that rarity, or, if it has none, all earlier areas' treasures of it.
-function LootRoller.getPool(areaId: string, rarity: string): { Treasures.TreasureDef }
-	local key = areaId .. "|" .. rarity
+-- Rebirth-only treasures join once the player has enough rebirths.
+function LootRoller.getPool(areaId: string, rarity: string, rebirths: number?): { Treasures.TreasureDef }
+	local r = rebirths or 0
+	local key = areaId .. "|" .. rarity .. "|" .. r
 	local cached = poolCache[key]
 	if cached then
 		return cached
@@ -34,7 +38,7 @@ function LootRoller.getPool(areaId: string, rarity: string): { Treasures.Treasur
 
 	local native, earlier = {}, {}
 	for _, def in Treasures.List do
-		if def.rarity == rarity then
+		if def.rarity == rarity and (def.rebirths == nil or r >= def.rebirths) then
 			local home = Areas.Defs[def.area]
 			if def.area == areaId then
 				table.insert(native, def)
@@ -56,8 +60,13 @@ function LootRoller.getOdds(areaId: string, options: RollOptions?): { [string]: 
 	local minRank = if options and options.minRarity then Rarities.rank(options.minRarity) else 0
 	local odds = {}
 	local multipliers = options and options.oddsMultipliers
+	local rebirths = options and options.rebirths
 	for rarity, chance in area.odds do
-		if chance > 0 and Rarities.rank(rarity) >= minRank and #LootRoller.getPool(areaId, rarity) > 0 then
+		if
+			chance > 0
+			and Rarities.rank(rarity) >= minRank
+			and #LootRoller.getPool(areaId, rarity, rebirths) > 0
+		then
 			odds[rarity] = chance * (if multipliers then multipliers[rarity] or 1 else 1)
 		end
 	end
@@ -141,7 +150,7 @@ end
 
 function LootRoller.roll(areaId: string, rng: Rng, options: RollOptions?): Roll
 	local rarity = LootRoller.rollRarity(LootRoller.getOdds(areaId, options), rng)
-	local def = LootRoller.pickTreasure(LootRoller.getPool(areaId, rarity), rng)
+	local def = LootRoller.pickTreasure(LootRoller.getPool(areaId, rarity, options and options.rebirths), rng)
 	return { id = def.id, rarity = def.rarity, value = LootRoller.rollValue(def.value, rng) }
 end
 

@@ -7,6 +7,10 @@ return table.freeze({
 	DigHit = "DigHit", -- (spotId: number)
 	BuyUpgrade = "BuyUpgrade", -- (kind: "Shovel" | "Bag")
 	RequestSync = "RequestSync", -- ()
+	ClaimGift = "ClaimGift", -- (giftIndex: number)
+	ClaimDaily = "ClaimDaily", -- ()
+	ClaimGroupReward = "ClaimGroupReward", -- ()
+	Rebirth = "Rebirth", -- ()
 
 	-- Server -> Client
 	DataSync = "DataSync", -- (snapshot)

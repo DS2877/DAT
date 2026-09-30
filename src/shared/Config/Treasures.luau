@@ -17,6 +17,9 @@ export type TreasureDef = {
 	color: string,
 	accent: string?,
 	weight: number?,
+	-- Rebirth-only Secret: drops only for players with at least this many
+	-- rebirths, and doesn't count toward its area's collection set.
+	rebirths: number?,
 }
 
 -- stylua: ignore
@@ -62,6 +65,11 @@ local List: { TreasureDef } = {
 	{ id = "GiantGoldenToilet", name = "Giant Golden Toilet", rarity = "Secret", area = "Volcano", value = 450000, model = "Toilet", color = "#FFC933" },
 	{ id = "AlienArtifact", name = "Alien Artifact", rarity = "Secret", area = "Volcano", value = 650000, model = "Relic", color = "#7CFF4F", accent = "#B45CFF" },
 	{ id = "ForbiddenTreasure", name = "The Forbidden Treasure", rarity = "Secret", area = "Volcano", value = 1000000, model = "Chest", color = "#1B1B1B", accent = "#FF2E4D" },
+
+	-- Rebirth-only Secrets (one more unlocks every 5 rebirths) ----------
+	{ id = "RainbowSkull", name = "Rainbow Skull", rarity = "Secret", area = "Volcano", value = 1500000, model = "Skull", color = "#FF5FD2", rebirths = 5 },
+	{ id = "CrystalDragonEgg", name = "Crystal Dragon Egg", rarity = "Secret", area = "Volcano", value = 2500000, model = "Egg", color = "#7FF3FF", accent = "#B45CFF", rebirths = 10 },
+	{ id = "CosmicCrown", name = "Cosmic Crown", rarity = "Secret", area = "Volcano", value = 4000000, model = "Crown", color = "#3F2BFF", accent = "#FFFFFF", rebirths = 15 },
 }
 
 local ById: { [string]: TreasureDef } = {}

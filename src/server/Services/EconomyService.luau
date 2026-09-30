@@ -37,6 +37,7 @@ function EconomyService.addCash(
 	amount = math.max(0, math.floor(amount))
 	data.cash = math.min(data.cash + amount, Economy.maxCash)
 	data.stats.cashEarned += amount
+	data.weekly.cashEarned += amount
 	Analytics.economy(player, "Source", amount, data.cash, transactionType, sku)
 	updateLeaderstats(player, data)
 	PlayerData.changed(player)

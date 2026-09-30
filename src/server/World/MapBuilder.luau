@@ -748,6 +748,109 @@ local function buildBase(): Folder
 		material = Enum.Material.Fabric,
 	})
 
+	-- Rebirth altar (on the sand, left of the deck).
+	local ra = L.rebirthAltar
+	local altar = part(base, {
+		name = "RebirthPad",
+		shape = Enum.PartType.Cylinder,
+		size = Vector3.new(0.5, ra.radius * 1.7, ra.radius * 1.7),
+		cframe = CFrame.new(ra.x, L.beachHeight + 0.25, ra.z) * CFrame.Angles(0, 0, math.rad(90)),
+		color = hex("#B45CFF"),
+		material = Enum.Material.Neon,
+		transparency = 0.2,
+	})
+	altar:SetAttribute("Station", "Rebirth")
+	altar:SetAttribute("Radius", ra.radius)
+	billboard(altar, "REBIRTH", "Rank up: +25% cash forever", hex("#B45CFF"), 12, 14)
+	for i = 0, 3 do
+		local a = i / 4 * math.pi * 2 + math.pi / 4
+		local pillar = part(base, {
+			name = "AltarPillar",
+			size = Vector3.new(1.6, 9, 1.6),
+			cframe = CFrame.new(
+				ra.x + math.cos(a) * ra.radius * 0.9,
+				L.beachHeight + 4.5,
+				ra.z + math.sin(a) * ra.radius * 0.9
+			),
+			color = hex("#E8E1D0"),
+			material = Enum.Material.Marble,
+		})
+		local orb = part(base, {
+			name = "AltarOrb",
+			shape = Enum.PartType.Ball,
+			size = Vector3.new(1.8, 1.8, 1.8),
+			cframe = pillar.CFrame * CFrame.new(0, 5.4, 0),
+			color = hex("#B45CFF"),
+			material = Enum.Material.Neon,
+			canCollide = false,
+		})
+		local light = Instance.new("PointLight")
+		light.Color = orb.Color
+		light.Range = 10
+		light.Parent = orb
+	end
+
+	-- Leaderboard boards (text drawn by each client from published data).
+	local titles = { Richest = "RICHEST", Rebirths = "MOST REBIRTHS", Rarest = "RAREST FIND" }
+	for i, board in { "Richest", "Rebirths", "Rarest" } do
+		local x = L.leaderboards.xs[i]
+		local z = L.leaderboards.z
+		for _, dx in { -8.5, 8.5 } do
+			part(base, {
+				name = "BoardPost",
+				size = Vector3.new(1, 22, 1),
+				cframe = CFrame.new(x + dx, L.beachHeight + 11, z + 0.8),
+				color = hex("#7A5230"),
+				material = Enum.Material.Wood,
+			})
+		end
+		local panel = part(base, {
+			name = "Board_" .. board,
+			size = Vector3.new(17, 14, 0.6),
+			cframe = CFrame.new(x, L.beachHeight + 14, z),
+			color = hex("#2B2323"),
+			material = Enum.Material.SmoothPlastic,
+		})
+		panel:SetAttribute("Leaderboard", board)
+		local gui = Instance.new("SurfaceGui")
+		gui.Name = "Board"
+		gui.Face = Enum.NormalId.Front
+		gui.CanvasSize = Vector2.new(510, 420)
+		gui.LightInfluence = 0
+		gui.Parent = panel
+		local title = Instance.new("TextLabel")
+		title.Name = "Title"
+		title.BackgroundTransparency = 1
+		title.Size = UDim2.new(1, 0, 0, 56)
+		title.Font = Enum.Font.LuckiestGuy
+		title.Text = titles[board]
+		title.TextScaled = true
+		title.TextColor3 = hex("#FFC933")
+		title.Parent = gui
+		local mode = Instance.new("TextLabel")
+		mode.Name = "Mode"
+		mode.BackgroundTransparency = 1
+		mode.Position = UDim2.fromOffset(0, 56)
+		mode.Size = UDim2.new(1, 0, 0, 28)
+		mode.Font = Enum.Font.FredokaOne
+		mode.Text = "ALL TIME"
+		mode.TextScaled = true
+		mode.TextColor3 = Color3.new(1, 1, 1)
+		mode.Parent = gui
+		local rows = Instance.new("TextLabel")
+		rows.Name = "Rows"
+		rows.BackgroundTransparency = 1
+		rows.Position = UDim2.fromOffset(16, 92)
+		rows.Size = UDim2.new(1, -32, 1, -100)
+		rows.Font = Enum.Font.FredokaOne
+		rows.Text = "Loading..."
+		rows.TextSize = 26
+		rows.TextXAlignment = Enum.TextXAlignment.Left
+		rows.TextYAlignment = Enum.TextYAlignment.Top
+		rows.TextColor3 = Color3.new(1, 1, 1)
+		rows.Parent = gui
+	end
+
 	-- Trophy shelf: a pedestal per slot; TrophyShelfService fills them.
 	local shelf = L.trophyShelf
 	part(base, {
@@ -1188,6 +1291,10 @@ function MapBuilder.build(): BuiltWorld
 			Bag = {
 				position = Vector3.new(L.bagStation.x, DECK_TOP, L.bagStation.z),
 				radius = L.bagStation.radius,
+			},
+			Rebirth = {
+				position = Vector3.new(L.rebirthAltar.x, L.beachHeight, L.rebirthAltar.z),
+				radius = L.rebirthAltar.radius,
 			},
 		},
 		gates = gates,

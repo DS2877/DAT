@@ -139,10 +139,11 @@ local function build()
 		Ui.new("UIListLayout", { Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }),
 	})
 
+	-- One section per area set, then the rebirth-only Secrets.
 	local order = 0
-	for _, areaId in Areas.Order do
+	local function section(headerKey: string, filter: (Treasures.TreasureDef) -> boolean)
 		order += 1
-		setHeaders[areaId] = Ui.label({
+		setHeaders[headerKey] = Ui.label({
 			LayoutOrder = order,
 			Size = UDim2.new(1, -12, 0, 34),
 			Font = Ui.TitleFont,
@@ -165,12 +166,22 @@ local function build()
 		})
 		local index = 0
 		for _, def in Treasures.List do
-			if def.area == areaId then
+			if filter(def) then
 				index += 1
 				cards[def.id] = buildCard(grid, def, Rarities.rank(def.rarity) * 100 + index)
 			end
 		end
 	end
+	for _, areaId in Areas.Order do
+		section(areaId, function(def)
+			return def.area == areaId and def.rebirths == nil
+		end)
+	end
+	section("Rebirth", function(def)
+		return def.rebirths ~= nil
+	end)
+	setHeaders.Rebirth.Text = "REBIRTH SECRETS - a new one every 5 rebirths"
+	setHeaders.Rebirth.TextColor3 = C.Purple
 	built = true
 end
 
@@ -252,27 +263,7 @@ function CollectionController.setOpen(open: boolean)
 end
 
 function CollectionController.init()
-	local button = Ui.new("TextButton", {
-		Name = "CollectionButton",
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -14, 0, 70),
-		Size = UDim2.fromOffset(78, 78),
-		BackgroundColor3 = C.Purple,
-		Text = "",
-		Parent = HudController.root(),
-	}, { Ui.corner(UDim.new(1, 0)), Ui.stroke(4) })
-	Ui.label({
-		Size = UDim2.new(1, 0, 0.62, 0),
-		Position = UDim2.fromScale(0, 0.06),
-		Text = "📖",
-		Parent = button,
-	})
-	Ui.label({
-		Position = UDim2.fromScale(0, 0.66),
-		Size = UDim2.fromScale(1, 0.3),
-		Text = "Collection",
-		Parent = button,
-	})
+	local button = HudController.addTopButton("CollectionButton", "📖", "Collection", C.Purple, 1)
 	button.Activated:Connect(function()
 		CollectionController.setOpen(not (built and panel.Visible))
 	end)

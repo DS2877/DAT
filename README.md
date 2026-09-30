@@ -8,11 +8,12 @@ Every push to `main` is checked and published to the Roblox place automatically.
 
 ## Status
 
-**Phase 3 — Content** done: all four areas open (Jungle with the Iron Shovel,
-Ruins with Diamond, Volcano with Magma), all 34 treasures, the Collection
-screen with set bonuses, first-find bonus, Deep Dig events, the trophy shelf
-and server announcements. On top of Phase 2 (rarity presentation, clues,
-Shiny / Golden, streaks, guaranteed early finds) and the Phase 1 core.
+**Phase 4 — Retention** done: rebirth (ranks, +25% cash each, shovel tints,
+rebirth-only Secrets), playtime gifts, 7-day daily reward, daily Golden X,
+Treasure Rush every 15 minutes, leaderboards (all-time and weekly), friends
+bonus with an invite button, and a group reward (off until a group id is set).
+Built on Phases 1–3: the core loop, the fun layer, and all four areas with
+the collection.
 
 ## Layout
 
@@ -49,6 +50,7 @@ Every number lives in `src/shared/Config/`:
 | `Economy.luau` | Value variance, "Only $X to go!" threshold |
 | `Loot.luau` | Clue chance and odds boost, mutations, dig streak, Deep Dig, first-find bonus, early guarantees |
 | `Collection.luau` | Set bonus, set badges, announcement rules, trophy shelf slots |
+| `Retention.luau` | Rebirth, gifts, daily calendar, Golden X, Treasure Rush, boosts, friends, group, leaderboards |
 | `Dig.luau` | Dig ranges, respawn timers, anti-cheat tolerances |
 | `MapLayout.luau` | Island geography, base, stations, gates |
 

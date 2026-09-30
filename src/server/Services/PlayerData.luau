@@ -42,13 +42,21 @@ function PlayerData.isLoaded(player: Player): boolean
 	return sessions[player] ~= nil
 end
 
+-- Other services can add fields to the client snapshot (avoids circular
+-- requires): fn(player, data) returns a table merged into the snapshot.
+local snapshotExtensions: { (Player, { [string]: any }) -> { [string]: any } } = {}
+
+function PlayerData.extendSnapshot(fn: (Player, { [string]: any }) -> { [string]: any })
+	table.insert(snapshotExtensions, fn)
+end
+
 -- The part of the profile the owning client needs to draw its UI.
-local function snapshot(data: { [string]: any })
+local function snapshot(player: Player, data: { [string]: any })
 	local discoveredCount = 0
 	for _ in data.discovered do
 		discoveredCount += 1
 	end
-	return {
+	local result = {
 		cash = data.cash,
 		shovelLevel = data.shovelLevel,
 		bagLevel = data.bagLevel,
@@ -60,6 +68,17 @@ local function snapshot(data: { [string]: any })
 		guideDone = data.onboarding.guideDone,
 		discovered = data.discovered,
 	}
+	for _, extend in snapshotExtensions do
+		local ok, extra = pcall(extend, player, data)
+		if ok then
+			for key, value in extra do
+				result[key] = value
+			end
+		else
+			warn("[PlayerData] snapshot extension failed: " .. tostring(extra))
+		end
+	end
+	return result
 end
 
 -- Queues a snapshot for the client (coalesced to one per frame).
@@ -72,7 +91,7 @@ function PlayerData.changed(player: Player)
 		syncQueued[player] = nil
 		local session = sessions[player]
 		if session and player.Parent then
-			Net.fire("DataSync", player, snapshot(session.data))
+			Net.fire("DataSync", player, snapshot(player, session.data))
 		end
 	end)
 end

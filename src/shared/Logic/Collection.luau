@@ -17,7 +17,7 @@ local Collection = {}
 function Collection.setProgress(discovered: Discovered, areaId: string): (number, number)
 	local found, total = 0, 0
 	for _, def in Treasures.List do
-		if def.area == areaId then
+		if def.area == areaId and def.rebirths == nil then
 			total += 1
 			if discovered[def.id] ~= nil then
 				found += 1

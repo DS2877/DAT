@@ -7,18 +7,23 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Bag = require(ReplicatedStorage.Shared.Logic.Bag)
+local Bonuses = require(ReplicatedStorage.Shared.Logic.Bonuses)
 local DigConfig = require(ReplicatedStorage.Shared.Config.Dig)
 local Loot = require(ReplicatedStorage.Shared.Config.Loot)
 local Progression = require(ReplicatedStorage.Shared.Logic.Progression)
+local Rush = require(ReplicatedStorage.Shared.Logic.Rush)
 local Streak = require(ReplicatedStorage.Shared.Logic.Streak)
 local Zones = require(ReplicatedStorage.Shared.Logic.Zones)
 local Analytics = require(script.Parent.Analytics)
 local AnnouncementService = require(script.Parent.AnnouncementService)
 local CollectionService = require(script.Parent.CollectionService)
 local DigSpotService = require(script.Parent.DigSpotService)
+local FriendsService = require(script.Parent.FriendsService)
+local LeaderboardService = require(script.Parent.LeaderboardService)
 local LootService = require(script.Parent.LootService)
 local Net = require(script.Parent.Parent.Net)
 local PlayerData = require(script.Parent.PlayerData)
+local RewardService = require(script.Parent.RewardService)
 
 local DigService = {}
 
@@ -33,6 +38,10 @@ type DigState = {
 local states: { [Player]: DigState } = {}
 local streaks: { [Player]: Streak.State } = {}
 local random = Random.new()
+local lastRushLogged: { [Player]: number } = {}
+
+-- The id the client uses for its personal daily Golden X spot.
+local GOLDEN_X_ID = -1
 
 local function reject(player: Player, spotId: number, reason: string)
 	Net.fire("DigResult", player, { spotId = spotId, rejected = reason })
@@ -50,7 +59,25 @@ local function onDigHit(player: Player, spotId: any)
 		return
 	end
 
-	local spot = DigSpotService.get(spotId)
+	local isGoldenX = spotId == GOLDEN_X_ID
+	local spot: DigSpotService.Spot? = nil
+	if isGoldenX then
+		local golden = RewardService.goldenX(player, data)
+		if golden then
+			spot = {
+				id = GOLDEN_X_ID,
+				areaId = golden.areaId,
+				position = golden.position,
+				candidateIndex = 0,
+				model = nil :: any,
+				clue = nil,
+				reservedBy = player,
+				reservedUntil = math.huge,
+			}
+		end
+	else
+		spot = DigSpotService.get(spotId)
+	end
 	if not spot then
 		reject(player, spotId, "Gone")
 		return
@@ -78,9 +105,10 @@ local function onDigHit(player: Player, spotId: any)
 	end
 
 	local shovel = Progression.getShovel(data.shovelLevel)
+	local hitInterval = Bonuses.hitInterval(data, os.time())
 	local now = os.clock()
 	local state = states[player]
-	if state and now - state.lastHit < shovel.hitInterval * DigConfig.hitTolerance then
+	if state and now - state.lastHit < hitInterval * DigConfig.hitTolerance then
 		reject(player, spotId, "TooFast")
 		return
 	end
@@ -106,6 +134,7 @@ local function onDigHit(player: Player, spotId: any)
 	if
 		s.hits >= s.required
 		and not s.deep
+		and not isGoldenX
 		and Loot.deepDig.areas[spot.areaId]
 		and random:NextNumber() < Loot.deepDig.chance
 	then
@@ -136,7 +165,16 @@ local function onDigHit(player: Player, spotId: any)
 	s.spotId = -1
 	s.hits = 0
 	s.deep = false
-	DigSpotService.consume(spotId)
+	if isGoldenX then
+		RewardService.consumeGoldenX(data)
+	else
+		DigSpotService.consume(spotId)
+	end
+	local serverNow = workspace:GetServerTimeNow()
+	if Rush.isActive(serverNow) and lastRushLogged[player] ~= Rush.id(serverNow) then
+		lastRushLogged[player] = Rush.id(serverNow)
+		Analytics.custom(player, "TreasureRushDig")
+	end
 	local streak = streaks[player] or Streak.new()
 	streaks[player] = streak
 	local find = LootService.rollFor(data, {
@@ -144,7 +182,10 @@ local function onDigHit(player: Player, spotId: any)
 		clue = spot.clue,
 		streak = Streak.onDig(streak, os.clock()),
 		deep = wasDeep,
+		goldenX = isGoldenX,
+		friends = FriendsService.count(player),
 	})
+	LeaderboardService.onFind(data, find)
 	Bag.add(data.bagContents, { id = find.id, v = find.value, m = find.mutation }, data.bagLevel)
 	data.stats.digs += 1
 	data.stats.finds += 1
@@ -171,6 +212,7 @@ function DigService.init()
 	Players.PlayerRemoving:Connect(function(player)
 		states[player] = nil
 		streaks[player] = nil
+		lastRushLogged[player] = nil
 	end)
 end
 
