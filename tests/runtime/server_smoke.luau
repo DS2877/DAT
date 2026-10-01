@@ -123,8 +123,12 @@ local function digSpot(p, spot): (any, string?)
 	return nil, "never finished"
 end
 
+-- Ten digs (the first Rare is guaranteed within them): two bags' worth,
+-- keeping the first bag to sell below.
 local finds = {}
-for i = 1, Progression.bagCapacity(1) do
+local startCapacity = Progression.bagCapacity(1)
+local firstBag = nil
+for i = 1, 10 do
 	local list = spotList("Beach")
 	local find, reason = digSpot(player, list[1])
 	if not find then
@@ -132,9 +136,17 @@ for i = 1, Progression.bagCapacity(1) do
 		break
 	end
 	table.insert(finds, find)
+	if i == startCapacity then
+		check(#data.bagContents == startCapacity, "bag full after " .. startCapacity .. " digs")
+		local _, reason2 = digSpot(player, spotList("Beach")[1])
+		check(reason2 == "BagFull", "a full bag refuses more digs")
+		firstBag = data.bagContents
+		data.bagContents = {}
+	end
 end
+data.bagContents = firstBag or data.bagContents
 check(#finds == 10, "dug 10 treasures")
-check(#data.bagContents == 10, "bag has 10 items")
+check(#data.bagContents == startCapacity, "bag is full")
 local bestRank = 0
 for _, find in finds do
 	bestRank = math.max(bestRank, Rarities.rank(find.rarity))
@@ -258,7 +270,10 @@ H.fireServer(buyer, "SetSetting", "autoSell", true)
 task.wait(0.05)
 check(Perks.enabled(buyerData, "AutoSell"), "and back on")
 ownerData.passes.BigBag = true
-check(Perks.bagCapacity(ownerData) == 15, "+50% Bag: 10 becomes 15")
+check(
+	Perks.bagCapacity(ownerData) == math.ceil(Progression.bagCapacity(ownerData.bagLevel) * 1.5),
+	"+50% Bag"
+)
 ownerData.passes.BigBag = nil
 
 print("\n== Shop: developer products ==")
@@ -360,6 +375,36 @@ end
 H.removePlayer(owner)
 H.removePlayer(buyer)
 workspace:SetAttribute("ServerBoostUntil", nil)
+
+print("\n== Tiki Bar ==")
+do
+	local Drinks = H.require(Shared.Config.Drinks)
+	local DrinkPrice = H.require(Shared.Logic.DrinkPrice)
+	local tikiPad = workspace.Decor:FindFirstChild("TikiPad", true)
+	check(tikiPad ~= nil, "the Tiki Bar has a drinks pad")
+	local soda = Drinks.Defs.SpeedSoda
+	local price = DrinkPrice.of(soda, data)
+	data.cash = price + 10
+	H.moveTo(player, V3(0, deckTop, 200))
+	H.fireServer(player, "BuyDrink", "SpeedSoda")
+	task.wait(0.05)
+	check(data.cash == price + 10, "can't order away from the bar")
+	H.moveTo(player, tikiPad.Position + V3(0, 0.5, 0))
+	task.wait(0.05)
+	H.fireServer(player, "BuyDrink", "SpeedSoda")
+	H.fireServer(player, "BuyDrink", "Nope")
+	task.wait(0.6)
+	check(data.cash == 10, "Speed Soda costs " .. price)
+	check((data.activeBoosts.SpeedSoda or 0) > os.time() + 250, "Speed Soda runs for 5 minutes")
+	local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+	check(humanoid.WalkSpeed > 25, "Speed Soda makes you faster (" .. humanoid.WalkSpeed .. ")")
+	H.fireServer(player, "BuyDrink", "LuckyLemonade")
+	task.wait(0.05)
+	check(data.activeBoosts.LuckyLemonade == nil and data.cash == 10, "not enough cash: no drink")
+	data.activeBoosts.SpeedSoda = nil
+	task.wait(0.6)
+	check(humanoid.WalkSpeed < 25, "speed back to normal when it runs out")
+end
 
 print("\n== Bad client input ==")
 local errorsBefore = #H.errors

@@ -24,6 +24,7 @@ local RebirthService = require(Services.RebirthService)
 local LeaderboardService = require(Services.LeaderboardService)
 local SettingsService = require(Services.SettingsService)
 local PurchaseService = require(Services.PurchaseService)
+local DrinkService = require(Services.DrinkService)
 
 -- init: connect remotes and signals. Order matters only for PlayerData.Loaded
 -- listeners, which must exist before PlayerData starts loading players.
@@ -39,6 +40,7 @@ RewardService.init()
 RebirthService.init()
 SettingsService.init()
 PurchaseService.init()
+DrinkService.init()
 LeaderboardService.init() -- before PlayerData: its leave handler must run first
 CharacterService.init()
 PlayerData.init()

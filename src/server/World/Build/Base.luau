@@ -591,26 +591,22 @@ end
 -- and a floating crystal.
 local function rebirthTemple(base: Instance, rng: Random): BasePart
 	local ra = L.rebirthAltar
-	local ground = Kit.medianGround({
-		Vector2.new(ra.x - 10, ra.z),
-		Vector2.new(ra.x + 10, ra.z),
-		Vector2.new(ra.x, ra.z - 10),
-		Vector2.new(ra.x, ra.z + 10),
-	}, L.beachHeight)
-	local top = ground + 1.2
+	-- On top of the highest sand under it, so no edge is ever buried.
+	local ground = Kit.highestGround(ra.x, ra.z, ra.radius * 1.5, L.beachHeight)
+	local top = ground + 1.8
 	part(base, {
 		name = "AltarBase",
 		shape = Enum.PartType.Cylinder,
-		size = Vector3.new(6, ra.radius * 2.4, ra.radius * 2.4),
-		cframe = CFrame.new(ra.x, top - 3, ra.z) * CFrame.Angles(0, 0, math.rad(90)),
+		size = Vector3.new(8, ra.radius * 2.4, ra.radius * 2.4),
+		cframe = CFrame.new(ra.x, top - 4, ra.z) * CFrame.Angles(0, 0, math.rad(90)),
 		color = hex("#E8E1D0"),
 		material = Enum.Material.Marble,
 	})
 	part(base, {
 		name = "AltarStep",
 		shape = Enum.PartType.Cylinder,
-		size = Vector3.new(6, ra.radius * 2.4 + 5, ra.radius * 2.4 + 5),
-		cframe = CFrame.new(ra.x, top - 3.6, ra.z) * CFrame.Angles(0, 0, math.rad(90)),
+		size = Vector3.new(8, ra.radius * 2.4 + 5, ra.radius * 2.4 + 5),
+		cframe = CFrame.new(ra.x, top - 4.9, ra.z) * CFrame.Angles(0, 0, math.rad(90)),
 		color = hex("#D6CDB8"),
 		material = Enum.Material.Marble,
 	})
@@ -684,12 +680,7 @@ end
 -- a crown sign. Returns the ground point where the VIP dig spot sits.
 local function vipSite(base: Instance): Vector3
 	local site = L.vipSite
-	local ground = Kit.medianGround({
-		Vector2.new(site.x - 6, site.z),
-		Vector2.new(site.x + 6, site.z),
-		Vector2.new(site.x, site.z - 6),
-		Vector2.new(site.x, site.z + 6),
-	}, L.beachHeight)
+	local ground = Kit.highestGround(site.x, site.z, site.radius + 1, L.beachHeight)
 	local posts = {}
 	for i = 0, 7 do
 		local a = i / 8 * math.pi * 2

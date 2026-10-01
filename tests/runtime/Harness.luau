@@ -214,6 +214,7 @@ local EVENTS = {
 	PlayerAdded = true,
 	PlayerRemoving = true,
 	CharacterAdded = true,
+	CharacterAppearanceLoaded = true,
 	Died = true,
 	OnServerEvent = true,
 	OnClientEvent = true,

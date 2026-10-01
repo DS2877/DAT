@@ -258,6 +258,15 @@ for _, tab in { "Boosts", "Cash", "Skins" } do
 	snap("shop_" .. string.lower(tab))
 end
 H.signal(root.ShopButton, "Activated"):Fire({})
+-- The Tiki Bar menu, with one drink running.
+data.cash = 9000
+data.activeBoosts.SpeedSoda = os.time() + 200
+H.fireServer(player, "RequestSync")
+H.moveTo(player, H.workspace.Decor:FindFirstChild("TikiPad", true).Position + V3(0, 0.5, 0))
+task.wait(0.6)
+snap("tiki")
+H.moveTo(player, V3(MapLayout.spawn.x, deckTop, MapLayout.spawn.z))
+task.wait(0.5)
 table.insert(data.bagContents, { id = "Shell", v = 12 })
 H.fireServer(player, "RequestSync")
 snap("hud_owner")

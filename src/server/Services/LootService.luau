@@ -11,6 +11,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Bonuses = require(ReplicatedStorage.Shared.Logic.Bonuses)
+local Boosts = require(ReplicatedStorage.Shared.Logic.Boosts)
 local Collection = require(ReplicatedStorage.Shared.Logic.Collection)
 local Guarantees = require(ReplicatedStorage.Shared.Logic.Guarantees)
 local Loot = require(ReplicatedStorage.Shared.Config.Loot)
@@ -106,7 +107,8 @@ function LootService.rollFor(data: { [string]: any }, context: DigContext): Find
 	})
 	Guarantees.afterRoll(data.onboarding, roll.rarity)
 
-	local mutation, multiplier = LootRoller.rollMutation(rng)
+	local mutation, multiplier =
+		LootRoller.rollMutation(rng, Boosts.multiplier(data.activeBoosts, "LuckyLemonade", now))
 	local streakBonus = Streak.bonus(context.streak)
 	local entry = data.discovered[roll.id]
 	local isNew = entry == nil

@@ -36,6 +36,7 @@ function Bonuses.parts(
 	if serverBoost then
 		boost = math.max(boost, Retention.boosts.Cash2x.multiplier)
 	end
+	boost *= Boosts.multiplier(data.activeBoosts, "CoconutCash", now)
 	return {
 		sets = Collection.cashMultiplier(data.discovered),
 		rebirths = 1 + data.rebirths * Retention.rebirth.cashBonusPerRebirth,

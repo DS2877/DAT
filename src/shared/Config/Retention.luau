@@ -75,6 +75,11 @@ local Retention = {
 	boosts = {
 		Cash2x = { displayName = "2x Cash", multiplier = 2 },
 		DigSpeed2x = { displayName = "2x Dig Speed", multiplier = 2 },
+		-- Tiki Bar drinks (Config/Drinks).
+		SpeedSoda = { displayName = "🥤 Speed Soda", multiplier = 1.5 }, -- walk speed
+		JumpJuice = { displayName = "🍹 Jump Juice", multiplier = 2 }, -- jump height
+		CoconutCash = { displayName = "🥥 +25% Cash", multiplier = 1.25 }, -- cash
+		LuckyLemonade = { displayName = "🍋 Lucky", multiplier = 2 }, -- Shiny / Golden chance
 	},
 
 	friends = { bonusPerFriend = 0.10, maxBonus = 0.30 },

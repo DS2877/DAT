@@ -58,7 +58,7 @@ end
 function Perks.bagCapacity(data: { [string]: any }): number
 	local base = Progression.bagCapacity(data.bagLevel)
 	if Perks.has(data, "BigBag") then
-		return math.floor(base * P.bigBagMultiplier)
+		return math.ceil(base * P.bigBagMultiplier) -- rounded up
 	end
 	return base
 end

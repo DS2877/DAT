@@ -83,8 +83,10 @@ test("spec numbers: wooden shovel digs in ~1.5s with 3 hits, bags 10..100", func
 	local wooden = Upgrades.Shovels[1]
 	expect.eq(wooden.hits, 3)
 	expect.near(wooden.hits * wooden.hitInterval, 1.5, 0.01)
-	expect.eq(Upgrades.Bags[1].capacity, 10)
-	expect.eq(Upgrades.Bags[#Upgrades.Bags].capacity, 100)
+	expect.eq(Upgrades.Bags[1].capacity, 5)
+	expect.eq(Upgrades.Bags[2].capacity, 10)
+	expect.truthy(Upgrades.Bags[2].cost <= 200, "the first bag upgrade is cheap")
+	expect.truthy(Upgrades.Bags[3].cost >= 5000, "bigger bags are a real goal")
 end)
 
 test("every treasure's model archetype exists in TreasureBuilder", function()

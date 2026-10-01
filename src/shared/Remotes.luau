@@ -14,6 +14,7 @@ return table.freeze({
 	SetSetting = "SetSetting", -- (key: settings key, on: boolean)
 	EquipSkin = "EquipSkin", -- (skinId: string, "" = none)
 	SellAnywhere = "SellAnywhere", -- () Auto Sell's SELL button
+	BuyDrink = "BuyDrink", -- (drinkId: string) at the Tiki Bar
 	ShopEvent = "ShopEvent", -- (event: "ShopOpened" | "OfferShown" | "PurchasePrompted", key: string?)
 
 	-- Server -> Client

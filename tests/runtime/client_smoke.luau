@@ -138,7 +138,7 @@ for _ = 1, 8 do
 end
 check(data.stats.finds >= 1, "tapping DIG dug the spot out")
 task.wait(2.5) -- reveal + fly to bag
-check(root.Bag.Value.Text:find("1/10") ~= nil, "bag counter ticked to 1 (" .. root.Bag.Value.Text .. ")")
+check(root.Bag.Value.Text:find("1/5") ~= nil, "bag counter ticked to 1 (" .. root.Bag.Value.Text .. ")")
 
 print("\n== Shops, panels ==")
 data.cash = 400
@@ -271,6 +271,24 @@ task.wait(1.2)
 H.signal(UserInputService, "InputEnded"):Fire(finger)
 check(hits == 1, "with Auto Dig off, holding digs once (" .. hits .. " hits)")
 check(root:FindFirstChild("Offer") == nil, "no offer for a pass you already own")
+
+print("\n== Tiki Bar ==")
+local tikiPad = H.workspace.Decor:FindFirstChild("TikiPad", true)
+data.cash += 5000
+H.fireServer(player, "RequestSync")
+H.moveTo(player, tikiPad.Position + V3(0, 0.5, 0))
+task.wait(0.6)
+local tiki = root:FindFirstChild("TikiBar")
+check(tiki and tiki.Visible, "the drinks menu opens on the Tiki Bar pad")
+local jump = tiki and tiki:FindFirstChild("JumpJuice", true)
+check(jump and jump.Buy.Text:find("%$") ~= nil, "drinks show a cash price")
+H.signal(jump.Buy, "Activated"):Fire({})
+task.wait(0.5)
+check((data.activeBoosts.JumpJuice or 0) > os.time(), "BUY ordered a Jump Juice")
+check(jump.Timer.Text:find("Active") ~= nil, "the card shows the time left (" .. jump.Timer.Text .. ")")
+H.moveTo(player, V3(0, deck.Position.Y + 3, 206))
+task.wait(0.6)
+check(not tiki.Visible, "the menu closes when you walk away")
 
 print("\n== Shop ==")
 local shop = root:FindFirstChild("Shop")

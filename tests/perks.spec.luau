@@ -43,9 +43,11 @@ test("+50% Bag", function()
 	local data = fresh()
 	expect.eq(Perks.bagCapacity(data), Progression.bagCapacity(1))
 	data.passes.BigBag = true
+	expect.eq(Perks.bagCapacity(data), 8) -- 5 * 1.5, rounded up
+	data.bagLevel = 2
 	expect.eq(Perks.bagCapacity(data), 15)
 	data.bagLevel = Progression.MaxBagLevel
-	expect.eq(Perks.bagCapacity(data), 150)
+	expect.eq(Perks.bagCapacity(data), 135)
 end)
 
 test("dig speed: pass and boost add up, capped at 3x", function()
@@ -111,4 +113,27 @@ test("every product grant and skin is well formed", function()
 		Monetization.Passes.AutoSell.price > Monetization.Passes.AutoDig.price,
 		"Auto Sell costs more than Auto Dig"
 	)
+end)
+
+test("Tiki Bar drinks: prices follow the next goal; cash and luck drinks apply", function()
+	local Drinks = requireShared("Config/Drinks")
+	local DrinkPrice = requireShared("Logic/DrinkPrice")
+	local LootRoller = requireShared("Logic/LootRoller")
+	local data = fresh()
+	local soda = Drinks.Defs.SpeedSoda
+	expect.eq(DrinkPrice.of(soda, data), soda.min) -- Stone Shovel ($250) is cheap
+	data.shovelLevel = 4 -- next: Diamond ($80,000)
+	expect.eq(DrinkPrice.of(soda, data), math.floor(80000 * soda.goalPercent + 0.5))
+	for id, drink in Drinks.Defs do
+		expect.truthy(requireShared("Config/Retention").boosts[drink.boost], id .. " has a boost")
+	end
+	data.activeBoosts.CoconutCash = 100
+	expect.near(Bonuses.cashMultiplier(fresh(), 0, 0) * 1.25, Bonuses.cashMultiplier(data, 0, 0), 1e-9)
+	-- Lucky Lemonade doubles mutation chances: a roll between the normal and
+	-- the doubled Shiny chance mutates only with it.
+	local function rng(): number
+		return 0.03 -- Shiny is 1/40 = 0.025
+	end
+	expect.eq(LootRoller.rollMutation(rng), nil)
+	expect.eq(LootRoller.rollMutation(rng, 2), "Shiny")
 end)

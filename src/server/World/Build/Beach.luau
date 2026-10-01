@@ -6,6 +6,9 @@
 -- the Jungle cliff, torch-lined paths to both gates with a signpost, buoys
 -- and islets. Everything stands on the measured ground.
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Drinks = require(ReplicatedStorage.Shared.Config.Drinks)
 local Kit = require(script.Parent.Kit)
 
 local L = Kit.L
@@ -448,7 +451,8 @@ local function lifeguardTower(parent: Instance, base: Vector3)
 	Kit.addObstacle(base, 6)
 end
 
-local function tikiBar(parent: Instance, base: Vector3, rng: Random)
+-- The Tiki Bar: also the drinks shop. Returns its pad (Station = "Drinks").
+local function tikiBar(parent: Instance, base: Vector3, rng: Random): BasePart
 	local model = Instance.new("Model")
 	model.Name = "TikiBar"
 	for _, c in { { -6, -4 }, { 6, -4 }, { -6, 4 }, { 6, 4 } } do
@@ -526,10 +530,27 @@ local function tikiBar(parent: Instance, base: Vector3, rng: Random)
 		color = hex("#7A5230"),
 		material = Enum.Material.WoodPlanks,
 	})
-	Kit.signText(sign, "TIKI SNACKS", hex("#FFD54A"), nil, { Enum.NormalId.Front })
+	Kit.signText(sign, "TIKI DRINKS", hex("#FFD54A"), nil, { Enum.NormalId.Front })
+	-- Walk onto the pad in front of the stools to open the drinks menu.
+	local pad = part(model, {
+		name = "TikiPad",
+		shape = Enum.PartType.Cylinder,
+		size = Vector3.new(0.3, Drinks.stationRadius * 1.6, Drinks.stationRadius * 1.6),
+		cframe = CFrame.new(base + Vector3.new(0, 0.15, -11)) * CFrame.Angles(0, 0, math.rad(90)),
+		color = hex("#FF8A3D"),
+		material = Enum.Material.Neon,
+		transparency = 0.35,
+		canCollide = false,
+		castShadow = false,
+	})
+	pad:SetAttribute("Station", "Drinks")
+	pad:SetAttribute("Radius", Drinks.stationRadius)
+	Kit.billboard(pad, "TIKI BAR", "Drinks: 5-minute boosts", hex("#FF8A3D"), 3, 12)
 	local _ = rng
 	model.Parent = parent
 	Kit.addObstacle(base, 10)
+	Kit.addObstacle(pad.Position, Drinks.stationRadius + 2)
+	return pad
 end
 
 local function campfire(parent: Instance, base: Vector3, rng: Random)
@@ -732,32 +753,48 @@ local function pathTorches(parent: Instance)
 	local base = Vector3.new(fork[1] + 7, Kit.groundOr(fork[1] + 7, fork[2], level), fork[2])
 	part(parent, {
 		name = "SignPost",
-		size = Vector3.new(0.9, 11, 0.9),
-		cframe = CFrame.new(base + Vector3.new(0, 4.5, 0)),
+		size = Vector3.new(0.9, 12, 0.9),
+		cframe = CFrame.new(base + Vector3.new(0, 5, 0)),
 		color = WOOD,
 		material = Enum.Material.Wood,
 	})
+	-- One board per destination, fixed to the side of the post and pointing
+	-- at it (with an arrow tip), so the post never covers the text and both
+	-- faces read from either side of the path.
+	local sell = L.sellPad
 	for _, s in
 		{
-			{ "< JUNGLE", -1, "#56C451", 8.6 },
-			{ "RUINS >", 1, "#4FD1C5", 6.6 },
-			{ "SELL v", 0, "#FFD54A", 4.6 },
+			{ "JUNGLE", L.gates.Jungle.x, L.gates.Jungle.z, "#56C451", 9.6 },
+			{ "RUINS", L.gates.Ruins.x, L.gates.Ruins.z, "#4FD1C5", 7.4 },
+			{ "SELL", sell.x, sell.z, "#FFD54A", 5.2 },
 		}
 	do
+		local toward = Vector3.new((s[2] :: number) - base.X, 0, (s[3] :: number) - base.Z).Unit
+		local length = 7
+		local center = base + Vector3.new(0, s[5] :: number, 0) + toward * (length / 2 + 0.55)
+		local frame = CFrame.fromMatrix(center, toward, Vector3.yAxis)
 		local board = part(parent, {
 			name = "SignBoard",
-			size = Vector3.new(7, 1.8, 0.4),
-			cframe = CFrame.new(base + Vector3.new((s[2] :: number) * 2.4, s[4] :: number, 0))
-				* CFrame.Angles(0, math.rad((s[2] :: number) * 14), 0),
+			size = Vector3.new(length, 1.8, 0.4),
+			cframe = frame,
 			color = hex("#A06E40"),
 			material = Enum.Material.WoodPlanks,
 		})
-		Kit.signText(board, s[1] :: string, hex(s[3] :: string))
+		part(parent, {
+			name = "SignTip",
+			size = Vector3.new(1.27, 1.27, 0.4),
+			cframe = frame * CFrame.new(length / 2, 0, 0) * CFrame.Angles(0, 0, math.rad(45)),
+			color = hex("#A06E40"),
+			material = Enum.Material.WoodPlanks,
+		})
+		Kit.signText(board, s[1] :: string, hex(s[4] :: string))
 	end
 	Kit.addObstacle(base, 4)
 end
 
-function Beach.build(rng: Random)
+export type BeachInfo = { tikiPad: BasePart? }
+
+function Beach.build(rng: Random): BeachInfo
 	local decor = Kit.folder("Beach", workspace:FindFirstChild("Decor") or Kit.folder("Decor", workspace))
 	level = Kit.medianGround({
 		Vector2.new(-60, 100),
@@ -824,9 +861,7 @@ function Beach.build(rng: Random)
 	local shoreY = Kit.groundOr(dockStart.X, dockStart.Z, level)
 	dock(decor, Vector3.new(dockStart.X, shoreY, dockStart.Z), 60)
 	local tiki = at(-118, 236)
-	if tiki then
-		tikiBar(decor, tiki, rng)
-	end
+	local tikiPad = if tiki then tikiBar(decor, tiki, rng) else nil
 	local fire = at(-96, 284)
 	if fire then
 		campfire(decor, fire, rng)
@@ -961,6 +996,8 @@ function Beach.build(rng: Random)
 			Kit.palm(decor, Vector3.new(c[1] + 5, y, c[2] + 3), rng, 6)
 		end
 	end
+
+	return { tikiPad = tikiPad }
 end
 
 return Beach

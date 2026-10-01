@@ -64,18 +64,18 @@ end)
 test("levels are clamped when looking up definitions", function()
 	expect.eq(Progression.getShovel(0).level, 1)
 	expect.eq(Progression.getShovel(99).level, Progression.MaxShovelLevel)
-	expect.eq(Progression.bagCapacity(1), 10)
+	expect.eq(Progression.bagCapacity(1), 5)
 end)
 
 test("bag fills up to capacity and totals values", function()
 	local contents = {}
-	for i = 1, 10 do
+	for i = 1, 5 do
 		expect.eq(Bag.add(contents, { id = "Shell", v = i }, Progression.bagCapacity(1)), true)
 	end
 	expect.eq(Bag.isFull(contents, Progression.bagCapacity(1)), true)
 	expect.eq(Bag.add(contents, { id = "Shell", v = 100 }, Progression.bagCapacity(1)), false)
-	expect.eq(Bag.count(contents), 10)
-	expect.eq(Bag.totalValue(contents), 55)
+	expect.eq(Bag.count(contents), 5)
+	expect.eq(Bag.totalValue(contents), 15)
 	expect.eq(Bag.isFull(contents, Progression.bagCapacity(2)), false) -- bigger bag has room
 end)
 

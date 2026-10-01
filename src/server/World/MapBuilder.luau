@@ -17,6 +17,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Areas = require(ReplicatedStorage.Shared.Config.Areas)
 local CollectionConfig = require(ReplicatedStorage.Shared.Config.Collection)
+local Drinks = require(ReplicatedStorage.Shared.Config.Drinks)
 local Build = script.Parent.Build
 local BaseBuilder = require(Build.Base)
 local BeachBuilder = require(Build.Beach)
@@ -93,7 +94,7 @@ function MapBuilder.build(): BuiltWorld
 	})
 	local deckTop = base.deckTop
 	local gates = GatesBuilder.build()
-	BeachBuilder.build(rng)
+	local beach = BeachBuilder.build(rng)
 	JungleBuilder.build(rng)
 	RuinsBuilder.build(rng)
 	VolcanoBuilder.build(rng)
@@ -135,6 +136,10 @@ function MapBuilder.build(): BuiltWorld
 			Shovel = station("Shovel", L.shovelStation.radius),
 			Bag = station("Bag", L.bagStation.radius),
 			Rebirth = station("Rebirth", L.rebirthAltar.radius),
+			-- The Tiki Bar's drinks pad (missing only if the beach had no ground there).
+			Drinks = if beach.tikiPad
+				then { position = beach.tikiPad.Position, radius = Drinks.stationRadius }
+				else nil,
 		},
 		gates = gates,
 		candidates = candidates,

@@ -49,6 +49,10 @@ const VIEWS = {
 		pos: [L.gates.Volcano.x, highY + 14, L.gates.Volcano.z - 40],
 		target: [L.volcano.x, highY + 40, L.volcano.z],
 	},
+	signFromBase: { pos: [7, beachY + 9, 100], target: [7, beachY + 7, 72] },
+	signFromNorth: { pos: [-10, beachY + 9, 46], target: [7, beachY + 7, 72] },
+	rebirth: { pos: [-84, beachY + 10, 150], target: [-84, beachY + 2, 176] },
+	tiki: { pos: [-112, beachY + 12, 204], target: [-118, beachY + 3, 232] },
 	vipSite: {
 		pos: [L.vipSite.x - 10, beachY + 22, L.vipSite.z - 34],
 		target: [L.vipSite.x, beachY + 2, L.vipSite.z],

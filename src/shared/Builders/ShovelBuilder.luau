@@ -10,9 +10,12 @@ local ShovelBuilder = {}
 -- A cosmetic skin (Config/Monetization.Skins): replaces the level's colors.
 export type Skin = { blade: string, handle: string, material: string, glow: boolean }
 
+-- Overall size: big enough to read clearly in the hand from the camera.
+local S = 1.35
+
 -- Where the hand grips the handle (in Handle space), and how the shovel sits
 -- in the hand (in hand space). Tweak these two if the grip looks off.
-ShovelBuilder.GripOffset = CFrame.new(0, 1.0, 0)
+ShovelBuilder.GripOffset = CFrame.new(0, 1.0 * S, 0)
 ShovelBuilder.HandOffsetR15 = CFrame.new(0, -0.2, -0.2) * CFrame.Angles(math.rad(50), 0, 0)
 ShovelBuilder.HandOffsetR6 = CFrame.new(0, -1.0, -0.2) * CFrame.Angles(math.rad(50), 0, 0)
 
@@ -65,7 +68,7 @@ function ShovelBuilder.build(level: number, tint: string?, skin: Skin?): Model
 		model,
 		"Handle",
 		Enum.PartType.Block,
-		Vector3.new(0.28, 3.4, 0.28),
+		Vector3.new(0.3, 3.4, 0.3) * S,
 		CFrame.identity,
 		handleColor,
 		Enum.Material.Wood
@@ -77,8 +80,8 @@ function ShovelBuilder.build(level: number, tint: string?, skin: Skin?): Model
 		model,
 		"Grip",
 		Enum.PartType.Block,
-		Vector3.new(0.9, 0.24, 0.24),
-		CFrame.new(0, 1.75, 0),
+		Vector3.new(0.9, 0.26, 0.26) * S,
+		CFrame.new(0, 1.75 * S, 0),
 		handleColor,
 		Enum.Material.Wood
 	)
@@ -87,8 +90,8 @@ function ShovelBuilder.build(level: number, tint: string?, skin: Skin?): Model
 		model,
 		"Collar",
 		Enum.PartType.Block,
-		Vector3.new(0.45, 0.4, 0.3),
-		CFrame.new(0, -1.7, 0),
+		Vector3.new(0.45, 0.4, 0.3) * S,
+		CFrame.new(0, -1.7 * S, 0),
 		bladeColor,
 		bladeMaterial
 	)
@@ -97,8 +100,8 @@ function ShovelBuilder.build(level: number, tint: string?, skin: Skin?): Model
 		model,
 		"Blade",
 		Enum.PartType.Block,
-		Vector3.new(1.3, 1.25, 0.16),
-		CFrame.new(0, -2.45, 0),
+		Vector3.new(1.3, 1.25, 0.18) * S,
+		CFrame.new(0, -2.45 * S, 0),
 		bladeColor,
 		bladeMaterial
 	)
@@ -106,8 +109,8 @@ function ShovelBuilder.build(level: number, tint: string?, skin: Skin?): Model
 		model,
 		"Tip",
 		Enum.PartType.Block,
-		Vector3.new(0.92, 0.92, 0.16),
-		CFrame.new(0, -3.05, 0) * CFrame.Angles(0, 0, math.rad(45)),
+		Vector3.new(0.92, 0.92, 0.18) * S,
+		CFrame.new(0, -3.05 * S, 0) * CFrame.Angles(0, 0, math.rad(45)),
 		bladeColor,
 		bladeMaterial
 	)

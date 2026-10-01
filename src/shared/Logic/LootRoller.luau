@@ -130,9 +130,10 @@ end
 
 -- Rolls a mutation independently of rarity. Returns the mutation id and its
 -- value multiplier, or nil and 1.
-function LootRoller.rollMutation(rng: Rng): (string?, number)
+-- `chanceMultiplier` scales every mutation's chance (Lucky Lemonade).
+function LootRoller.rollMutation(rng: Rng, chanceMultiplier: number?): (string?, number)
 	for _, mutation in Loot.mutations do
-		if rng() < mutation.chance then
+		if rng() < mutation.chance * (chanceMultiplier or 1) then
 			return mutation.id, mutation.multiplier
 		end
 	end

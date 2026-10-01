@@ -121,6 +121,14 @@ function CharacterService.init()
 		player.CharacterAdded:Connect(function(character)
 			onCharacterAdded(player, character)
 		end)
+		-- Avatar bundles can swap the body parts once the appearance loads,
+		-- taking a shovel welded to the old hand with them: attach again.
+		player.CharacterAppearanceLoaded:Connect(function(character)
+			if character.Parent then
+				CharacterService.refreshShovel(player)
+				CharacterService.refreshTitle(player)
+			end
+		end)
 		player:LoadCharacter()
 	end)
 	Players.PlayerRemoving:Connect(function(player)

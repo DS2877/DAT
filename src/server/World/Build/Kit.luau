@@ -403,6 +403,23 @@ function Kit.groundOr(x: number, z: number, fillHeight: number): number
 	return Kit.groundY(x, z) or (fillHeight + Kit.FILL_OFFSET)
 end
 
+-- Highest ground in a ring around (x, z) plus its center: for platforms that
+-- must sit on top of the sand everywhere (Roblox terrain is bumpy).
+function Kit.highestGround(x: number, z: number, radius: number, fallback: number): number
+	local best: number? = Kit.groundY(x, z)
+	for ring = 1, 2 do
+		local r = radius * ring / 2
+		for i = 0, 7 do
+			local a = i / 8 * math.pi * 2
+			local y = Kit.groundY(x + math.cos(a) * r, z + math.sin(a) * r)
+			if y and (not best or y > best) then
+				best = y
+			end
+		end
+	end
+	return best or (fallback + Kit.FILL_OFFSET)
+end
+
 -- Median ground height over a set of points (robust to a stray rock).
 function Kit.medianGround(points: { Vector2 }, fallback: number): number
 	local values = {}

@@ -68,6 +68,7 @@ Every number lives in `src/shared/Config/`:
 | `Dig.luau` | Dig ranges, respawn timers, anti-cheat tolerances |
 | `MapLayout.luau` | Island geography, base, stations, gates, paths, landmarks |
 | `Movement.luau` | Walk speed, spawn camera zoom |
+| `Drinks.luau` | Tiki Bar drinks: effect, duration, price |
 | `Monetization.luau` | Passes, products, skins, perk numbers, offer limits |
 
 To add a treasure: append a row in `Treasures.luau` (tests check its value band
@@ -125,6 +126,14 @@ placing anything. The test harness copies both behaviors
 (`Harness.terrainOffset`, `Harness.terrainSettle`), so code that trusts
 fill heights or measures too early fails in CI. Roblox draws a Ball part with its smallest size axis,
 so stretched round shapes use `Kit.ellipsoid` (a sphere mesh on a block).
+
+## Tiki Bar
+
+The tiki bar on the beach (west of the base) sells drinks for Cash: 5-minute
+boosts (Speed Soda: run 50% faster, Jump Juice: jump twice as high, Golden
+Coconut: +25% cash, Lucky Lemonade: 2x Shiny / Golden chance). Prices are a
+share of the player's next goal (`Config/Drinks.luau`), so they stay
+meaningful at every stage. Buying one that's running adds 5 minutes.
 
 ## Audio
 
