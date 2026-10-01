@@ -12,6 +12,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Worlds = require(ReplicatedStorage.Shared.Config.Worlds)
+local Theme = require(script.Parent.Theme)
 local Kit = require(script.Parent.Kit)
 
 local L = Kit.L
@@ -409,13 +410,16 @@ function Portal.build(rng: Random): Built
 	-- The sign (the client writes your progress on its small board) and
 	-- the First Explorers board, either side of the step.
 	local w = Worlds.next
+	local home = Theme.frost -- in Frostbite Peaks it leads back to the island
 	Kit.standingSign(
 		model,
 		origin + n * 16 - right * 11 - Vector3.new(0, 2, 0),
 		n,
-		"❄️ FROST PORTAL",
-		string.format("Rebirth %d to enter", w.requiredRebirths),
-		hex(w.color),
+		if home then "🏝️ ISLAND PORTAL" else "❄️ FROST PORTAL",
+		if home
+			then "Back to " .. Worlds.home.name
+			else string.format("Rebirth %d to enter", w.requiredRebirths),
+		hex(if home then Worlds.home.color else w.color),
 		11
 	)
 	local boardFrame =

@@ -14,6 +14,8 @@ export type AreaDef = {
 	odds: { [string]: number },
 }
 
+local CurrentWorld = require(script.Parent.Parent.Logic.CurrentWorld)
+
 local Areas = {}
 
 Areas.Order = { "Beach", "Jungle", "Ruins", "Volcano" }
@@ -64,5 +66,56 @@ Areas.Defs = {
 		},
 	},
 } :: { [string]: AreaDef }
+
+-- Frostbite Peaks: the same four areas on the same map (same ids), as frost
+-- biomes, with better odds.
+if CurrentWorld.isFrost() then
+	Areas.Defs = {
+		Beach = {
+			id = "Beach",
+			order = 1,
+			displayName = "Frost Shore",
+			requiredShovel = 1,
+			enabled = true,
+			activeSpots = 22,
+			odds = { Common = 62, Uncommon = 29, Rare = 9 },
+		},
+		Jungle = {
+			id = "Jungle",
+			order = 2,
+			displayName = "Pine Woods",
+			requiredShovel = 3,
+			enabled = true,
+			activeSpots = 25,
+			odds = { Common = 38, Uncommon = 36, Rare = 18, Epic = 7, Legendary = 1 },
+		},
+		Ruins = {
+			id = "Ruins",
+			order = 3,
+			displayName = "Ice Ruins",
+			requiredShovel = 5,
+			enabled = true,
+			activeSpots = 25,
+			odds = { Common = 20, Uncommon = 33, Rare = 27, Epic = 15, Legendary = 4.5, Mythic = 0.5 },
+		},
+		Volcano = {
+			id = "Volcano",
+			order = 4,
+			displayName = "Frozen Peak",
+			requiredShovel = 7,
+			enabled = true,
+			activeSpots = 25,
+			odds = {
+				Common = 8,
+				Uncommon = 22,
+				Rare = 30,
+				Epic = 24,
+				Legendary = 12,
+				Mythic = 3.6,
+				Secret = 0.4,
+			},
+		},
+	} :: { [string]: AreaDef }
+end
 
 return table.freeze(Areas)

@@ -9,8 +9,10 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local CurrentWorld = require(ReplicatedStorage.Shared.Logic.CurrentWorld)
 local DataSchema = require(ReplicatedStorage.Shared.Logic.DataSchema)
 local Signal = require(ReplicatedStorage.Shared.Util.Signal)
+local WorldState = require(ReplicatedStorage.Shared.Logic.WorldState)
 local Analytics = require(script.Parent.Analytics)
 local Net = require(script.Parent.Parent.Net)
 local SessionStore = require(script.Parent.Parent.Data.SessionStore)
@@ -23,7 +25,22 @@ local PlayerData = {}
 -- Fired (player, data) once a profile is loaded and the player may play.
 PlayerData.Loaded = Signal.new()
 
-local store = SessionStore.new(STORE_NAME)
+-- This server's world: its run is swapped in on load and out on save
+-- (Logic/WorldState), so everything else just sees the current run.
+local world = CurrentWorld.id()
+
+local store = SessionStore.new(STORE_NAME, function(data)
+	return WorldState.stored(data, world)
+end)
+
+local function migrate(stored: any): { [string]: any }
+	local data = DataSchema.migrate(stored)
+	if world ~= "Island" then
+		WorldState.enter(data, world)
+		DataSchema.sanitize(data)
+	end
+	return data
+end
 local sessions: { [Player]: SessionStore.Session } = {}
 local joinClock: { [Player]: number } = {}
 local releasing: { [number]: boolean } = {}
@@ -120,7 +137,7 @@ local function onPlayerAdded(player: Player)
 		return
 	end
 
-	local session, reason = store:load(key, DataSchema.migrate)
+	local session, reason = store:load(key, migrate)
 	if not player.Parent then
 		-- Left while loading: release the lock we just took.
 		if session then

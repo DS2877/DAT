@@ -724,11 +724,24 @@ do
 		portalModel.IceSheet.Transparency == 1 and portalModel.PortalCore.SnowWind.Enabled,
 		"the ice is gone and snow blows out of the open portal"
 	)
+	-- Open: stepping in starts the trip to Frostbite Peaks.
+	local Worlds = H.require(game:GetService("ReplicatedStorage").Shared.Config.Worlds)
 	H.clockOffset += 10
 	H.moveTo(player, portalModel:GetAttribute("Center"))
 	task.wait(0.6)
+	local fade = root:FindFirstChild("PortalFade")
+	check(
+		fade ~= nil and H.teleports[#H.teleports] ~= nil,
+		"stepping in starts the trip (the screen fades to white)"
+	)
+	-- Closed: the 'being built' window with the launch sign-up.
+	Worlds.next.open = false
+	H.clockOffset += 10
+	H.moveTo(player, portalModel:GetAttribute("Center"))
+	task.wait(0.6)
+	Worlds.next.open = true
 	local soon = root:FindFirstChild("WorldPortal")
-	check(soon and soon.Visible, "stepping in shows the 'being built' window")
+	check(soon and soon.Visible, "while it's closed, stepping in shows the 'being built' window")
 	H.signal(soon:FindFirstChild("Notify", true), "Activated"):Fire({})
 	task.wait(0.3)
 	check(not soon.Visible and root.IslandGuide.Visible, "GET NOTIFIED opens the events sign-up")

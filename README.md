@@ -89,6 +89,7 @@ selene src                                # lint
 lune run tests/run.luau                   # tests (pure logic + config checks)
 lune run tests/runtime/server_smoke.luau build.rbxl   # runs the real server headless
 lune run tests/runtime/client_smoke.luau build.rbxl   # real client + server, DIG button to sale
+lune run tests/runtime/frost_smoke.luau build.rbxl    # the same server as a Frostbite Peaks server
 lune run scripts/pacing.luau [runs] [pace]  # pacing simulator (pace 1.0 focused .. 2.0 slow)
 lune run scripts/export-map.luau build.rbxl map.json && python3 scripts/render-map.py map.json out/
                                           # top-down map + view from the base (needs Pillow, numpy)
@@ -168,17 +169,14 @@ meaningful at every stage. Buying one that's running adds 5 minutes.
   Mythic+ treasure in an on-screen draw (one ticket per hit, 3 hits to
   enter); the other helpers get some cash.
 * **Frost Portal** (`Config/Worlds.luau`): a snow-capped stone ring with
-  an ice rim on the beach, in view from the spawn, leading to the next
-  world (Frostbite Peaks, not built yet). The three gems on its keystone
-  light up with your rebirths; until Rebirth 3 a sheet of ice seals it and
-  it pushes you back. When it opens the ice shatters, sparkles swirl in and
-  snow blows out. At Rebirth 3 it opens for you for good (fanfare,
-  server announcement, your name on the First Explorers board). Stepping in
-  then shows a "being built" window whose GET NOTIFIED button opens the
-  Island Guide's events, so create a launch event in the Roblox app. When
-  the world is published as a place in this experience, put its id in
-  `Worlds.next.placeId` and the portal teleports there (saves are shared
-  across places, so progress comes along).
+  an ice rim on the beach, in view from the spawn, leading to Frostbite
+  Peaks. The three gems on its keystone light up with your rebirths; until
+  Rebirth 3 a sheet of ice seals it and it pushes you back. When it opens
+  the ice shatters, sparkles swirl in and snow blows out. At Rebirth 3 it
+  opens for you for good (fanfare, server announcement, your name on the
+  First Explorers board), and stepping in takes you to Frostbite Peaks. With
+  `Worlds.next.open = false` it shows a "being built" window instead, whose
+  GET NOTIFIED button opens the Island Guide's events.
 * **Admin panel** (🛠️, `Config/Admin.luau`): for the game's owner (and any
   listed user ids; everyone in Studio). Every action is checked on the
   server.
@@ -196,6 +194,43 @@ meaningful at every stage. Buying one that's running adds 5 minutes.
     announcements, and messages to every server (filtered, sent with
     MessagingService, shown at the top of everyone's screen as a speech
     bubble from your avatar).
+
+## Frostbite Peaks (world 2)
+
+The second world, reached through the Frost Portal at Rebirth 3, with free
+travel back and forth (the same portal there leads home).
+
+* **Same place, its own servers.** Frostbite Peaks runs in reserved servers
+  of this place: any reserved server is a Frostbite Peaks server
+  (`Server/WorldSelect`, first thing at boot; it sets the workspace's
+  `WorldId`, and the configs read it through `Logic/CurrentWorld` on the
+  server and every client). The island portal sends players to the fullest
+  Frost server with room, or reserves a new one; open servers list
+  themselves (with their player count) in a MemoryStore sorted map
+  (`Services/WorldServers`, `Worlds.servers`).
+* **Starting over.** Each world has its own run: cash, shovel, bag and
+  what's in the bag (`Logic/WorldState`). The island run stays where it
+  always was in the save; Frostbite Peaks' is under `worldSaves.Frost` and
+  is swapped in on load and back out for every save. Shared everywhere:
+  rebirths and their bonuses, the treasure book, best find, Robux
+  purchases, boosts, dailies, settings and stats. Rebirths happen on the
+  island only.
+* **New ladders.** 8 frost shovels (Frostbite to Frost King, icy designs)
+  and 8 bags (Fur Pouch to Bottomless Frost Bag) in `Config/Upgrades`; 34
+  frost treasures (rows with `world = "Frost"` in `Config/Treasures`, worth
+  about 12x the island's) and better odds per area in `Config/Areas`.
+  Collection sets are per world (`setsAwarded["Frost:Beach"]`).
+* **Same map, frost biomes.** The builders run unchanged and pass through
+  `World/Build/Theme`: sand becomes snow (Frost Shore), grass is frosted
+  (Pine Woods), stone turns ice blue (Ice Ruins), lava rivers freeze into
+  glowing glacier ice (Frozen Peak), palms grow as snowy pines, canopies and
+  rocks get snow caps, fires burn blue, and the lighting is cold and hazy
+  with snowfall on the client. The base is built without the dressing, so
+  every building stands exactly where it does on the island.
+* Tests: `tests/worlds.spec.luau` (configs, the save swap) and
+  `tests/runtime/frost_smoke.luau` (boots the real server as a Frost server,
+  a traveller arrives, digs, saves, returns). Preview it with
+  `FROST_PREVIEW=1 lune run scripts/export-map.luau build.rbxl map.json`.
 
 ## Dig animation
 

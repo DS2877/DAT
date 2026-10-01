@@ -1,5 +1,9 @@
 --!strict
--- Server bootstrap: build the island, then start services in dependency order.
+-- Server bootstrap: pick the world, build it, then start services in
+-- dependency order.
+
+-- First: the configs read the world when they load.
+local world = require(script.WorldSelect).apply()
 
 local Net = require(script.Net) -- creates the remotes first
 local MapBuilder = require(script.World.MapBuilder)
@@ -31,6 +35,7 @@ local MegaDigService = require(Services.MegaDigService)
 local PartyService = require(Services.PartyService)
 local GlobalMessageService = require(Services.GlobalMessageService)
 local WorldPortalService = require(Services.WorldPortalService)
+local WorldServers = require(Services.WorldServers)
 
 -- init: connect remotes and signals. Order matters only for PlayerData.Loaded
 -- listeners, which must exist before PlayerData starts loading players.
@@ -63,6 +68,9 @@ AreaService.start()
 LeaderboardService.start()
 JackpotService.start()
 MegaDigService.run()
+if world ~= "Island" then
+	WorldServers.host(world)
+end
 
 local _ = Net
-print("[DigForCash] Server ready")
+print("[DigForCash] Server ready: " .. world)

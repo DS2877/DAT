@@ -1,6 +1,7 @@
 --!strict
 -- Pure rebirth rules.
 
+local CurrentWorld = require(script.Parent.CurrentWorld)
 local Retention = require(script.Parent.Parent.Config.Retention)
 
 local Rebirth = {}
@@ -10,8 +11,12 @@ function Rebirth.cost(rebirths: number): number
 	return math.floor(r.baseCost * r.costGrowth ^ rebirths / 1000 + 0.5) * 1000
 end
 
--- ok, reason ("NeedShovel" | "NotEnoughCash"), missing cash
+-- ok, reason ("IslandOnly" | "NeedShovel" | "NotEnoughCash"), missing cash.
+-- A rebirth resets the island's run, so it only happens on the island.
 function Rebirth.canRebirth(data: { [string]: any }): (boolean, string?, number)
+	if CurrentWorld.isFrost() then
+		return false, "IslandOnly", 0
+	end
 	if data.shovelLevel < Retention.rebirth.requiredShovel then
 		return false, "NeedShovel", 0
 	end

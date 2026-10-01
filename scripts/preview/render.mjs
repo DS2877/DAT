@@ -124,7 +124,7 @@ for (const [k, v] of Object.entries(map.terrainColors || {})) TERRAIN[k] = "#" +
 		const mat = map.palette[map.materials[i] - 1];
 		const h = mat === "Water" ? map.floors[i] : map.heights[i];
 		pos.set([bounds.minX + q * step, h, bounds.minZ + r * step], i * 3);
-		c.set(TERRAIN[mat === "Water" ? "Sand" : mat] || "#ff00ff");
+		c.set(TERRAIN[mat === "Water" ? (map.world === "Frost" ? "Snow" : "Sand") : mat] || "#ff00ff");
 		const n = (Math.sin(q * 12.9898 + r * 78.233) * 43758.5453) % 1;
 		c.offsetHSL(0, 0, n * 0.035);
 		if (mat === "Water") c.multiplyScalar(Math.max(0.35, 1 + h / 30));
@@ -145,7 +145,7 @@ for (const [k, v] of Object.entries(map.terrainColors || {})) TERRAIN[k] = "#" +
 	scene.add(m);
 	const water = new THREE.Mesh(
 		new THREE.PlaneGeometry(6000, 6000),
-		new THREE.MeshStandardMaterial({ color: "#1CC4D0", transparent: true, opacity: 0.62, roughness: 0.15, metalness: 0.1 })
+		new THREE.MeshStandardMaterial({ color: map.waterColor ? "#" + map.waterColor : "#1CC4D0", transparent: true, opacity: 0.62, roughness: 0.15, metalness: 0.1 })
 	);
 	water.rotation.x = -Math.PI / 2; water.position.y = 0;
 	water.receiveShadow = true;

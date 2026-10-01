@@ -28,6 +28,7 @@ local PortalBuilder = require(Build.Portal)
 local Kit = require(Build.Kit)
 local RuinsBuilder = require(Build.Ruins)
 local TerrainBuilder = require(Build.Terrain)
+local Theme = require(Build.Theme)
 local VolcanoBuilder = require(Build.Volcano)
 
 local L = Kit.L
@@ -86,7 +87,11 @@ function MapBuilder.build(): BuiltWorld
 		table.insert(probes, Vector2.new(p[1], p[2]))
 	end
 	Kit.waitForTerrain(probes)
+	-- The base is the same in every world (players recognize it): built
+	-- without the world's dressing.
+	Theme.dressing = false
 	local base = BaseBuilder.build(rng)
+	Theme.dressing = Theme.frost
 	-- The base clears the sand under its deck; let that settle too.
 	local b = L.base
 	Kit.waitForTerrain({
@@ -103,6 +108,7 @@ function MapBuilder.build(): BuiltWorld
 	JungleBuilder.build(rng)
 	RuinsBuilder.build(rng)
 	VolcanoBuilder.build(rng)
+	Theme.snowCaps(workspace:FindFirstChild("Decor") or workspace)
 
 	local candidates = {}
 	local candidateRng = Random.new(1337)
@@ -124,7 +130,8 @@ function MapBuilder.build(): BuiltWorld
 	end
 	print(
 		string.format(
-			"[MapBuilder] Island built in %.2fs (dig points: %s)",
+			"[MapBuilder] %s built in %.2fs (dig points: %s)",
+			if Theme.frost then "Frostbite Peaks" else "Island",
 			os.clock() - started,
 			table.concat(counts, ", ")
 		)

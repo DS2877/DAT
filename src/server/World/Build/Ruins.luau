@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local TreasureBuilder = require(ReplicatedStorage.Shared.Builders.TreasureBuilder)
 local Kit = require(script.Parent.Kit)
+local Theme = require(script.Parent.Theme)
 local TerrainBuilder = require(script.Parent.Terrain)
 
 local L = Kit.L
@@ -176,7 +177,7 @@ local function pyramid(parent: Instance, center: Vector3, size: number, rng: Ran
 	end
 	-- Guardian statues at the foot of the stairs.
 	for _, dx in { -14, 14 } do
-		local statue = TreasureBuilder.build("AncientStatue")
+		local statue = TreasureBuilder.build(if Theme.frost then "FrostKnightStatue" else "AncientStatue")
 		TreasureBuilder.scaleTo(statue, 4)
 		statue:PivotTo(
 			CFrame.new(center + Vector3.new(dx, 4.4, size / 2 + 12)) * CFrame.Angles(0, math.rad(180), 0)

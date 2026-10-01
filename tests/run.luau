@@ -7,6 +7,7 @@ local process = require("@lune/process")
 
 local Loader = require("./loader")
 local requireShared = Loader.requireShared
+local requireSharedIn = Loader.requireSharedIn
 local baseEnv = Loader.baseEnv
 
 ---------------------------------------------------------------------------
@@ -99,6 +100,7 @@ local specEnvBase = {
 	test = test,
 	expect = expect,
 	requireShared = requireShared,
+	requireSharedIn = requireSharedIn,
 	seededRng = seededRng,
 	scriptedRng = scriptedRng,
 }

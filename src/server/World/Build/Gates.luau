@@ -12,6 +12,7 @@ local Areas = require(ReplicatedStorage.Shared.Config.Areas)
 local Progression = require(ReplicatedStorage.Shared.Logic.Progression)
 local TreasureBuilder = require(ReplicatedStorage.Shared.Builders.TreasureBuilder)
 local Kit = require(script.Parent.Kit)
+local Theme = require(script.Parent.Theme)
 
 local L = Kit.L
 local part, hex = Kit.part, Kit.hex
@@ -279,9 +280,29 @@ function Gates.build(): { [string]: GateInfo }
 		gates[areaId] = gate(gatesFolder, areaId)
 	end
 
-	glimpse(decor, "Jungle", "GoldenIdol", Vector2.new(14, -L.rampLength - 26), 7)
-	glimpse(decor, "Ruins", "AncientStatue", Vector2.new(-18, -L.rampLength - 24), 7)
-	glimpse(decor, "Volcano", "Meteorite", Vector2.new(-6, -L.rampLength - 24), 7)
+	-- (Frostbite Peaks shows its own treasures.)
+	local frost = Theme.frost
+	glimpse(
+		decor,
+		"Jungle",
+		if frost then "FrostMammothIdol" else "GoldenIdol",
+		Vector2.new(14, -L.rampLength - 26),
+		7
+	)
+	glimpse(
+		decor,
+		"Ruins",
+		if frost then "FrostKnightStatue" else "AncientStatue",
+		Vector2.new(-18, -L.rampLength - 24),
+		7
+	)
+	glimpse(
+		decor,
+		"Volcano",
+		if frost then "FrostComet" else "Meteorite",
+		Vector2.new(-6, -L.rampLength - 24),
+		7
+	)
 	return gates
 end
 

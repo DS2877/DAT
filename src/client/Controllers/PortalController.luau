@@ -6,11 +6,13 @@
 --     the ice is gone, sparkles swirl in and snow blows out at you (the
 --     moment it opens, the ice shatters)
 --   * reactions: unlocked (fanfare), locked (a shake), the "being built"
---     window with the launch sign-up, and the trip when the world exists
+--     window with the launch sign-up, and the trip
+--   * in Frostbite Peaks it's the way back to the island: always open
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
+local CurrentWorld = require(ReplicatedStorage.Shared.Logic.CurrentWorld)
 local Worlds = require(ReplicatedStorage.Shared.Config.Worlds)
 local Effects = require(script.Parent.Parent.Effects)
 local Sound = require(script.Parent.Parent.Sound)
@@ -27,9 +29,14 @@ local PortalController = {}
 
 local portal: Model? = nil
 local panel: Frame
+local fade: Frame? = nil
 local shown = -1
+local inFrost = CurrentWorld.isFrost()
 
 local function rebirths(): number
+	if inFrost then
+		return Worlds.next.requiredRebirths -- the way home is open for everyone
+	end
 	local data = ClientState.data
 	return if data then data.rebirths else 0
 end
@@ -124,8 +131,9 @@ local function refresh()
 	if sub then
 		for _, label in sub:GetDescendants() do
 			if label:IsA("TextLabel") then
-				label.Text = if have >= need
-					then "OPEN FOR YOU! Step in"
+				label.Text = if inFrost
+					then "Step in to go back to " .. Worlds.home.name
+					elseif have >= need then "OPEN FOR YOU! Step in"
 					else string.format("Rebirth %d to enter · You: %d/%d", need, have, need)
 			end
 		end
@@ -233,11 +241,16 @@ local function onPortal(kind: string, info: { [string]: any }?)
 	elseif kind == "Teleporting" then
 		Sound.play("SecretWorld")
 		HudController.bigText(
-			"❄️ TO " .. string.upper(if info and info.name then info.name else w.name) .. "!",
+			(if inFrost then "🏝️ TO " else "❄️ TO ")
+				.. string.upper(if info and info.name then info.name else w.name)
+				.. "!",
 			ICE,
 			3
 		)
-		local fade = Ui.new("Frame", {
+		if fade then
+			fade:Destroy()
+		end
+		local cover = Ui.new("Frame", {
 			Name = "PortalFade",
 			Size = UDim2.fromScale(1, 1),
 			BackgroundColor3 = Color3.fromRGB(230, 248, 255),
@@ -245,10 +258,16 @@ local function onPortal(kind: string, info: { [string]: any }?)
 			ZIndex = 100,
 			Parent = HudController.root(),
 		})
-		TweenService:Create(fade, TweenInfo.new(1), { BackgroundTransparency = 0 }):Play()
-		task.delay(8, function()
-			fade:Destroy() -- still here: the trip failed
+		fade = cover
+		TweenService:Create(cover, TweenInfo.new(1), { BackgroundTransparency = 0 }):Play()
+		task.delay(12, function()
+			cover:Destroy() -- still here: the trip failed
 		end)
+	elseif kind == "TripFailed" then
+		if fade then
+			fade:Destroy()
+			fade = nil
+		end
 	end
 end
 

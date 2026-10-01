@@ -11,10 +11,38 @@
 local Lighting = game:GetService("Lighting")
 
 local Kit = require(script.Parent.Kit)
+local Theme = require(script.Parent.Theme)
 
 local L = Kit.L
-local Terrain = workspace.Terrain
+local RealTerrain = workspace.Terrain
 local M = Enum.Material
+
+-- Every fill goes through the world's theme (sand -> snow in Frostbite Peaks).
+local Terrain = {}
+function Terrain.FillBlock(_self: any, cframe: CFrame, size: Vector3, material: Enum.Material)
+	RealTerrain:FillBlock(cframe, size, Theme.material(material))
+end
+function Terrain.FillCylinder(
+	_self: any,
+	cframe: CFrame,
+	height: number,
+	radius: number,
+	material: Enum.Material
+)
+	RealTerrain:FillCylinder(cframe, height, radius, Theme.material(material))
+end
+function Terrain.FillBall(_self: any, center: Vector3, radius: number, material: Enum.Material)
+	RealTerrain:FillBall(center, radius, Theme.material(material))
+end
+function Terrain.ReplaceMaterial(
+	_self: any,
+	area: Region3,
+	resolution: number,
+	from: Enum.Material,
+	to: Enum.Material
+)
+	RealTerrain:ReplaceMaterial(area, resolution, Theme.material(from), Theme.material(to))
+end
 
 local TerrainBuilder = {}
 
@@ -176,28 +204,40 @@ function TerrainBuilder.lighting()
 	clouds.Cover = 0.45
 	clouds.Density = 0.55
 	clouds.Color = Color3.fromRGB(255, 255, 255)
-	clouds.Parent = Terrain
+	clouds.Parent = RealTerrain
+	Theme.lighting(Lighting)
 end
 
 function TerrainBuilder.build(rng: Random)
-	Terrain.WaterColor = Color3.fromRGB(24, 178, 196)
-	Terrain.WaterTransparency = 0.6
-	Terrain.WaterReflectance = 0.3
-	Terrain.WaterWaveSize = 0.15
-	Terrain.WaterWaveSpeed = 9
-	Terrain:SetMaterialColor(M.Sand, Color3.fromRGB(236, 210, 156))
-	Terrain:SetMaterialColor(M.Grass, Color3.fromRGB(96, 176, 70))
-	Terrain:SetMaterialColor(M.LeafyGrass, Color3.fromRGB(62, 146, 56))
-	Terrain:SetMaterialColor(M.Sandstone, Color3.fromRGB(218, 182, 124))
-	Terrain:SetMaterialColor(M.Basalt, Color3.fromRGB(56, 50, 52))
-	Terrain:SetMaterialColor(M.CrackedLava, Color3.fromRGB(255, 104, 26))
-	Terrain:SetMaterialColor(M.Rock, Color3.fromRGB(138, 128, 118))
-	Terrain:SetMaterialColor(M.Slate, Color3.fromRGB(104, 100, 104))
-	Terrain:SetMaterialColor(M.Ground, Color3.fromRGB(204, 168, 112)) -- beach paths
-	Terrain:SetMaterialColor(M.Mud, Color3.fromRGB(122, 90, 58)) -- jungle paths
-	Terrain:SetMaterialColor(M.Cobblestone, Color3.fromRGB(196, 170, 124)) -- ruins paving
-	Terrain:SetMaterialColor(M.Pavement, Color3.fromRGB(206, 184, 140)) -- ruins plaza
-	Terrain:SetMaterialColor(M.Asphalt, Color3.fromRGB(78, 66, 62)) -- volcano paths
+	RealTerrain.WaterColor = Color3.fromRGB(24, 178, 196)
+	RealTerrain.WaterTransparency = 0.6
+	RealTerrain.WaterReflectance = 0.3
+	RealTerrain.WaterWaveSize = 0.15
+	RealTerrain.WaterWaveSpeed = 9
+	RealTerrain:SetMaterialColor(M.Sand, Color3.fromRGB(236, 210, 156))
+	RealTerrain:SetMaterialColor(M.Grass, Color3.fromRGB(96, 176, 70))
+	RealTerrain:SetMaterialColor(M.LeafyGrass, Color3.fromRGB(62, 146, 56))
+	RealTerrain:SetMaterialColor(M.Sandstone, Color3.fromRGB(218, 182, 124))
+	RealTerrain:SetMaterialColor(M.Basalt, Color3.fromRGB(56, 50, 52))
+	RealTerrain:SetMaterialColor(M.CrackedLava, Color3.fromRGB(255, 104, 26))
+	RealTerrain:SetMaterialColor(M.Rock, Color3.fromRGB(138, 128, 118))
+	RealTerrain:SetMaterialColor(M.Slate, Color3.fromRGB(104, 100, 104))
+	RealTerrain:SetMaterialColor(M.Ground, Color3.fromRGB(204, 168, 112)) -- beach paths
+	RealTerrain:SetMaterialColor(M.Mud, Color3.fromRGB(122, 90, 58)) -- jungle paths
+	RealTerrain:SetMaterialColor(M.Cobblestone, Color3.fromRGB(196, 170, 124)) -- ruins paving
+	RealTerrain:SetMaterialColor(M.Pavement, Color3.fromRGB(206, 184, 140)) -- ruins plaza
+	RealTerrain:SetMaterialColor(M.Asphalt, Color3.fromRGB(78, 66, 62)) -- volcano paths
+	if Theme.frost then
+		local w = Theme.water
+		RealTerrain.WaterColor = w.color
+		RealTerrain.WaterTransparency = w.transparency
+		RealTerrain.WaterReflectance = w.reflectance
+		RealTerrain.WaterWaveSize = w.waveSize
+		RealTerrain.WaterWaveSpeed = w.waveSpeed
+		for material, color in Theme.terrainColors do
+			RealTerrain:SetMaterialColor(material, color)
+		end
+	end
 
 	local beachTop, plateauTop, highTop = L.beachHeight, L.plateauHeight, L.highlandHeight
 

@@ -44,9 +44,16 @@ local function refresh()
 		)
 	)
 	local ok, reason, missing = Rebirth.canRebirth(data :: any)
+	if reason == "IslandOnly" then
+		infoLabel.Text = "A rebirth resets your island run, so it happens at the island's altar.\n"
+			.. "Take the portal back to the island to rebirth. Your Frostbite Peaks progress stays."
+	end
 	if ok then
 		button.Text = if confirming then "TAP AGAIN TO CONFIRM" else "REBIRTH (" .. Format.cash(cost) .. ")"
 		Ui.setButtonColor(button, if confirming then C.Red else C.Purple)
+	elseif reason == "IslandOnly" then
+		button.Text = "Rebirth on the island"
+		Ui.setButtonColor(button, C.Grey)
 	elseif reason == "NeedShovel" then
 		local shovel = Progression.getShovel(Retention.rebirth.requiredShovel)
 		button.Text = "Needs the " .. shovel.name

@@ -27,6 +27,8 @@ export type BagDef = {
 	cost: number,
 }
 
+local CurrentWorld = require(script.Parent.Parent.Logic.CurrentWorld)
+
 local Upgrades = {}
 
 -- stylua: ignore
@@ -52,5 +54,36 @@ Upgrades.Bags = {
 	{ level = 7, name = "Pirate Chest Pack", capacity = 65, cost = 5000000 },
 	{ level = 8, name = "Bottomless Bag", capacity = 90, cost = 15000000 },
 } :: { BagDef }
+
+-- Frostbite Peaks starts over with its own ladders: new shovels (an icy
+-- design each) and bags, priced for the bigger frost treasure values.
+-- stylua: ignore
+local FrostShovels = {
+	{ level = 1, name = "Frostbite Shovel", cost = 0, hits = 3, hitInterval = 0.5, bladeColor = "#BFE6F2", handleColor = "#3B4A5A", bladeMaterial = "Ice", glow = false },
+	{ level = 2, name = "Icicle Shovel", cost = 3750, hits = 3, hitInterval = 0.43, bladeColor = "#A8E6FF", handleColor = "#5A6E80", bladeMaterial = "Glass", glow = false },
+	{ level = 3, name = "Snowdrift Shovel", cost = 75000, hits = 3, hitInterval = 0.37, bladeColor = "#F4FBFF", handleColor = "#2E4A6B", bladeMaterial = "Snow", glow = false },
+	{ level = 4, name = "Glacier Shovel", cost = 300000, hits = 3, hitInterval = 0.32, bladeColor = "#5CC6F2", handleColor = "#1E3A5A", bladeMaterial = "Glacier", glow = false },
+	{ level = 5, name = "Aurora Shovel", cost = 1200000, hits = 3, hitInterval = 0.27, bladeColor = "#6CFFC4", handleColor = "#3B2A6B", bladeMaterial = "Neon", glow = true },
+	{ level = 6, name = "Blizzard Shovel", cost = 6000000, hits = 3, hitInterval = 0.23, bladeColor = "#E8F8FF", handleColor = "#5CC6F2", bladeMaterial = "Neon", glow = true },
+	{ level = 7, name = "Permafrost Shovel", cost = 12000000, hits = 3, hitInterval = 0.2, bladeColor = "#2E6FD8", handleColor = "#0F1E33", bladeMaterial = "Neon", glow = true },
+	{ level = 8, name = "Frost King Shovel", cost = 75000000, hits = 3, hitInterval = 0.17, bladeColor = "#7FDBFF", handleColor = "#FFD24A", bladeMaterial = "Neon", glow = true },
+} :: { ShovelDef }
+
+-- stylua: ignore
+local FrostBags = {
+	{ level = 1, name = "Fur Pouch", capacity = 5, cost = 0 },
+	{ level = 2, name = "Woolly Satchel", capacity = 10, cost = 1500 },
+	{ level = 3, name = "Sled Pack", capacity = 15, cost = 120000 },
+	{ level = 4, name = "Expedition Pack", capacity = 20, cost = 450000 },
+	{ level = 5, name = "Yeti Sack", capacity = 30, cost = 5250000 },
+	{ level = 6, name = "Avalanche Sack", capacity = 45, cost = 22500000 },
+	{ level = 7, name = "Glacier Chest Pack", capacity = 65, cost = 75000000 },
+	{ level = 8, name = "Bottomless Frost Bag", capacity = 90, cost = 225000000 },
+} :: { BagDef }
+
+if CurrentWorld.isFrost() then
+	Upgrades.Shovels = FrostShovels
+	Upgrades.Bags = FrostBags
+end
 
 return table.freeze(Upgrades)

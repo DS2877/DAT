@@ -10,6 +10,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local MapLayout = require(ReplicatedStorage.Shared.Config.MapLayout)
+local Theme = require(script.Parent.Theme)
 
 local Kit = {}
 
@@ -41,8 +42,9 @@ function Kit.part(parent: Instance, props: PartProps): BasePart
 	end
 	p.Size = props.size
 	p.CFrame = props.cframe
-	p.Color = props.color or Color3.new(1, 1, 1)
-	p.Material = props.material or Enum.Material.SmoothPlastic
+	-- The world's look (Theme: frost biomes in Frostbite Peaks).
+	p.Color, p.Material =
+		Theme.dress(props.color or Color3.new(1, 1, 1), props.material or Enum.Material.SmoothPlastic)
 	p.Transparency = props.transparency or 0
 	p.Reflectance = props.reflectance or 0
 	p.CanCollide = if props.canCollide == nil then true else props.canCollide
@@ -114,7 +116,7 @@ end
 
 function Kit.light(parent: Instance, color: Color3, range: number, brightness: number?): PointLight
 	local light = Instance.new("PointLight")
-	light.Color = color
+	light.Color = Theme.glow(color)
 	light.Range = range
 	light.Brightness = brightness or 1.5
 	light.Shadows = false
@@ -126,8 +128,8 @@ function Kit.fire(parent: Instance, size: number, color: Color3?): Fire
 	local fire = Instance.new("Fire")
 	fire.Size = size
 	fire.Heat = size * 2
-	fire.Color = color or Color3.fromRGB(255, 140, 40)
-	fire.SecondaryColor = Color3.fromRGB(255, 220, 90)
+	fire.Color, fire.SecondaryColor =
+		Theme.fire(color or Color3.fromRGB(255, 140, 40), Color3.fromRGB(255, 220, 90))
 	fire.Parent = parent
 	return fire
 end
@@ -152,7 +154,7 @@ export type EmitterProps = {
 
 function Kit.emitter(parent: BasePart, props: EmitterProps): ParticleEmitter
 	local e = Instance.new("ParticleEmitter")
-	e.Color = ColorSequence.new(props.color, props.color2 or props.color)
+	e.Color = ColorSequence.new(Theme.glow(props.color), Theme.glow(props.color2 or props.color))
 	e.Rate = props.rate
 	e.Lifetime = props.lifetime
 	e.Size = props.size
@@ -497,7 +499,7 @@ function Kit.onLevel(x: number, z: number, levelY: number, tolerance: number?): 
 	if not y or not material then
 		return nil
 	end
-	if material == Enum.Material.Water or material == Enum.Material.CrackedLava then
+	if material == Enum.Material.Water or material == Theme.material(Enum.Material.CrackedLava) then
 		return nil
 	end
 	if math.abs(y - levelY) > (tolerance or 3) then
@@ -510,7 +512,66 @@ end
 -- Reusable props
 ---------------------------------------------------------------------------
 
+-- A snowy pine (Frostbite Peaks grows these where the island has palms):
+-- a trunk and stacked tiers of needles, each with snow on top.
+function Kit.pine(parent: Instance, base: Vector3, rng: Random, height: number?)
+	local model = Instance.new("Model")
+	model.Name = "Pine"
+	local tiers = math.clamp(math.floor((height or 7) / 2), 3, 5)
+	local scale = rng:NextNumber(0.85, 1.15) * (0.8 + tiers * 0.1)
+	local yaw = rng:NextNumber(0, math.pi * 2)
+	local trunkHeight = 4 * scale
+	Kit.part(model, {
+		name = "Trunk",
+		shape = Enum.PartType.Cylinder,
+		size = Vector3.new(trunkHeight + 1, 1.3 * scale, 1.3 * scale),
+		cframe = CFrame.new(base + Vector3.new(0, trunkHeight / 2 - 0.5, 0))
+			* CFrame.Angles(0, 0, math.rad(90)),
+		color = Kit.hex("#5B3F2A"),
+		material = Enum.Material.Wood,
+	})
+	local y = trunkHeight - 0.6
+	for i = 1, tiers do
+		local t = (i - 1) / math.max(1, tiers - 1)
+		local radius = (5.4 - t * 3.6) * scale
+		local tall = (3.4 - t * 0.9) * scale
+		local frame = CFrame.new(base + Vector3.new(0, y + tall / 2, 0)) * CFrame.Angles(0, yaw + i * 0.7, 0)
+		Kit.ellipsoid(model, {
+			name = "Needles",
+			size = Vector3.new(radius * 2, tall, radius * 2),
+			cframe = frame,
+			color = if i % 2 == 0 then Kit.hex("#2F7A5C") else Kit.hex("#286B50"),
+			material = Enum.Material.Grass,
+			canCollide = false,
+		})
+		Kit.ellipsoid(model, {
+			name = "Snow",
+			size = Vector3.new(radius * 1.55, tall * 0.42, radius * 1.55),
+			cframe = frame * CFrame.new(0, tall * 0.3, 0),
+			color = Theme.SNOW,
+			material = Enum.Material.Snow,
+			canCollide = false,
+			castShadow = false,
+		})
+		y += tall * 0.62
+	end
+	Kit.ellipsoid(model, {
+		name = "Top",
+		size = Vector3.new(1.4, 2.4, 1.4) * scale,
+		cframe = CFrame.new(base + Vector3.new(0, y + 0.9 * scale, 0)),
+		color = Theme.SNOW,
+		material = Enum.Material.Snow,
+		canCollide = false,
+	})
+	model.Parent = parent
+	Kit.addObstacle(base, 3)
+end
+
 function Kit.palm(parent: Instance, base: Vector3, rng: Random, height: number?)
+	if Theme.frost then
+		Kit.pine(parent, base, rng, height)
+		return
+	end
 	local model = Instance.new("Model")
 	model.Name = "Palm"
 	local lean = rng:NextNumber(-0.35, 0.35)

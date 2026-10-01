@@ -50,8 +50,10 @@ function MockStore.UpdateAsync(self: any, key: string, transform: (any) -> any)
 	return result
 end
 
-function SessionStore.new(storeName: string)
+-- `serialize(data)` (optional) turns a session's data into what's stored.
+function SessionStore.new(storeName: string, serialize: ((any) -> any)?)
 	local self = setmetatable({}, SessionStore)
+	self._serialize = serialize
 	local ok, store = pcall(function()
 		return DataStoreService:GetDataStore(storeName)
 	end)
@@ -156,6 +158,7 @@ function SessionStore.save(self: any, session: Session, release: boolean): boole
 	if session.lost or session.released then
 		return false
 	end
+	local stored = if self._serialize then self._serialize(session.data) else session.data
 	for attempt = 1, SessionStore.SAVE_RETRIES do
 		local lost = false
 		local ok, err = pcall(function()
@@ -169,7 +172,7 @@ function SessionStore.save(self: any, session: Session, release: boolean): boole
 					return nil
 				end
 				local now = os.time()
-				record.data = session.data
+				record.data = stored
 				record.savedAt = now
 				record.lock = if release
 					then nil

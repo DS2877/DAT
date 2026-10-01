@@ -20,10 +20,14 @@ export type TreasureDef = {
 	-- Rebirth-only Secret: drops only for players with at least this many
 	-- rebirths, and doesn't count toward its area's collection set.
 	rebirths: number?,
+	-- The world it drops in: nil = the island, "Frost" = Frostbite Peaks.
+	world: string?,
 }
 
+local CurrentWorld = require(script.Parent.Parent.Logic.CurrentWorld)
+
 -- stylua: ignore
-local List: { TreasureDef } = {
+local All: { TreasureDef } = {
 	-- Beach ---------------------------------------------------------------
 	{ id = "Bottle", name = "Bottle", rarity = "Common", area = "Beach", value = 12, model = "Bottle", color = "#6FCF97", accent = "#F2E6C9" },
 	{ id = "Shell", name = "Shell", rarity = "Common", area = "Beach", value = 15, model = "Shell", color = "#FFB3A7", accent = "#FFF1E0" },
@@ -70,15 +74,66 @@ local List: { TreasureDef } = {
 	{ id = "RainbowSkull", name = "Rainbow Skull", rarity = "Secret", area = "Volcano", value = 1500000, model = "Skull", color = "#FF5FD2", rebirths = 5 },
 	{ id = "CrystalDragonEgg", name = "Crystal Dragon Egg", rarity = "Secret", area = "Volcano", value = 2500000, model = "Egg", color = "#7FF3FF", accent = "#B45CFF", rebirths = 10 },
 	{ id = "CosmicCrown", name = "Cosmic Crown", rarity = "Secret", area = "Volcano", value = 4000000, model = "Crown", color = "#3F2BFF", accent = "#FFFFFF", rebirths = 15 },
+
+	-- Frostbite Peaks (same areas, frost biomes) ---------------------------
+	-- Frost Shore
+	{ id = "FrostSnowGlobe", name = "Snow Globe", rarity = "Common", area = "Beach", value = 150, model = "Pearl", color = "#E8F8FF", accent = "#7FDBFF", world = "Frost" },
+	{ id = "FrostBottle", name = "Frozen Bottle", rarity = "Common", area = "Beach", value = 180, model = "Bottle", color = "#A8E6FF", accent = "#FFFFFF", world = "Frost" },
+	{ id = "FrostSpoon", name = "Icicle Spoon", rarity = "Common", area = "Beach", value = 240, model = "Spoon", color = "#BFE6F2", world = "Frost" },
+	{ id = "FrostPenguinCoin", name = "Penguin Coin", rarity = "Common", area = "Beach", value = 340, model = "Coin", color = "#9FB3CC", world = "Frost" },
+	{ id = "FrostCompass", name = "Frosted Compass", rarity = "Common", area = "Beach", value = 480, model = "Compass", color = "#6F8FAF", accent = "#E8F8FF", world = "Frost" },
+	{ id = "FrostSnowflakeCoin", name = "Silver Snowflake Coin", rarity = "Uncommon", area = "Beach", value = 1300, model = "Coin", color = "#E3EEF7", world = "Frost" },
+	{ id = "FrostPearl", name = "Frost Pearl", rarity = "Uncommon", area = "Beach", value = 1800, model = "Pearl", color = "#DFF6FF", accent = "#7FDBFF", world = "Frost" },
+	{ id = "FrostCocoaMug", name = "Hot Cocoa Mug", rarity = "Uncommon", area = "Beach", value = 2300, model = "Mug", color = "#D8443C", accent = "#FFFFFF", world = "Frost" },
+	{ id = "FrostDiamondCoin", name = "Ice Diamond Coin", rarity = "Rare", area = "Beach", value = 6600, model = "Coin", color = "#7FF3FF", world = "Frost" },
+	{ id = "FrostNorthCompass", name = "Northern Compass", rarity = "Rare", area = "Beach", value = 9000, model = "Compass", color = "#5CC6F2", accent = "#FFFFFF", world = "Frost" },
+
+	-- Pine Woods
+	{ id = "FrostWatch", name = "Frozen Pocket Watch", rarity = "Uncommon", area = "Jungle", value = 3400, model = "Watch", color = "#C9D6E2", accent = "#BFF6FF", world = "Frost" },
+	{ id = "FrostSnowIdol", name = "Snow Idol", rarity = "Uncommon", area = "Jungle", value = 4800, model = "Idol", color = "#F4FBFF", world = "Frost" },
+	{ id = "FrostSapphire", name = "Sapphire", rarity = "Rare", area = "Jungle", value = 13200, model = "Gem", color = "#2E6FD8", world = "Frost" },
+	{ id = "FrostOpal", name = "Frost Opal", rarity = "Rare", area = "Jungle", value = 19200, model = "Gem", color = "#B8F2E6", world = "Frost" },
+	{ id = "FrostYetiPearl", name = "Yeti Pearl", rarity = "Epic", area = "Jungle", value = 36000, model = "Pearl", color = "#FFFFFF", accent = "#9FD8FF", world = "Frost" },
+	{ id = "FrostMammothIdol", name = "Mammoth Idol", rarity = "Epic", area = "Jungle", value = 50400, model = "Idol", color = "#8B6A4E", world = "Frost" },
+	{ id = "FrostYetiSkull", name = "Yeti Skull", rarity = "Legendary", area = "Jungle", value = 144000, model = "Skull", color = "#E8F8FF", world = "Frost" },
+
+	-- Ice Ruins
+	{ id = "FrostGlacierCoin", name = "Glacier Coin", rarity = "Rare", area = "Ruins", value = 26400, model = "Coin", color = "#5CC6F2", world = "Frost" },
+	{ id = "FrostKnightStatue", name = "Frozen Knight Statue", rarity = "Epic", area = "Ruins", value = 66000, model = "Statue", color = "#A8C8E0", world = "Frost" },
+	{ id = "FrostNecklace", name = "Snowflake Necklace", rarity = "Epic", area = "Ruins", value = 84000, model = "Necklace", color = "#E3EEF7", accent = "#7FDBFF", world = "Frost" },
+	{ id = "FrostTiara", name = "Ice Queen's Tiara", rarity = "Epic", area = "Ruins", value = 108000, model = "Crown", color = "#DFF6FF", accent = "#5CC6F2", world = "Frost" },
+	{ id = "FrostDragonStatue", name = "Ice Dragon Statue", rarity = "Legendary", area = "Ruins", value = 216000, model = "Statue", color = "#7FDBFF", world = "Frost" },
+	{ id = "FrostKingCrown", name = "Frost King's Crown", rarity = "Legendary", area = "Ruins", value = 300000, model = "Crown", color = "#BFF6FF", accent = "#2E6FD8", world = "Frost" },
+	{ id = "FrostAuroraRelic", name = "Aurora Relic", rarity = "Mythic", area = "Ruins", value = 720000, model = "Relic", color = "#6CFFC4", accent = "#B45CFF", world = "Frost" },
+	{ id = "FrostEternalCrown", name = "Eternal Ice Crown", rarity = "Mythic", area = "Ruins", value = 1080000, model = "Crown", color = "#E8F8FF", accent = "#7FF3FF", world = "Frost" },
+
+	-- Frozen Peak
+	{ id = "FrostChest", name = "Frozen Treasure Chest", rarity = "Legendary", area = "Volcano", value = 420000, model = "Chest", color = "#5A7A99", accent = "#BFF6FF", world = "Frost" },
+	{ id = "FrostGlacierDiamond", name = "Glacier Diamond", rarity = "Legendary", area = "Volcano", value = 576000, model = "Gem", color = "#DFFBFF", world = "Frost" },
+	{ id = "FrostDragonEgg", name = "Ice Dragon Egg", rarity = "Mythic", area = "Volcano", value = 1440000, model = "Egg", color = "#7FDBFF", accent = "#FFFFFF", world = "Frost" },
+	{ id = "FrostIdol", name = "Frozen Idol", rarity = "Mythic", area = "Volcano", value = 1920000, model = "Idol", color = "#3F6FD8", accent = "#BFF6FF", world = "Frost" },
+	{ id = "FrostComet", name = "Comet Shard", rarity = "Mythic", area = "Volcano", value = 2640000, model = "Meteor", color = "#2A3A55", accent = "#7FF3FF", world = "Frost" },
+	{ id = "FrostBanana", name = "Frozen Banana", rarity = "Secret", area = "Volcano", value = 3600000, model = "Banana", color = "#E8FBFF", world = "Frost" },
+	{ id = "FrostThrone", name = "Ice Throne", rarity = "Secret", area = "Volcano", value = 5400000, model = "Toilet", color = "#BFF6FF", world = "Frost" },
+	{ id = "FrostAuroraArtifact", name = "Aurora Artifact", rarity = "Secret", area = "Volcano", value = 7800000, model = "Relic", color = "#6CFFC4", accent = "#FF5FD2", world = "Frost" },
+	{ id = "FrostHeart", name = "The Frozen Heart", rarity = "Secret", area = "Volcano", value = 12000000, model = "Chest", color = "#0F1E33", accent = "#7FF3FF", world = "Frost" },
 }
 
+-- Every world's treasures are known everywhere (bags, trophies and boards
+-- show them); only the current world's drop and fill its collection book.
+local world = CurrentWorld.id()
 local ById: { [string]: TreasureDef } = {}
-for _, def in List do
+local List: { TreasureDef } = {}
+for _, def in All do
 	assert(ById[def.id] == nil, "Duplicate treasure id " .. def.id)
 	ById[def.id] = table.freeze(def)
+	if (def.world or "Island") == world then
+		table.insert(List, def)
+	end
 end
 
 return table.freeze({
 	List = table.freeze(List),
+	All = table.freeze(All),
 	ById = table.freeze(ById),
 })

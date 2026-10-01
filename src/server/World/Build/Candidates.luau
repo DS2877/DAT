@@ -36,6 +36,7 @@ end
 local BAD_MATERIALS = {
 	[Enum.Material.Water] = true,
 	[Enum.Material.CrackedLava] = true,
+	[Enum.Material.Glacier] = true, -- the frozen lava in Frostbite Peaks
 	[Enum.Material.Rock] = true,
 	[Enum.Material.Slate] = true,
 }

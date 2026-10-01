@@ -11,6 +11,11 @@ local serde = require("@lune/serde")
 local H = require("../tests/runtime/Harness")
 
 local game = H.load(process.args[1] or "build.rbxl")
+-- FROST_PREVIEW=1: build it as Frostbite Peaks (a reserved server).
+local frost = process.env.FROST_PREVIEW ~= nil
+if frost then
+	H.privateServerId = "frost-preview"
+end
 H.runScript(game:GetService("ServerScriptService").Server)
 
 -- MEGADIG_PREVIEW=1: three Mega Dig sites side by side on the beach, at
@@ -240,6 +245,19 @@ fs.writeFile(
 		signs = signs,
 		effects = effects,
 		spots = spots,
+		-- Frostbite Peaks re-colors the terrain and water (the island
+		-- previews keep the renderer's own palette).
+		world = if frost then "Frost" else "Island",
+		terrainColors = if frost
+			then (function()
+				local out = {}
+				for name, color in H.materialColors do
+					out[name] = color:ToHex()
+				end
+				return out
+			end)()
+			else nil,
+		waterColor = if frost then H.unwrap(H.workspace).Terrain.WaterColor:ToHex() else nil,
 		lighting = {
 			clockTime = prop(lighting, "ClockTime"),
 			latitude = prop(lighting, "GeographicLatitude"),

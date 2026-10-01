@@ -1,6 +1,7 @@
 --!strict
 -- Encodes a treasure find as one integer for an OrderedDataStore so the
 -- "Rarest Find" board sorts by rarity, then value, and can be decoded back.
+-- Indexes every world's treasures (Treasures.All), so codes stay the same.
 --   score = rank * 1e13 + floor(value * mutation) * 1e3 + index * 3 + mutation
 
 local LootRoller = require(script.Parent.LootRoller)
@@ -13,7 +14,7 @@ local MUTATIONS = { [0] = nil :: string?, [1] = "Shiny", [2] = "Golden" }
 local MUTATION_CODE = { Shiny = 1, Golden = 2 }
 
 local indexOf: { [string]: number } = {}
-for index, def in Treasures.List do
+for index, def in Treasures.All do
 	indexOf[def.id] = index
 end
 
@@ -29,7 +30,7 @@ end
 
 function LeaderboardScore.decode(score: number): (string?, string?)
 	local low = score % 1000
-	local def = Treasures.List[math.floor(low / 3)]
+	local def = Treasures.All[math.floor(low / 3)]
 	if not def then
 		return nil, nil
 	end

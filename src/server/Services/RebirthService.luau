@@ -6,6 +6,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local CurrentWorld = require(ReplicatedStorage.Shared.Logic.CurrentWorld)
 local Rebirth = require(ReplicatedStorage.Shared.Logic.Rebirth)
 local Retention = require(ReplicatedStorage.Shared.Config.Retention)
 local Analytics = require(script.Parent.Analytics)
@@ -36,6 +37,11 @@ end
 local function onRebirth(player: Player)
 	local data = PlayerData.get(player)
 	if not data then
+		return
+	end
+	if CurrentWorld.isFrost() then
+		-- Rebirths reset the island's progress, so they happen there.
+		Net.fire("Notify", player, "Rebirths happen at the altar on the island!", "Denied")
 		return
 	end
 	if not nearAltar(player) then

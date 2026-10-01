@@ -24,7 +24,7 @@ function DataSchema.template(): { [string]: any }
 		rebirths = 0,
 		discovered = {}, -- [treasureId] = { normal = true?, shiny = true?, golden = true? }
 		bestFind = {}, -- { id = treasureId, m = mutation? } shown on the trophy shelf; {} = none
-		setsAwarded = {}, -- [areaId] = true once the set-complete reward was given
+		setsAwarded = {}, -- [areaId] (island) or ["Frost:" .. areaId] = true once the set reward was given
 		dailyState = {
 			lastDay = 0, -- UTC day number of the last daily claim (0 = never)
 			streak = 0, -- calendar day (1..7) last claimed
@@ -42,6 +42,9 @@ function DataSchema.template(): { [string]: any }
 		instantDeepDigs = 0, -- Instant Deep Digs bought while none was running
 		robuxSpent = 0,
 		worldUnlocks = {}, -- [worldId] = unix time the portal opened for this player
+		-- Other worlds' runs: [worldId] = { cash, shovelLevel, bagLevel,
+		-- bagContents } (the island's run is the top level; Logic/WorldState).
+		worldSaves = {},
 		activeBoosts = {}, -- [boostId] = expiry unix time
 		pausedBoosts = {}, -- [boostId] = seconds left (switched off by the player)
 		-- Audio settings, and on/off switches for perks the player owns.
@@ -114,7 +117,7 @@ local function reconcile(data: { [string]: any }, template: { [string]: any })
 	end
 end
 
-local function sanitize(data: { [string]: any })
+function DataSchema.sanitize(data: { [string]: any })
 	if data.cash ~= data.cash or data.cash < 0 then -- NaN or negative
 		data.cash = 0
 	end
@@ -162,7 +165,7 @@ function DataSchema.migrate(stored: { [string]: any }?): { [string]: any }
 	end
 	data.schemaVersion = DataSchema.CURRENT_VERSION
 	reconcile(data, DataSchema.template())
-	sanitize(data)
+	DataSchema.sanitize(data)
 	return data
 end
 

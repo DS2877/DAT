@@ -3,6 +3,15 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+-- The configs read the world (the workspace's WorldId, set by the server
+-- before anyone joins) when they load: make sure it has arrived.
+do
+	local waited = 0
+	while workspace:GetAttribute("WorldId") == nil and waited < 10 do
+		waited += task.wait(0.1)
+	end
+end
+
 local Controllers = script.Controllers
 local ClientState = require(Controllers.ClientState)
 local HudController = require(Controllers.HudController)
@@ -32,6 +41,7 @@ local GlobalMessageController = require(Controllers.GlobalMessageController)
 local PortalController = require(Controllers.PortalController)
 local RadarController = require(Controllers.RadarController)
 local ChatController = require(Controllers.ChatController)
+local SnowController = require(Controllers.SnowController)
 
 ClientState.init()
 AudioController.init()
@@ -61,6 +71,7 @@ GlobalMessageController.init()
 PortalController.init()
 RadarController.init()
 ChatController.init()
+SnowController.init()
 
 -- Listeners are connected; request the snapshot (the server also pushes one
 -- on load, this covers the case where it arrived before we were ready).

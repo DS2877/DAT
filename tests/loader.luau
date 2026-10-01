@@ -69,33 +69,58 @@ local function mount(dir: string, name: string, parent: any)
 	return node
 end
 
-local moduleCache = {}
-
-local function requireNode(node)
-	local cached = moduleCache[node]
-	if cached ~= nil then
-		return cached.value
+-- A module loader with its own cache. `globals` are extra globals the
+-- modules see (e.g. a `workspace` saying which world this is).
+local function newLoader(globals: { [string]: any }?)
+	local moduleCache = {}
+	local function requireNode(node)
+		local cached = moduleCache[node]
+		if cached ~= nil then
+			return cached.value
+		end
+		local file = rawget(node, "_file")
+		assert(file, "Cannot require non-module " .. rawget(node, "Name"))
+		-- (luau.load only sees the env's own keys, so globals are copied in.)
+		local env = setmetatable({ script = node, require = requireNode }, { __index = baseEnv })
+		for key, value in globals or {} do
+			env[key] = value
+		end
+		local chunk = luau.load(fs.readFile(file), { debugName = file, environment = env })
+		local value = chunk()
+		moduleCache[node] = { value = value }
+		return value
 	end
-	local file = rawget(node, "_file")
-	assert(file, "Cannot require non-module " .. rawget(node, "Name"))
-	local env = setmetatable({ script = node, require = requireNode }, { __index = baseEnv })
-	local chunk = luau.load(fs.readFile(file), { debugName = file, environment = env })
-	local value = chunk()
-	moduleCache[node] = { value = value }
-	return value
+	return requireNode
 end
 
 local Shared = mount("src/shared", "Shared", nil)
 
-local function requireShared(path: string)
-	local node = Shared
-	for part in path:gmatch("[^/]+") do
-		node = node[part]
+local function requirer(requireNode)
+	return function(path: string)
+		local node = Shared
+		for part in path:gmatch("[^/]+") do
+			node = node[part]
+		end
+		return requireNode(node)
 	end
-	return requireNode(node)
+end
+
+-- The island (no world set).
+local requireShared = requirer(newLoader())
+
+-- Shared modules as another world's servers and clients load them
+-- (Logic/CurrentWorld reads the workspace's WorldId).
+local function requireSharedIn(worldId: string)
+	local workspace = {
+		GetAttribute = function(_self, key: string)
+			return if key == "WorldId" then worldId else nil
+		end,
+	}
+	return requirer(newLoader({ workspace = workspace }))
 end
 
 return {
 	requireShared = requireShared,
+	requireSharedIn = requireSharedIn,
 	baseEnv = baseEnv,
 }

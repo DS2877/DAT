@@ -10,6 +10,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Areas = require(ReplicatedStorage.Shared.Config.Areas)
 local Collection = require(ReplicatedStorage.Shared.Logic.Collection)
 local CollectionConfig = require(ReplicatedStorage.Shared.Config.Collection)
+local CurrentWorld = require(ReplicatedStorage.Shared.Logic.CurrentWorld)
 local AnnouncementService = require(script.Parent.AnnouncementService)
 local Analytics = require(script.Parent.Analytics)
 local Net = require(script.Parent.Parent.Net)
@@ -17,6 +18,13 @@ local PlayerData = require(script.Parent.PlayerData)
 local TrophyShelfService = require(script.Parent.TrophyShelfService)
 
 local CollectionService = {}
+
+-- Each world has its own sets (same area ids): Frostbite Peaks' are saved
+-- as "Frost:Beach"..., and only the island's sets have badges.
+local world = CurrentWorld.id()
+local function setKey(areaId: string): string
+	return if world == "Island" then areaId else world .. ":" .. areaId
+end
 
 local function awardBadge(player: Player, areaId: string)
 	local badgeId = CollectionConfig.setBadges[areaId]
@@ -38,10 +46,13 @@ end
 -- Awards any newly completed sets. `announce` is false for catch-up on join.
 local function checkSets(player: Player, data: { [string]: any }, announce: boolean)
 	for _, areaId in Collection.completedSets(data.discovered) do
-		if not data.setsAwarded[areaId] then
-			data.setsAwarded[areaId] = true
-			awardBadge(player, areaId)
-			Analytics.custom(player, "SetComplete_" .. areaId)
+		local key = setKey(areaId)
+		if not data.setsAwarded[key] then
+			data.setsAwarded[key] = true
+			if world == "Island" then
+				awardBadge(player, areaId)
+			end
+			Analytics.custom(player, "SetComplete_" .. (string.gsub(key, ":", "_")))
 			if announce then
 				local name = string.upper(Areas.Defs[areaId].displayName)
 				local bonus = math.floor(CollectionConfig.setBonus * 100 + 0.5)

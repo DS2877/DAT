@@ -5,24 +5,30 @@
 --   * Reaching it opens the portal for you for good: a fanfare, a server
 --     announcement, and your name on the First Explorers board (an
 --     OrderedDataStore of unlock times, earliest first).
---   * Stepping in once it's open teleports you to the world's place, or,
---     until that world is built (no placeId), shows the "being built"
---     screen with the launch event sign-up.
+--   * Stepping in once it's open sends you to a Frostbite Peaks server
+--     (Services/WorldServers), or, while the world is closed (Worlds.next
+--     .open = false), shows the "being built" screen with the launch sign-up.
+--   * In Frostbite Peaks the same portal leads back to the island, open for
+--     everyone.
 
 local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TeleportService = game:GetService("TeleportService")
 
+local CurrentWorld = require(ReplicatedStorage.Shared.Logic.CurrentWorld)
 local Worlds = require(ReplicatedStorage.Shared.Config.Worlds)
 local Analytics = require(script.Parent.Analytics)
 local AnnouncementService = require(script.Parent.AnnouncementService)
 local LeaderboardService = require(script.Parent.LeaderboardService)
 local Net = require(script.Parent.Parent.Net)
 local PlayerData = require(script.Parent.PlayerData)
+local WorldServers = require(script.Parent.WorldServers)
 local World = require(script.Parent.Parent.World.World)
 
 local WorldPortalService = {}
+
+local inFrost = CurrentWorld.isFrost()
 
 local nextReactAt: { [Player]: number } = {}
 local boardDirty = true
@@ -78,8 +84,23 @@ local function stepOut(player: Player)
 	character:PivotTo(CFrame.lookAt(spot, spot + portal.normal))
 end
 
+local function travel(player: Player, name: string, go: () -> boolean)
+	Net.fire("Portal", player, "Teleporting", { name = name })
+	if not go() then
+		stepOut(player)
+		Net.fire("Portal", player, "TripFailed", nil)
+		Net.fire("Notify", player, "The portal flickered... try again in a moment!", "Denied")
+	end
+end
+
 local function enter(player: Player, data: { [string]: any })
 	local w = Worlds.next
+	if inFrost then
+		travel(player, Worlds.home.name, function()
+			return WorldServers.sendHome(player)
+		end)
+		return
+	end
 	if not WorldPortalService.isOpenFor(data) then
 		stepOut(player)
 		Net.fire("Portal", player, "Locked", { have = data.rebirths, need = w.requiredRebirths })
@@ -96,16 +117,11 @@ local function enter(player: Player, data: { [string]: any })
 		)
 		return
 	end
-	local placeId = w.placeId
-	if placeId then
-		Net.fire("Portal", player, "Teleporting", { name = w.name })
-		local ok = pcall(function()
-			TeleportService:TeleportAsync(placeId, { player })
+	if w.open then
+		Analytics.custom(player, "PortalTravel_" .. w.id)
+		travel(player, w.name, function()
+			return WorldServers.send(player, w.id)
 		end)
-		if not ok then
-			stepOut(player)
-			Net.fire("Notify", player, "The portal flickered... try again in a moment!", "Denied")
-		end
 		return
 	end
 	stepOut(player)
@@ -152,7 +168,11 @@ local function tick()
 	for _, player in Players:GetPlayers() do
 		local data = PlayerData.get(player)
 		if data then
-			if WorldPortalService.isOpenFor(data) and not data.worldUnlocks[Worlds.next.id] then
+			if
+				not inFrost
+				and WorldPortalService.isOpenFor(data)
+				and not data.worldUnlocks[Worlds.next.id]
+			then
 				attune(player, data)
 			end
 			local character = player.Character
@@ -175,6 +195,15 @@ end
 function WorldPortalService.init()
 	Players.PlayerRemoving:Connect(function(player)
 		nextReactAt[player] = nil
+	end)
+	-- A trip that failed after it started (full server, Roblox hiccup).
+	TeleportService.TeleportInitFailed:Connect(function(player: Player, _result, message: string)
+		warn("[WorldPortalService] Teleport failed: " .. tostring(message))
+		if player.Parent then
+			stepOut(player)
+			Net.fire("Portal", player, "TripFailed", nil)
+			Net.fire("Notify", player, "The portal flickered... try again in a moment!", "Denied")
+		end
 	end)
 	task.spawn(function()
 		while true do

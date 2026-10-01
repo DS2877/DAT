@@ -3,6 +3,7 @@
 -- sizing): the next shovel, and once the Legendary Shovel is owned, the
 -- rebirth. Bags are a side upgrade, never the headline goal. Pure.
 
+local CurrentWorld = require(script.Parent.CurrentWorld)
 local Economy = require(script.Parent.Parent.Config.Economy)
 local Progression = require(script.Parent.Progression)
 local Rebirth = require(script.Parent.Rebirth)
@@ -25,6 +26,13 @@ function Goals.current(data: { [string]: any }): Goal
 	local name, cost
 	if nextShovel then
 		name, cost = nextShovel.name, nextShovel.cost
+	elseif CurrentWorld.isFrost() then
+		-- No rebirths in Frostbite Peaks: the bags are what's left, then the
+		-- top shovel's price keeps sizing rewards.
+		local nextBag = Progression.nextUpgrade("Bag", data.bagLevel)
+		local top = Progression.getShovel(Progression.MaxShovelLevel)
+		name = if nextBag then nextBag.name else top.name
+		cost = if nextBag then nextBag.cost else top.cost
 	else
 		kind, name, cost = "Rebirth", "Rebirth", Rebirth.cost(data.rebirths)
 	end

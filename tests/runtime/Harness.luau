@@ -236,6 +236,7 @@ local EVENTS = {
 	AncestryChanged = true,
 	Completed = true,
 	PromptGamePassPurchaseFinished = true,
+	TeleportInitFailed = true,
 }
 
 local function isA(inst: any, className: string): boolean
@@ -440,6 +441,35 @@ end
 getters.JobId = function(_proxy, inst)
 	if inst.ClassName == "DataModel" then
 		return true, "harness-job"
+	end
+	return false, nil
+end
+
+-- Reserved servers: set H.privateServerId before running the server script
+-- to boot as one (a reserved server has no owner).
+H.privateServerId = ""
+H.placeId = 87239786750805
+getters.PrivateServerId = function(_proxy, inst)
+	if inst.ClassName == "DataModel" then
+		return true, H.privateServerId
+	end
+	return false, nil
+end
+getters.PrivateServerOwnerId = function(_proxy, inst)
+	if inst.ClassName == "DataModel" then
+		return true, 0
+	end
+	return false, nil
+end
+getters.PlaceId = function(_proxy, inst)
+	if inst.ClassName == "DataModel" then
+		return true, H.placeId
+	end
+	return false, nil
+end
+getters.MaxPlayers = function(_proxy, inst)
+	if inst.ClassName == "Players" then
+		return true, 20
 	end
 	return false, nil
 end
@@ -733,7 +763,11 @@ methods.ReplaceMaterial = function(_proxy, _inst, region, _resolution, source, t
 	})
 end
 methods.FillWedge = function() end
-methods.SetMaterialColor = function() end
+-- Terrain material colors, by material name (for the map previews).
+H.materialColors = {} :: { [string]: any }
+methods.SetMaterialColor = function(_proxy, _inst, material, color)
+	H.materialColors[material.Name] = color
+end
 methods.Clear = function()
 	table.clear(terrainOps)
 	table.clear(cells)
@@ -1019,10 +1053,67 @@ methods.PublishAsync = function(_proxy, _inst, topic, message)
 	end
 end
 
--- TeleportService: records trips instead of leaving.
-H.teleports = {} :: { { placeId: number, players: { any } } }
-methods.TeleportAsync = function(_proxy, _inst, placeId, players)
-	table.insert(H.teleports, { placeId = placeId, players = players })
+-- TeleportService: records trips instead of leaving (with the options'
+-- access code and TeleportData).
+H.teleports = {} :: { { placeId: number, players: { any }, code: string?, data: any } }
+H.reserved = {} :: { string }
+methods.TeleportAsync = function(_proxy, _inst, placeId, players, options)
+	local extra = options and stateOf(unwrap(options)).extra
+	table.insert(H.teleports, {
+		placeId = placeId,
+		players = players,
+		code = options and options.ReservedServerAccessCode or nil,
+		data = extra and extra.TeleportData,
+	})
+end
+methods.ReserveServer = function(_proxy, _inst, _placeId)
+	local code = "code-" .. (#H.reserved + 1)
+	table.insert(H.reserved, code)
+	return code, "server-" .. #H.reserved
+end
+methods.SetTeleportData = function(_proxy, inst, data)
+	stateOf(inst).extra.TeleportData = data
+end
+-- Player:GetJoinData(): TeleportData from H.joinData[userId].
+H.joinData = {} :: { [number]: any }
+methods.GetJoinData = function(_proxy, inst)
+	local data = H.joinData[inst.UserId]
+	return { TeleportData = data, SourcePlaceId = if data then H.placeId else nil }
+end
+
+-- MemoryStoreService sorted maps (expiry ignored).
+H.memory = {} :: { [string]: { [string]: any } }
+methods.GetSortedMap = function(_proxy, _inst, name)
+	H.memory[name] = H.memory[name] or {}
+	local data = H.memory[name]
+	local map = {}
+	function map.SetAsync(_self, key, value, _expires)
+		data[key] = jsonCopy(value)
+		return true
+	end
+	function map.UpdateAsync(_self, key, transform, _expires)
+		local result = transform(jsonCopy(data[key]))
+		if result ~= nil then
+			data[key] = jsonCopy(result)
+		end
+		return result
+	end
+	function map.RemoveAsync(_self, key)
+		data[key] = nil
+	end
+	function map.GetRangeAsync(_self, _direction, count)
+		local keys = {}
+		for key in data do
+			table.insert(keys, key)
+		end
+		table.sort(keys)
+		local items = {}
+		for i = 1, math.min(count, #keys) do
+			items[i] = { key = keys[i], value = jsonCopy(data[keys[i]]) }
+		end
+		return items
+	end
+	return map
 end
 
 -- Avatar thumbnails.

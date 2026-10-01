@@ -837,28 +837,50 @@ do
 	end
 	check(attuned, "with a fanfare")
 	check(H.ordered["FirstExplorers_Frost"]["u5003"] ~= nil, "and your name goes on the First Explorers list")
+	-- Closed (being built): the launch sign-up instead of a trip.
+	Worlds.next.open = false
 	H.clockOffset += Worlds.portal.cooldown + 1
 	H.moveTo(explorer, center)
 	task.wait(0.5)
 	local soon = H.lastClientEvent("Portal", explorer)
-	check(soon and soon[1] == "ComingSoon", "stepping in shows that the world is being built")
+	check(soon and soon[1] == "ComingSoon", "while it's closed, stepping in shows that it's being built")
+	Worlds.next.open = true
 	task.wait(1.5)
 	local list = portalModel:FindFirstChild("List", true)
 	check(
 		list and list.Text:find("1%.") ~= nil,
 		"the board lists the first explorers (" .. tostring(list and list.Text) .. ")"
 	)
-	-- Once the world exists (a placeId), the portal takes you there.
-	Worlds.next.placeId = 123456
+	-- Open: a new Frostbite Peaks server is reserved and listed...
 	H.clockOffset += Worlds.portal.cooldown + 1
 	H.moveTo(explorer, center)
 	task.wait(0.5)
 	local trip = H.teleports[#H.teleports]
 	check(
-		trip and trip.placeId == 123456 and trip.players[1] == explorer,
-		"with a world built, it teleports you there"
+		trip
+			and trip.placeId == H.placeId
+			and trip.players[1] == explorer
+			and trip.code == "code-1"
+			and trip.data
+			and trip.data.world == "Frost"
+			and trip.data.code == "code-1",
+		"stepping in takes you to a reserved Frostbite Peaks server"
 	)
-	Worlds.next.placeId = nil
+	local listed = H.memory["WorldServers_Frost"] and H.memory["WorldServers_Frost"]["server-1"]
+	check(listed and listed.code == "code-1", "which is listed for the next traveller")
+	-- ...and the next traveller joins it instead of reserving another.
+	H.clockOffset += Worlds.portal.cooldown + 1
+	H.moveTo(explorer, center)
+	task.wait(0.5)
+	trip = H.teleports[#H.teleports]
+	check(trip and trip.code == "code-1" and #H.reserved == 1, "the next trip joins the same server")
+	-- A full server isn't picked.
+	H.memory["WorldServers_Frost"]["server-1"].players = 18
+	H.clockOffset += Worlds.portal.cooldown + 1
+	H.moveTo(explorer, center)
+	task.wait(0.5)
+	trip = H.teleports[#H.teleports]
+	check(trip and trip.code == "code-2", "a full server gets a new one next to it")
 	explorer:Kick("done")
 end
 

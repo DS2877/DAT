@@ -15,6 +15,7 @@ local TweenService = game:GetService("TweenService")
 local MegaDig = require(ReplicatedStorage.Shared.Config.MegaDig)
 local TreasureBuilder = require(ReplicatedStorage.Shared.Builders.TreasureBuilder)
 local Kit = require(script.Parent.Kit)
+local Theme = require(script.Parent.Theme)
 
 local part, hex = Kit.part, Kit.hex
 
@@ -119,7 +120,7 @@ function MegaDigSite.build(position: Vector3, areaId: string): Handle
 	end
 
 	-- The treasure chest, buried in the middle.
-	local chest = TreasureBuilder.build("PirateTreasureChest")
+	local chest = TreasureBuilder.build(if Theme.frost then "FrostChest" else "PirateTreasureChest")
 	chest.Name = "MegaChest"
 	TreasureBuilder.scaleTo(chest, 6)
 	for _, d in chest:GetDescendants() do
