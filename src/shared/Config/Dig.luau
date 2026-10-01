@@ -17,12 +17,17 @@ local Dig = {
 	minSpotSpacing = 9,
 	minPlayerDistance = 7,
 	-- Candidate point generation (per area).
-	candidateCount = { Beach = 90, Jungle = 70, Ruins = 70, Volcano = 60 },
+	candidateCount = { Beach = 150, Jungle = 160, Ruins = 160, Volcano = 160 },
+	-- Candidate points keep at least this far apart.
+	minCandidateSpacing = 7,
+	-- A candidate must be within this many studs of its area's typical
+	-- ground height (keeps spots off slopes, cliffs, dunes and ramps).
+	levelTolerance = 3,
 	-- Guarantee a few candidate points just in front of the base (distance from
 	-- the deck's front edge) so a new player's first dig is seconds away.
 	nearSpawnCandidates = 8,
-	nearSpawnMin = 10,
-	nearSpawnMax = 36,
+	nearSpawnMin = 16,
+	nearSpawnMax = 44,
 	-- Keep at least this many active spots on those near-base points.
 	minNearBaseSpots = 3,
 	-- Max hits per second accepted from one client before rate limiting.

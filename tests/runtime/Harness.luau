@@ -615,9 +615,42 @@ type Op = {
 local terrainOps: { Op } = {}
 H.terrainOps = terrainOps
 
+-- Spatial index: ops bucketed by XZ cell (op order is kept inside a cell,
+-- which matters because later fills overwrite earlier ones).
+local CELL = 32
+local cells: { [number]: { Op } } = {}
+local function cellKey(cx: number, cz: number): number
+	return (cx + 2048) * 4096 + (cz + 2048)
+end
+local function opExtent(op: Op): (number, number)
+	if op.kind == "block" or op.kind == "replace" then
+		return op.a, op.c
+	end
+	return op.a, op.a
+end
+local function addOp(op: Op)
+	table.insert(terrainOps, op)
+	local ex, ez = opExtent(op)
+	for cx = math.floor((op.x - ex) / CELL), math.floor((op.x + ex) / CELL) do
+		for cz = math.floor((op.z - ez) / CELL), math.floor((op.z + ez) / CELL) do
+			local key = cellKey(cx, cz)
+			local list = cells[key]
+			if not list then
+				list = {}
+				cells[key] = list
+			end
+			table.insert(list, op)
+		end
+	end
+end
+local EMPTY: { Op } = {}
+local function opsAt(x: number, z: number): { Op }
+	return cells[cellKey(math.floor(x / CELL), math.floor(z / CELL))] or EMPTY
+end
+
 methods.FillBlock = function(_proxy, _inst, cframe, size, material)
 	local p = cframe.Position
-	table.insert(terrainOps, {
+	addOp({
 		kind = "block",
 		x = p.X,
 		y = p.Y,
@@ -630,13 +663,10 @@ methods.FillBlock = function(_proxy, _inst, cframe, size, material)
 end
 methods.FillCylinder = function(_proxy, _inst, cframe, height, radius, material)
 	local p = cframe.Position
-	table.insert(
-		terrainOps,
-		{ kind = "cyl", x = p.X, y = p.Y, z = p.Z, a = radius, b = height / 2, c = 0, mat = material.Name }
-	)
+	addOp({ kind = "cyl", x = p.X, y = p.Y, z = p.Z, a = radius, b = height / 2, c = 0, mat = material.Name })
 end
 methods.FillBall = function(_proxy, _inst, center, radius, material)
-	table.insert(terrainOps, {
+	addOp({
 		kind = "ball",
 		x = center.X,
 		y = center.Y,
@@ -649,7 +679,7 @@ methods.FillBall = function(_proxy, _inst, center, radius, material)
 end
 methods.ReplaceMaterial = function(_proxy, _inst, region, _resolution, source, target)
 	local p, size = region.CFrame.Position, region.Size
-	table.insert(terrainOps, {
+	addOp({
 		kind = "replace",
 		x = p.X,
 		y = p.Y,
@@ -665,6 +695,7 @@ methods.FillWedge = function() end
 methods.SetMaterialColor = function() end
 methods.Clear = function()
 	table.clear(terrainOps)
+	table.clear(cells)
 end
 
 local function covers(op: Op, x: number, y: number, z: number): boolean
@@ -682,7 +713,7 @@ end
 
 local function materialAt(x: number, y: number, z: number): string
 	local mat = "Air"
-	for _, op in terrainOps do
+	for _, op in opsAt(x, z) do
 		if covers(op, x, y, z) then
 			if op.kind == "replace" then
 				if mat == op.src then
@@ -697,10 +728,15 @@ local function materialAt(x: number, y: number, z: number): string
 end
 H.materialAt = materialAt
 
--- Straight-down raycast against the terrain model.
-local function terrainTop(x: number, z: number, fromY: number): (number?, string?)
+-- Roblox draws (and collides with) terrain a few studs above a fill's top
+-- because voxels are 4 studs. The harness reproduces that so code that
+-- trusts fill heights fails here too.
+H.terrainOffset = 2.5
+
+-- Straight-down raycast against the terrain model (fill heights).
+local function terrainTopRaw(x: number, z: number, fromY: number): (number?, string?)
 	local heights = {}
-	for _, op in terrainOps do
+	for _, op in opsAt(x, z) do
 		local top, bottom
 		if op.kind == "block" then
 			if math.abs(x - op.x) <= op.a and math.abs(z - op.z) <= op.c then
@@ -738,7 +774,16 @@ local function terrainTop(x: number, z: number, fromY: number): (number?, string
 	return nil, nil
 end
 
+local function terrainTop(x: number, z: number, fromY: number): (number?, string?)
+	local y, mat = terrainTopRaw(x, z, fromY - H.terrainOffset)
+	if y then
+		return y + H.terrainOffset, mat
+	end
+	return nil, nil
+end
+
 H.terrainTop = terrainTop
+H.terrainTopRaw = terrainTopRaw
 
 methods.Raycast = function(_proxy, _inst, origin, direction)
 	if math.abs(direction.X) > 1e-6 or math.abs(direction.Z) > 1e-6 or direction.Y >= 0 then

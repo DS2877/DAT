@@ -7,6 +7,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Movement = require(ReplicatedStorage.Shared.Config.Movement)
 local Rebirth = require(ReplicatedStorage.Shared.Logic.Rebirth)
 local ShovelBuilder = require(ReplicatedStorage.Shared.Builders.ShovelBuilder)
 local PlayerData = require(script.Parent.PlayerData)
@@ -79,6 +80,7 @@ local function onCharacterAdded(player: Player, character: Model)
 		CharacterService.refreshTitle(player)
 	end
 	if humanoid then
+		humanoid.WalkSpeed = Movement.walkSpeed
 		humanoid.Died:Connect(function()
 			task.delay(RESPAWN_DELAY, function()
 				if player.Parent and player.Character == character then
@@ -90,6 +92,8 @@ local function onCharacterAdded(player: Player, character: Model)
 end
 
 function CharacterService.init()
+	local starterPlayer = game:GetService("StarterPlayer") :: StarterPlayer
+	starterPlayer.CharacterWalkSpeed = Movement.walkSpeed
 	PlayerData.Loaded:Connect(function(player: Player)
 		player.CharacterAdded:Connect(function(character)
 			onCharacterAdded(player, character)

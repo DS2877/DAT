@@ -5,3 +5,5 @@ build.rbxl
 roblox.yml
 sourcemap.json
 /node_modules
+node_modules/
+out/

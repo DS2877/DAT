@@ -17,6 +17,7 @@ local RewardsController = require(Controllers.RewardsController)
 local RushController = require(Controllers.RushController)
 local RebirthController = require(Controllers.RebirthController)
 local LeaderboardController = require(Controllers.LeaderboardController)
+local AmbientController = require(Controllers.AmbientController)
 
 ClientState.init()
 HudController.init()
@@ -31,6 +32,7 @@ RewardsController.init() -- after DigController (uses its LocalSpots folder)
 RushController.init()
 RebirthController.init()
 LeaderboardController.init()
+AmbientController.init()
 
 -- Listeners are connected; request the snapshot (the server also pushes one
 -- on load, this covers the case where it arrived before we were ready).

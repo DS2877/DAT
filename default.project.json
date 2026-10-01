@@ -34,8 +34,8 @@
 			"$properties": {
 				"Technology": "ShadowMap",
 				"GlobalShadows": true,
-				"Brightness": 3,
-				"ClockTime": 13.5,
+				"Brightness": 2.4,
+				"ClockTime": 14.5,
 				"Outlines": false
 			}
 		},

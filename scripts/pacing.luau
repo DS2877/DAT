@@ -27,9 +27,11 @@ local Streak = Loader.requireShared("Logic/Streak")
 local runs = tonumber(process.args[1]) or 300
 local PACE = tonumber(process.args[2]) or 1.5
 
--- Base assumptions for a focused player (seconds), scaled by PACE.
+-- Base assumptions for a focused player (seconds), scaled by PACE. Measured
+-- on the map at walk speed 20 (Config/Movement): sell pad to a typical spot
+-- in each area and back, including the gate ramps.
 local WALK_BETWEEN_SPOTS = 4.0
-local ROUND_TRIP_TO_SELL = { Beach = 22, Jungle = 34, Ruins = 44, Volcano = 55 }
+local ROUND_TRIP_TO_SELL = { Beach = 16, Jungle = 34, Ruins = 36, Volcano = 58 }
 local SHOP_TIME = 4
 
 local function seededRng(seed: number)

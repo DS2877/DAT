@@ -25,6 +25,14 @@ local AssetIds = {
 		Denied = "", -- TODO: replace (soft error)
 		UiClick = "", -- TODO: replace (button click)
 	},
+	-- Looping area ambience (waves and gulls, jungle birds, desert wind, lava
+	-- rumble). Played by AmbientController for the area the player is in.
+	Ambient = {
+		Beach = "", -- TODO: replace (waves, seagulls)
+		Jungle = "", -- TODO: replace (birds, insects)
+		Ruins = "", -- TODO: replace (desert wind)
+		Volcano = "", -- TODO: replace (low lava rumble)
+	},
 	Music = {
 		Beach = "", -- TODO: replace (tropical loop)
 	},

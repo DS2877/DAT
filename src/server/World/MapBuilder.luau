@@ -29,7 +29,6 @@ local TerrainBuilder = require(Build.Terrain)
 local VolcanoBuilder = require(Build.Volcano)
 
 local L = Kit.L
-local DECK_TOP = Kit.DECK_TOP
 
 local MapBuilder = {}
 
@@ -43,13 +42,13 @@ export type BuiltWorld = {
 	shelfSlots: { CFrame },
 }
 
-local function shelfSlots(): { CFrame }
+local function shelfSlots(deckTop: number): { CFrame }
 	local shelf = L.trophyShelf
 	local slots = {}
 	for i = 1, CollectionConfig.shelfSlots do
 		local x = shelf.minX
 			+ (i - 1) * (shelf.maxX - shelf.minX) / math.max(1, CollectionConfig.shelfSlots - 1)
-		table.insert(slots, CFrame.new(x, DECK_TOP + 2.8, shelf.z))
+		table.insert(slots, CFrame.new(x, deckTop + 2.8, shelf.z))
 	end
 	return slots
 end
@@ -61,7 +60,8 @@ function MapBuilder.build(): BuiltWorld
 
 	TerrainBuilder.lighting()
 	TerrainBuilder.build(rng)
-	BaseBuilder.build(rng)
+	local base = BaseBuilder.build(rng)
+	local deckTop = base.deckTop
 	local gates = GatesBuilder.build()
 	BeachBuilder.build(rng)
 	JungleBuilder.build(rng)
@@ -87,27 +87,21 @@ function MapBuilder.build(): BuiltWorld
 	)
 
 	local sp = L.sellPad
+	local function station(kind: string, radius: number)
+		return { position = base.pads[kind].Position, radius = radius }
+	end
 	return {
-		spawnPosition = Vector3.new(L.spawn.x, DECK_TOP + 3, L.spawn.z),
-		sellZone = { cframe = CFrame.new(sp.x, DECK_TOP + 4, sp.z), size = Vector3.new(sp.size, 10, sp.size) },
+		spawnPosition = Vector3.new(L.spawn.x, deckTop + 3, L.spawn.z),
+		sellZone = { cframe = CFrame.new(sp.x, deckTop + 4, sp.z), size = Vector3.new(sp.size, 10, sp.size) },
 		stations = {
-			Shovel = {
-				position = Vector3.new(L.shovelStation.x, DECK_TOP, L.shovelStation.z),
-				radius = L.shovelStation.radius,
-			},
-			Bag = {
-				position = Vector3.new(L.bagStation.x, DECK_TOP, L.bagStation.z),
-				radius = L.bagStation.radius,
-			},
-			Rebirth = {
-				position = Vector3.new(L.rebirthAltar.x, L.beachHeight, L.rebirthAltar.z),
-				radius = L.rebirthAltar.radius,
-			},
+			Shovel = station("Shovel", L.shovelStation.radius),
+			Bag = station("Bag", L.bagStation.radius),
+			Rebirth = station("Rebirth", L.rebirthAltar.radius),
 		},
 		gates = gates,
 		candidates = candidates,
-		shelfSlots = shelfSlots(),
-		baseFront = Vector3.new((L.base.minX + L.base.maxX) / 2, DECK_TOP, L.base.minZ),
+		shelfSlots = shelfSlots(deckTop),
+		baseFront = Vector3.new((L.base.minX + L.base.maxX) / 2, deckTop, L.base.minZ),
 	}
 end
 

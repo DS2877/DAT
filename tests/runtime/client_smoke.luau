@@ -121,7 +121,8 @@ print("\n== Shops, panels ==")
 data.cash = 400
 H.fireServer(player, "RequestSync")
 task.wait(0.2)
-local deckTop = MapLayout.beachHeight + MapLayout.base.deckHeight
+local deck = H.workspace.Base:FindFirstChild("Deck")
+local deckTop = deck.Position.Y + deck.Size.Y / 2
 H.moveTo(player, V3(MapLayout.shovelStation.x, deckTop, MapLayout.shovelStation.z))
 task.wait(0.5)
 local upgradePanel = root:FindFirstChild("UpgradePanel")
@@ -146,7 +147,7 @@ H.signal(root.TopButtons.CollectionButton, "Activated"):Fire({})
 task.wait(0.1)
 check(root.Collection.Visible and not root.Leaderboards.Visible, "opening Collection closes Leaderboards")
 
-H.moveTo(player, V3(MapLayout.rebirthAltar.x, MapLayout.beachHeight, MapLayout.rebirthAltar.z))
+H.moveTo(player, H.workspace.Base:FindFirstChild("RebirthPad").Position)
 task.wait(0.5)
 check(root:FindFirstChild("RebirthPanel") and root.RebirthPanel.Visible, "rebirth panel opens at the altar")
 

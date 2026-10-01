@@ -35,7 +35,7 @@ test("areaAt splits the island into the four areas", function()
 	expect.eq(Zones.areaAt(0, 120), "Beach")
 	expect.eq(Zones.areaAt(-60, -50), "Jungle")
 	expect.eq(Zones.areaAt(60, -50), "Ruins")
-	expect.eq(Zones.areaAt(0, -200), "Volcano")
+	expect.eq(Zones.areaAt(0, -320), "Volcano")
 end)
 
 test("base, spawn, sell pad and stations are on the beach", function()

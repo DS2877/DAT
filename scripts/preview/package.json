@@ -1,0 +1,10 @@
+{
+  "name": "dig-for-cash-preview",
+  "private": true,
+  "description": "Headless 3D preview of the exported island (see render.mjs).",
+  "type": "module",
+  "dependencies": {
+    "playwright-core": "^1.63.0",
+    "three": "^0.186.1"
+  }
+}

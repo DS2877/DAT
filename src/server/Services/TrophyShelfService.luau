@@ -61,7 +61,7 @@ function TrophyShelfService.refresh(player: Player)
 	if def then
 		model = TreasureBuilder.build(def.id)
 		TreasureBuilder.applyMutation(model, best.m)
-		model:ScaleTo(1.3)
+		TreasureBuilder.scaleTo(model, 1.3)
 	else
 		model = Instance.new("Model")
 		local placeholder = Instance.new("Part")

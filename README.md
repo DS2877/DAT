@@ -15,6 +15,11 @@ bonus with an invite button, and a group reward (off until a group id is set).
 Built on Phases 1–3: the core loop, the fun layer, and all four areas with
 the collection.
 
+The island has three tiers: the Beach with the base plaza, a plateau split
+into the Jungle and the Ancient Ruins by a rocky ridge, and the Volcano
+highland under a huge volcano. Gates climb ramps through canyons in the
+cliffs.
+
 ## Layout
 
 ```
@@ -28,7 +33,8 @@ src/
       Build/         Terrain, Base, Gates, Beach, Jungle, Ruins, Volcano, Candidates, Kit
     Net.luau         Remotes + per-player rate limiting
   client/            StarterPlayerScripts.Client (init.client.luau = bootstrap)
-    Controllers/     HUD, digging, reveal, stations, guide arrow, gates, other players
+    Controllers/     HUD, digging, reveal, stations, guide arrow, gates, other players,
+                     ambient life (birds, butterflies, crabs, fish, animated decor)
   shared/            ReplicatedStorage.Shared
     Config/          ALL tuning numbers (odds, values, costs, timers, map layout)
     Logic/           Pure game rules (loot, progression, bag, save schema, zones)
@@ -53,7 +59,8 @@ Every number lives in `src/shared/Config/`:
 | `Collection.luau` | Set bonus, set badges, announcement rules, trophy shelf slots |
 | `Retention.luau` | Rebirth, gifts, daily calendar, Golden X, Treasure Rush, boosts, friends, group, leaderboards |
 | `Dig.luau` | Dig ranges, respawn timers, anti-cheat tolerances |
-| `MapLayout.luau` | Island geography, base, stations, gates |
+| `MapLayout.luau` | Island geography, base, stations, gates, paths, landmarks |
+| `Movement.luau` | Walk speed |
 
 To add a treasure: append a row in `Treasures.luau` (tests check its value band
 and model archetype).
@@ -72,6 +79,8 @@ lune run tests/runtime/client_smoke.luau build.rbxl   # real client + server, DI
 lune run scripts/pacing.luau [runs] [pace]  # pacing simulator (pace 1.0 focused .. 2.0 slow)
 lune run scripts/export-map.luau build.rbxl map.json && python3 scripts/render-map.py map.json out/
                                           # top-down map + view from the base (needs Pillow, numpy)
+(cd scripts/preview && npm install) && node scripts/preview/render.mjs map.json out/
+                                          # 3D views from the player's eye (three.js in headless Chromium)
 rojo build default.project.json -o build.rbxl
 lune run scripts/verify-build.luau build.rbxl
 ```
@@ -92,6 +101,16 @@ permission for this universe, and its IP allowlist must allow GitHub runners
 
 **Before public launch:** switch live publishing to manual runs only (drop the
 `push` trigger's publish step) so testing pushes can't change the live game.
+
+## World building notes
+
+Roblox draws terrain a few studs above a fill's top (voxels are 4 studs), so
+the builders never trust fill heights for placement: props, the base deck,
+gate ramps and dig spots all measure the real ground with raycasts
+(`Kit.groundY`, `Kit.onLevel`, `Candidates.areaLevel`). The test harness
+copies the offset (`Harness.terrainOffset`), so code that trusts fill
+heights fails in CI. Roblox draws a Ball part with its smallest size axis,
+so stretched round shapes use `Kit.ellipsoid` (a sphere mesh on a block).
 
 ## Data
 

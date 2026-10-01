@@ -41,7 +41,7 @@ for _, spot in spots:GetChildren() do
 	byArea[area] = (byArea[area] or 0) + 1
 end
 for _, area in { "Beach", "Jungle", "Ruins", "Volcano" } do
-	check((byArea[area] or 0) >= 12, string.format("%s has dig spots (%d)", area, byArea[area] or 0))
+	check((byArea[area] or 0) >= 18, string.format("%s has dig spots (%d)", area, byArea[area] or 0))
 end
 
 -- Shared modules (same instances the server uses).
@@ -51,6 +51,25 @@ local PlayerData = H.require(Services.PlayerData)
 local Progression = H.require(Shared.Logic.Progression)
 local Rarities = H.require(Shared.Config.Rarities)
 local MapLayout = H.require(Shared.Config.MapLayout)
+
+-- World placement: terrain in Roblox sits above its fill heights (the
+-- harness copies that), so the base and gates must measure the real ground.
+local base = workspace.Base
+local deck = base:FindFirstChild("Deck")
+local deckTop = deck.Position.Y + deck.Size.Y / 2
+local sand = H.terrainTop(MapLayout.base.minX - 10, (MapLayout.base.minZ + MapLayout.base.maxZ) / 2, 500)
+check(sand ~= nil and deckTop > sand + 0.5 and deckTop < sand + 2, "deck stands just above the real sand")
+check(base:FindFirstChild("SellPad").Position.Y > deckTop, "sell pad is on top of the deck")
+for _, gateModel in workspace.Gates:GetChildren() do
+	local barrier = gateModel:FindFirstChild("Barrier")
+	local ramp = gateModel:FindFirstChild("Ramp")
+	local foot = H.terrainTop(barrier.Position.X, barrier.Position.Z + 6, 500)
+	check(ramp ~= nil, gateModel.Name .. " has a ramp")
+	check(
+		foot ~= nil and barrier.Position.Y - barrier.Size.Y / 2 < foot + 0.5,
+		gateModel.Name .. " barrier reaches the ground"
+	)
+end
 
 ---------------------------------------------------------------------------
 print("\n== Join ==")
@@ -133,7 +152,6 @@ local bagValue = 0
 for _, item in data.bagContents do
 	bagValue += item.v
 end
-local deckTop = MapLayout.beachHeight + MapLayout.base.deckHeight
 H.moveTo(player, V3(MapLayout.sellPad.x, deckTop, MapLayout.sellPad.z))
 H.waitFor(function()
 	return #data.bagContents == 0
@@ -254,7 +272,7 @@ check(data.cash > cashBefore, "5-minute playtime gift claimed")
 print("\n== Rebirth ==")
 data.shovelLevel = 8
 data.cash = 5e6
-H.moveTo(player, V3(MapLayout.rebirthAltar.x, MapLayout.beachHeight, MapLayout.rebirthAltar.z))
+H.moveTo(player, base:FindFirstChild("RebirthPad").Position)
 H.fireServer(player, "Rebirth")
 task.wait(0.1)
 check(data.rebirths == 1, "rebirthed")

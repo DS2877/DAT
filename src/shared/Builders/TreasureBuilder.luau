@@ -22,7 +22,16 @@ local function add(
 	material: Enum.Material?
 ): Part
 	local part = Instance.new("Part")
-	part.Shape = shape
+	-- Roblox draws a Ball with its smallest size axis as the diameter, so
+	-- non-round balls become a block with a stretched sphere mesh.
+	local stretched = shape == Shape.Ball and (size.X ~= size.Y or size.Y ~= size.Z)
+	if stretched then
+		local mesh = Instance.new("SpecialMesh")
+		mesh.MeshType = Enum.MeshType.Sphere
+		mesh.Parent = part
+	else
+		part.Shape = shape
+	end
 	part.Size = size
 	part.CFrame = cframe
 	part.Color = color or ctx.color
@@ -378,6 +387,17 @@ function TreasureBuilder.build(treasureId: string): Model
 	root.Parent = model
 	model.PrimaryPart = root
 	return model
+end
+
+-- Model:ScaleTo, keeping stretched-sphere meshes sized by their part (mesh
+-- Scale is relative to the part for sphere meshes, so it must stay 1).
+function TreasureBuilder.scaleTo(model: Model, scale: number)
+	model:ScaleTo(scale)
+	for _, d in model:GetDescendants() do
+		if d:IsA("SpecialMesh") then
+			d.Scale = Vector3.one
+		end
+	end
 end
 
 local GOLD = Color3.fromRGB(255, 201, 51)

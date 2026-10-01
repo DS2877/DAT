@@ -25,7 +25,7 @@ Areas.Defs = {
 		displayName = "Beach",
 		requiredShovel = 1,
 		enabled = true,
-		activeSpots = 20,
+		activeSpots = 22,
 		odds = { Common = 70, Uncommon = 25, Rare = 5 },
 	},
 	Jungle = {
@@ -34,7 +34,7 @@ Areas.Defs = {
 		displayName = "Jungle",
 		requiredShovel = 3,
 		enabled = true,
-		activeSpots = 20,
+		activeSpots = 25,
 		odds = { Common = 45, Uncommon = 35, Rare = 15, Epic = 4.5, Legendary = 0.5 },
 	},
 	Ruins = {
@@ -43,7 +43,7 @@ Areas.Defs = {
 		displayName = "Ancient Ruins",
 		requiredShovel = 5,
 		enabled = true,
-		activeSpots = 20,
+		activeSpots = 25,
 		odds = { Common = 25, Uncommon = 35, Rare = 25, Epic = 12, Legendary = 2.8, Mythic = 0.2 },
 	},
 	Volcano = {
@@ -52,7 +52,7 @@ Areas.Defs = {
 		displayName = "Volcano",
 		requiredShovel = 7,
 		enabled = true,
-		activeSpots = 18,
+		activeSpots = 25,
 		odds = {
 			Common = 10,
 			Uncommon = 25,

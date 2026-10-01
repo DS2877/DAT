@@ -279,7 +279,7 @@ function RevealController.reveal(position: Vector3, find: Find)
 	local model = TreasureBuilder.build(find.id)
 	TreasureBuilder.applyMutation(model, find.mutation)
 	model:PivotTo(CFrame.new(position + Vector3.new(0, 0.6, 0)))
-	model:ScaleTo(0.3)
+	TreasureBuilder.scaleTo(model, 0.3)
 	model.Parent = Effects.folder()
 	local card, rarityLabel = infoCard(model.PrimaryPart :: BasePart, find, color, style)
 
@@ -322,7 +322,7 @@ function RevealController.reveal(position: Vector3, find: Find)
 		model:PivotTo(CFrame.new(position + Vector3.new(0, height, 0)) * CFrame.Angles(0, spin, 0))
 		local scale = 0.3 + (style.scale - 0.3) * eased * overshoot
 		if math.abs(model:GetScale() - scale) > 0.01 then
-			model:ScaleTo(math.max(0.05, scale))
+			TreasureBuilder.scaleTo(model, math.max(0.05, scale))
 		end
 		if style.tier >= 3 then
 			local c = rainbow(t)
