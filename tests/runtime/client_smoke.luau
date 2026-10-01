@@ -164,7 +164,10 @@ check(root.Bag.Value.Text:find("1/5") ~= nil, "bag counter ticked to 1 (" .. roo
 print("\n== Shops, panels ==")
 data.cash = 400
 H.fireServer(player, "RequestSync")
-task.wait(0.2)
+-- The tutorial re-reads the data a few times a second: wait for it.
+H.waitFor(function()
+	return tutorialText():find("BAGS shop") ~= nil
+end, 3, "tutorial bag step")
 local deck = H.workspace.Base:FindFirstChild("Deck")
 local deckTop = deck.Position.Y + deck.Size.Y / 2
 local upgradePanel = root:FindFirstChild("UpgradePanel")
