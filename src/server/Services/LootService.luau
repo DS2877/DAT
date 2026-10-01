@@ -74,6 +74,11 @@ local function combineMultipliers(a: { [string]: number }?, b: { [string]: numbe
 	return out
 end
 
+local function adminAbuse(): boolean
+	local untilTime = workspace:GetAttribute("AdminAbuseUntil")
+	return type(untilTime) == "number" and untilTime > workspace:GetServerTimeNow()
+end
+
 function LootService.rollFor(data: { [string]: any }, context: DigContext): Find
 	local now = os.time()
 	local digNumber = data.stats.digs + 1
@@ -98,12 +103,13 @@ function LootService.rollFor(data: { [string]: any }, context: DigContext): Find
 		minRarity = "Rare"
 	end
 
-	local rushActive = Rush.isActive(workspace:GetServerTimeNow())
+	local rushActive = Rush.isActive(workspace:GetServerTimeNow(), workspace:GetAttribute("RushUntil"))
 	local roll = LootRoller.roll(context.areaId, rng, {
 		minRarity = minRarity,
 		oddsMultipliers = combineMultipliers(
 			combineMultipliers(
-				if context.clue then Loot.clueOddsMultipliers else nil,
+				-- During ADMIN ABUSE every spot counts as a clue spot.
+				if context.clue or adminAbuse() then Loot.clueOddsMultipliers else nil,
 				if rushActive then Retention.rush.oddsMultipliers else nil
 			),
 			context.luck

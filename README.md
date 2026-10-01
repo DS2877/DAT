@@ -69,6 +69,8 @@ Every number lives in `src/shared/Config/`:
 | `MapLayout.luau` | Island geography, base, stations, gates, paths, landmarks |
 | `Movement.luau` | Walk speed, spawn camera zoom |
 | `Drinks.luau` | Tiki Bar drinks: effect, duration, price |
+| `Jackpots.luau` | Hidden treasures: how often, which rarity, which area |
+| `Admin.luau` | Who gets the admin panel; ADMIN ABUSE settings |
 | `Monetization.luau` | Passes, products, skins, perk numbers, offer limits |
 
 To add a treasure: append a row in `Treasures.luau` (tests check its value band
@@ -134,6 +136,23 @@ boosts (Speed Soda: run 50% faster, Jump Juice: jump twice as high, Golden
 Coconut: +25% cash, Lucky Lemonade: 2x Shiny / Golden chance). Prices are a
 share of the player's next goal (`Config/Drinks.luau`), so they stay
 meaningful at every stage. Buying one that's running adds 5 minutes.
+
+## Island Guide, hidden treasures, admin
+
+* **Island Guide**: a wooden board on the plaza (and the 🗺️ Guide button)
+  with a map of the island, how to play, and the game's upcoming Roblox
+  events. SIGN UP is a real Roblox RSVP (`SocialService`), so players get
+  Roblox's reminder; events you create in the Creator Hub / Roblox app show
+  up automatically.
+* **Hidden treasures** (`Config/Jackpots.luau`): every 5-9 minutes a Mythic
+  or Secret is buried under a random normal-looking spot; everyone is told
+  the area only, and everyone hears who found it.
+* **Admin panel** (🛠️, `Config/Admin.luau`): for the game's owner (and any
+  listed user ids; everyone in Studio). Cash, levels, test passes, boosts,
+  treasures, resets, teleports, kick; Treasure Rush, server 2x Cash, ADMIN
+  ABUSE (2x cash + rush + clue odds + hidden treasures for everyone),
+  hiding treasures, announcements, time of day. Every action is checked on
+  the server.
 
 ## Audio
 

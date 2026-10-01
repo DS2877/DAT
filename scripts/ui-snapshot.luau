@@ -10,6 +10,26 @@ local serde = require("@lune/serde")
 local task = require("@lune/task")
 
 local H = require("../tests/runtime/Harness")
+H.experienceEvents = {
+	{
+		Id = "evt-1",
+		Title = "Admin Abuse Hour",
+		DisplayTitle = "Admin Abuse Hour",
+		StartTime = { Year = 2026, Month = 10, Day = 10, Hour = 18, Minute = 0, Second = 0 },
+		HasStarted = false,
+		HasEnded = false,
+		UserRsvpStatus = "None",
+	},
+	{
+		Id = "evt-2",
+		Title = "Double Treasure Weekend",
+		DisplayTitle = "Double Treasure Weekend",
+		StartTime = { Year = 2026, Month = 10, Day = 17, Hour = 16, Minute = 0, Second = 0 },
+		HasStarted = false,
+		HasEnded = false,
+		UserRsvpStatus = "Going",
+	},
+}
 
 local game = H.load(process.args[1] or "build.rbxl")
 local V3 = roblox.Vector3.new
@@ -19,6 +39,7 @@ local Shared = game:GetService("ReplicatedStorage").Shared
 local PlayerData = H.require(game:GetService("ServerScriptService").Server.Services.PlayerData)
 local MapLayout = H.require(Shared.Config.MapLayout)
 
+table.insert(H.require(Shared.Config.Admin).userIds, 7001)
 local player = H.addPlayer("Kid", 7001)
 local playerGui
 do
@@ -231,6 +252,18 @@ task.wait(0.4)
 H.signal(root.TopButtons:FindFirstChild("SettingsButton"), "Activated"):Fire({})
 snap("settings")
 H.signal(root.TopButtons:FindFirstChild("SettingsButton"), "Activated"):Fire({})
+H.signal(root.TopButtons:FindFirstChild("GuideButton"), "Activated"):Fire({})
+snap("guide_map")
+H.signal(root.IslandGuide:FindFirstChild("HowTo", true), "Activated"):Fire({})
+snap("guide_howto")
+H.signal(root.IslandGuide:FindFirstChild("Events", true), "Activated"):Fire({})
+snap("guide_events")
+H.signal(root.TopButtons:FindFirstChild("GuideButton"), "Activated"):Fire({})
+H.signal(root.TopButtons:FindFirstChild("AdminButton"), "Activated"):Fire({})
+snap("admin_player")
+H.signal(root.Admin:FindFirstChild("Events", true), "Activated"):Fire({})
+snap("admin_events")
+H.signal(root.TopButtons:FindFirstChild("AdminButton"), "Activated"):Fire({})
 
 -- The Auto Dig offer: a player without the pass holds DIG.
 data.onboarding.guideDone = true

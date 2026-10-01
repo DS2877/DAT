@@ -29,6 +29,7 @@ local PlayerData = H.require(game:GetService("ServerScriptService").Server.Servi
 local MapLayout = H.require(Shared.Config.MapLayout)
 
 -- A player with a PlayerGui, joined on the server.
+table.insert(H.require(Shared.Config.Admin).userIds, 7001) -- this player is an admin
 local player = H.addPlayer("Kid", 7001)
 local playerGui = Instance and nil
 do
@@ -42,6 +43,18 @@ end, 5, "server profile")
 local data = PlayerData.get(player)
 
 -- Client mode: remotes loop back between the client code and the server.
+-- One upcoming Roblox event (for the Island Guide's sign-up list).
+H.experienceEvents = {
+	{
+		Id = "evt-1",
+		Title = "Admin Abuse Hour",
+		DisplayTitle = "Admin Abuse Hour",
+		StartTime = { Year = 2026, Month = 10, Day = 10, Hour = 18, Minute = 0, Second = 0, Millisecond = 0 },
+		HasStarted = false,
+		HasEnded = false,
+		UserRsvpStatus = "None",
+	},
+}
 H.isClient = true
 H.localPlayer = player
 H.onFireServer = function(remote: string, ...)
@@ -351,6 +364,53 @@ if cliff then
 	check(cliff.CanCollide, "and closes again once you're out")
 end
 check(H.workspace.Base:FindFirstChild("VipRunway") ~= nil, "a red carpet leads to the VIP dig site")
+
+print("\n== Island Guide ==")
+check(H.workspace.Base:FindFirstChild("InfoBoard") ~= nil, "the wooden guide board stands at the base")
+local boardGui = playerGui:FindFirstChild("EventsBoard")
+check(boardGui ~= nil and boardGui:FindFirstChild("Event", true) ~= nil, "the board lists upcoming events")
+H.signal(root.TopButtons.GuideButton, "Activated"):Fire({})
+task.wait(0.2)
+local guide = root:FindFirstChild("IslandGuide")
+check(guide and guide.Visible, "the Guide button opens the island guide")
+check(guide:FindFirstChild("IslandMap", true) ~= nil, "it shows the island map")
+H.signal(guide:FindFirstChild("Events", true), "Activated"):Fire({})
+task.wait(0.3)
+local signUp = guide:FindFirstChild("SignUp", true)
+check(signUp and signUp.Text == "SIGN UP", "events can be signed up for")
+H.signal(signUp, "Activated"):Fire({})
+task.wait(0.3)
+check(#H.rsvps == 1 and H.rsvps[1] == "evt-1", "SIGN UP opens Roblox's RSVP for that event")
+local signedUp = guide:FindFirstChild("SignUp", true)
+check(signedUp and signedUp.Text:find("SIGNED UP") ~= nil, "and shows it's signed up")
+H.signal(root.TopButtons.GuideButton, "Activated"):Fire({})
+task.wait(0.1)
+
+print("\n== Admin panel ==")
+local adminButton = root.TopButtons:FindFirstChild("AdminButton")
+check(adminButton ~= nil, "admins get the admin button")
+if adminButton then
+	H.signal(adminButton, "Activated"):Fire({})
+	task.wait(0.2)
+	local adminPanel = root:FindFirstChild("Admin")
+	check(adminPanel and adminPanel.Visible, "it opens the admin panel")
+	local cashBefore = data.cash
+	H.signal(adminPanel:FindFirstChild("AddCash", true), "Activated"):Fire({})
+	task.wait(0.3)
+	check(data.cash > cashBefore, "an admin button gives cash")
+	H.signal(adminPanel:FindFirstChild("Events", true), "Activated"):Fire({})
+	H.signal(adminPanel:FindFirstChild("Abuse", true), "Activated"):Fire({})
+	task.wait(1.2)
+	local chips = root:FindFirstChild("Chips")
+	local abuseChip = false
+	for _, chip in chips:GetChildren() do
+		abuseChip = abuseChip or (chip:IsA("TextLabel") and chip.Text:find("ADMIN ABUSE") ~= nil)
+	end
+	check(abuseChip, "ADMIN ABUSE shows a countdown chip")
+	H.fireServer(player, "AdminAction", "Abuse", nil, 0)
+	H.signal(adminButton, "Activated"):Fire({})
+	task.wait(0.1)
+end
 
 print("\n== Shop ==")
 local shop = root:FindFirstChild("Shop")

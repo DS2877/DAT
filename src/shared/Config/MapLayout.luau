@@ -55,6 +55,9 @@ local MapLayout = {
 	rebirthAltar = { x = -84, z = 176, radius = 9 },
 	-- Leaderboard boards along the back of the plaza, facing north.
 	leaderboards = { z = 233, xs = { -36, 0, 36 } },
+	-- The Island Guide board (map, how to play, events) on the plaza's east
+	-- side, facing the spawn.
+	infoBoard = { x = 40, z = 214, width = 17, height = 11 },
 	-- Trophy shelf in front of the boards (slots spread along x).
 	trophyShelf = { z = 224, minX = -24.5, maxX = 24.5 },
 

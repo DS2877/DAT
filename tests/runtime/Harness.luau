@@ -215,6 +215,7 @@ local EVENTS = {
 	PlayerRemoving = true,
 	CharacterAdded = true,
 	CharacterAppearanceLoaded = true,
+	Triggered = true,
 	Died = true,
 	OnServerEvent = true,
 	OnClientEvent = true,
@@ -1144,6 +1145,28 @@ methods.PromptProductPurchase = function(_proxy, _inst, player, productId)
 	if H.buyPrompts then
 		realTask.spawn(H.processReceipt, userId, productId)
 	end
+end
+
+-- SocialService events: H.experienceEvents is the list Roblox would return;
+-- an RSVP prompt marks the event as Going (H.rsvps logs them).
+H.experienceEvents = {} :: { any }
+H.rsvps = {} :: { string }
+methods.GetUpcomingExperienceEventsAsync = function()
+	local list = {}
+	for _, e in H.experienceEvents do
+		table.insert(list, table.clone(e))
+	end
+	return list
+end
+methods.PromptRsvpToEventAsync = function(_proxy, _inst, eventId)
+	assert(type(eventId) == "string", "event ids are strings")
+	table.insert(H.rsvps, eventId)
+	for _, e in H.experienceEvents do
+		if e.Id == eventId then
+			e.UserRsvpStatus = "Going"
+		end
+	end
+	return "Going"
 end
 
 -- PolicyService: H.policy is returned for everyone.

@@ -16,6 +16,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local CollectionConfig = require(ReplicatedStorage.Shared.Config.Collection)
+local IslandMap = require(ReplicatedStorage.Shared.Builders.IslandMap)
 local ShovelBuilder = require(ReplicatedStorage.Shared.Builders.ShovelBuilder)
 local Kit = require(script.Parent.Kit)
 
@@ -831,6 +832,143 @@ local function vipSite(base: Instance, top: number): Vector3
 	return Vector3.new(site.x, ground, site.z)
 end
 
+-- The Island Guide: a big wooden board on the plaza with a map of the
+-- island, how the game works, and upcoming events to sign up for (the
+-- events list and its buttons are added per player by InfoBoardController).
+-- A prompt on it opens the same guide full screen.
+local HOW_TO_PLAY = table.concat({
+	"1  DIG: walk to a dirt spot and tap DIG",
+	"2  SELL: bring your bag to the golden SELL pad",
+	"3  UPGRADE: shovels dig faster and open new areas",
+	"4  Bigger bags carry more treasure",
+	"5  REBIRTH at the temple: +25% cash forever",
+	"Sparkly spots hide better treasure!",
+}, "\n")
+
+local function infoBoard(base: Instance, top: number)
+	local ib = L.infoBoard
+	-- Faces west (toward the spawn); +X of the board runs north.
+	local center = Vector3.new(ib.x, top + 1.5 + ib.height / 2, ib.z)
+	local frame = CFrame.fromMatrix(center, Vector3.new(0, 0, -1), Vector3.yAxis)
+	local model = Instance.new("Model")
+	model.Name = "InfoBoard"
+	local backing = part(model, {
+		name = "Backing",
+		size = Vector3.new(ib.width, ib.height, 0.6),
+		cframe = frame,
+		color = WOOD_DARK,
+		material = Enum.Material.WoodPlanks,
+	})
+	for _, side in { -1, 1 } do
+		part(model, {
+			name = "Leg",
+			size = Vector3.new(0.9, ib.height / 2 + 1.6, 0.9),
+			cframe = frame * CFrame.new(side * (ib.width / 2 - 0.6), -ib.height / 2 - 0.75 + 0.05, 0.1),
+			color = WOOD_DARK,
+			material = Enum.Material.Wood,
+		})
+	end
+	local header = part(model, {
+		name = "Header",
+		size = Vector3.new(ib.width * 0.7, 1.8, 0.5),
+		cframe = frame * CFrame.new(0, ib.height / 2 + 0.7, -0.1),
+		color = WOOD,
+		material = Enum.Material.WoodPlanks,
+	})
+	Kit.signText(header, "ISLAND GUIDE", GOLD)
+
+	-- Panels in front of the backing (Front faces west, toward the viewer).
+	local function panel(name: string, w: number, h: number, x: number, y: number): BasePart
+		return part(model, {
+			name = name,
+			size = Vector3.new(w, h, 0.2),
+			cframe = frame * CFrame.new(x, y, -0.4),
+			color = WOOD_LIGHT,
+			material = Enum.Material.WoodPlanks,
+		})
+	end
+	local mapW = (ib.height - 1) * IslandMap.aspect
+	-- From the viewer, the map is on the left (the board's +X side).
+	local mapPanel = panel("MapPanel", mapW, ib.height - 1, ib.width / 2 - 0.5 - mapW / 2, 0)
+	local textW = ib.width - mapW - 1.5
+	local textX = -ib.width / 2 + 0.5 + textW / 2
+	local howTo = panel("HowToPanel", textW, ib.height / 2 - 0.75, textX, ib.height / 4)
+	local events = panel("EventsPanel", textW, ib.height / 2 - 0.75, textX, -ib.height / 4)
+
+	local function surface(target: BasePart): SurfaceGui
+		local gui = Instance.new("SurfaceGui")
+		gui.Name = "Board"
+		gui.Face = Enum.NormalId.Front
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 50
+		gui.LightInfluence = 0
+		gui.Parent = target
+		return gui
+	end
+	local mapGui = surface(mapPanel)
+	local holder = Instance.new("Frame")
+	holder.Size = UDim2.new(1, -16, 1, -16)
+	holder.Position = UDim2.fromOffset(8, 8)
+	holder.BackgroundTransparency = 1
+	holder.Parent = mapGui
+	local map = IslandMap.build(holder)
+	local here = IslandMap.project(ib.x, ib.z)
+	local you = Instance.new("TextLabel")
+	you.Name = "YouAreHere"
+	you.AnchorPoint = Vector2.new(0.5, 1)
+	you.Position = UDim2.fromScale(here.X, here.Y)
+	you.Size = UDim2.fromScale(0.5, 0.05)
+	you.BackgroundTransparency = 1
+	you.Font = Enum.Font.LuckiestGuy
+	you.Text = "★ YOU ARE HERE"
+	you.TextScaled = true
+	you.TextColor3 = Color3.fromRGB(255, 80, 80)
+	you.ZIndex = 8
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 2
+	stroke.Parent = you
+	you.Parent = map
+
+	local function textPanel(target: BasePart, title: string, body: string)
+		local gui = surface(target)
+		local t = Instance.new("TextLabel")
+		t.Name = "Title"
+		t.Size = UDim2.new(1, -20, 0.24, 0)
+		t.Position = UDim2.fromOffset(10, 6)
+		t.BackgroundTransparency = 1
+		t.Font = Enum.Font.LuckiestGuy
+		t.Text = title
+		t.TextScaled = true
+		t.TextColor3 = Color3.fromRGB(70, 40, 15)
+		t.Parent = gui
+		local b = Instance.new("TextLabel")
+		b.Name = "Body"
+		b.Size = UDim2.new(1, -24, 0.72, -10)
+		b.Position = UDim2.new(0, 12, 0.26, 0)
+		b.BackgroundTransparency = 1
+		b.Font = Enum.Font.FredokaOne
+		b.Text = body
+		b.TextScaled = true
+		b.TextXAlignment = Enum.TextXAlignment.Left
+		b.TextYAlignment = Enum.TextYAlignment.Top
+		b.TextColor3 = Color3.fromRGB(60, 40, 20)
+		b.Parent = gui
+	end
+	textPanel(howTo, "HOW TO PLAY", HOW_TO_PLAY)
+	textPanel(events, "EVENTS", "Upcoming events show up here.\nWalk up and tap OPEN to sign up!")
+
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "GuidePrompt"
+	prompt.ObjectText = "Island Guide"
+	prompt.ActionText = "Open (map, events)"
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 16
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = backing
+	model.Parent = base
+	Kit.addObstacle(Vector3.new(ib.x, 0, ib.z), ib.width / 2)
+end
+
 -- A leaderboard board with a wooden frame, roof and lanterns.
 local function leaderboard(base: Instance, top: number, board: string, title: string, x: number, z: number)
 	local w, h = 17, 15
@@ -1105,6 +1243,7 @@ function Base.build(rng: Random): BaseInfo
 	end
 
 	local vipSpot = vipSite(base, top)
+	infoBoard(base, top)
 
 	return { folder = base, deckTop = top, pads = pads, vipSpot = vipSpot }
 end

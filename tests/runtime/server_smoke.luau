@@ -444,6 +444,55 @@ do
 	check(humanoid.WalkSpeed < 25, "speed back to normal when it runs out")
 end
 
+print("\n== Admin ==")
+do
+	local Admin = H.require(Shared.Config.Admin)
+	local intruder = H.addPlayer("NotAdmin", 8899)
+	H.waitFor(function()
+		return PlayerData.get(intruder) ~= nil
+	end, 5, "second player")
+	local intruderData = PlayerData.get(intruder)
+	local before = intruderData.cash
+	H.fireServer(intruder, "AdminAction", "AddCash", nil, 1000000)
+	H.fireServer(intruder, "AdminAction", "Abuse", nil, 10)
+	task.wait(0.1)
+	check(
+		intruderData.cash == before and workspace:GetAttribute("AdminAbuseUntil") == nil,
+		"non-admins can't use admin actions"
+	)
+	table.insert(Admin.userIds, 5001)
+	local cash = data.cash
+	H.fireServer(player, "AdminAction", "AddCash", nil, 1000)
+	task.wait(0.1)
+	check(data.cash == cash + 1000, "admin: +1K cash")
+	H.fireServer(player, "AdminAction", "AddCash", 8899, 500)
+	task.wait(0.1)
+	check(intruderData.cash == before + 500, "admin: give cash to another player")
+	H.fireServer(player, "AdminAction", "Treasure", nil, "Mythic")
+	task.wait(0.1)
+	local last = data.bagContents[#data.bagContents]
+	check(
+		last ~= nil and H.require(Shared.Config.Treasures).ById[last.id].rarity == "Mythic",
+		"admin: give a Mythic"
+	)
+	table.remove(data.bagContents)
+	H.fireServer(player, "AdminAction", "Abuse", nil, 10)
+	task.wait(0.1)
+	check(
+		(workspace:GetAttribute("AdminAbuseUntil") or 0) > workspace:GetServerTimeNow()
+			and (workspace:GetAttribute("RushUntil") or 0) > workspace:GetServerTimeNow()
+			and (workspace:GetAttribute("ServerBoostUntil") or 0) > workspace:GetServerTimeNow(),
+		"admin: ADMIN ABUSE turns on rush and 2x cash for everyone"
+	)
+	H.fireServer(player, "AdminAction", "Abuse", nil, 0)
+	task.wait(0.1)
+	check(workspace:GetAttribute("AdminAbuseUntil") == nil, "admin: ADMIN ABUSE can be stopped")
+	H.fireServer(player, "AdminAction", "Kick", 8899)
+	task.wait(0.2)
+	check(H.kicked[8899] ~= nil, "admin: kick")
+	table.remove(Admin.userIds)
+end
+
 print("\n== Bad client input ==")
 local errorsBefore = #H.errors
 for _, args in
@@ -480,10 +529,8 @@ do
 	check(JackpotService.hide("Mythic", "Ruins"), "a Mythic was hidden in the Ruins")
 	task.wait(0.1)
 	local told = false
-	for _, event in H.clientEvents("Announce") do
-		told = told
-			or tostring(event[1].text):find("buried somewhere in the ANCIENT RUINS") ~= nil
-			or tostring(event[1].text):find("buried somewhere in the RUINS") ~= nil
+	for _, event in H.clientEvents("Notify", player) do
+		told = told or tostring(event[1]):find("buried somewhere in the ANCIENT RUINS") ~= nil
 	end
 	check(told, "everyone is told the area, not the spot")
 	local entry = JackpotService.list()[1]

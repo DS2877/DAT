@@ -213,7 +213,10 @@ function finish(
 		DigSpotService.consume(spotId)
 	end
 	local serverNow = workspace:GetServerTimeNow()
-	if Rush.isActive(serverNow) and lastRushLogged[player] ~= Rush.id(serverNow) then
+	if
+		Rush.isActive(serverNow, workspace:GetAttribute("RushUntil"))
+		and lastRushLogged[player] ~= Rush.id(serverNow)
+	then
 		lastRushLogged[player] = Rush.id(serverNow)
 		Analytics.custom(player, "TreasureRushDig")
 	end

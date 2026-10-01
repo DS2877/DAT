@@ -37,10 +37,13 @@ local function applyMovement(player: Player)
 	local now = os.time()
 	local r = Retention.rebirth
 	local rebirthBonus = math.min(r.maxWalkSpeedBonus, data.rebirths * r.walkSpeedPerRebirth)
+	local adminSpeed = (player:GetAttribute("AdminSpeed") :: number?) or 1
+	local adminJump = (player:GetAttribute("AdminJump") :: number?) or 1
 	local speed = Movement.walkSpeed
 		* (1 + rebirthBonus)
 		* Boosts.multiplier(data.activeBoosts, "SpeedSoda", now)
-	local jump = Boosts.multiplier(data.activeBoosts, "JumpJuice", now)
+		* adminSpeed
+	local jump = Boosts.multiplier(data.activeBoosts, "JumpJuice", now) * adminJump
 	if math.abs(humanoid.WalkSpeed - speed) > 0.01 then
 		humanoid.WalkSpeed = speed
 	end

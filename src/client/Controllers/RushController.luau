@@ -53,7 +53,7 @@ local function setSparkles(spot: Instance, on: boolean)
 end
 
 local function update()
-	local active, seconds = Rush.state(workspace:GetServerTimeNow())
+	local active, seconds = Rush.state(workspace:GetServerTimeNow(), workspace:GetAttribute("RushUntil"))
 	if active then
 		HudController.setRushText("✨ RUSH! " .. clock(seconds) .. " left", true)
 	else

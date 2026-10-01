@@ -294,6 +294,17 @@ local function refreshChips()
 			table.insert(chips, { text = "⏸ " .. def.displayName .. " " .. clock(paused), color = C.Grey })
 		end
 	end
+	-- An admin's ADMIN ABUSE event.
+	local abuseUntil = workspace:GetAttribute("AdminAbuseUntil")
+	if type(abuseUntil) == "number" then
+		local left = math.floor(abuseUntil - workspace:GetServerTimeNow())
+		if left > 0 then
+			table.insert(
+				chips,
+				{ text = "🎉 ADMIN ABUSE " .. clock(left), color = Color3.fromRGB(255, 95, 210) }
+			)
+		end
+	end
 	-- A bought server-wide 2x Cash (everyone sees who boosted).
 	local serverUntil = workspace:GetAttribute("ServerBoostUntil")
 	if type(serverUntil) == "number" then

@@ -16,6 +16,7 @@ return table.freeze({
 	EquipSkin = "EquipSkin", -- (skinId: string, "" = none)
 	SellAnywhere = "SellAnywhere", -- () Auto Sell's SELL button
 	BuyDrink = "BuyDrink", -- (drinkId: string) at the Tiki Bar
+	AdminAction = "AdminAction", -- (action, targetUserId?, ...args) admins only
 	ShopEvent = "ShopEvent", -- (event: "ShopOpened" | "OfferShown" | "PurchasePrompted", key: string?)
 
 	-- Server -> Client
@@ -25,4 +26,5 @@ return table.freeze({
 	UpgradeResult = "UpgradeResult", -- (result)
 	Notify = "Notify", -- (text, kind?)
 	Announce = "Announce", -- (announcement) to everyone
+	AdminInfo = "AdminInfo", -- (info) players, uptime, hidden treasures
 })

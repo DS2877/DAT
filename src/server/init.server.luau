@@ -26,6 +26,7 @@ local SettingsService = require(Services.SettingsService)
 local PurchaseService = require(Services.PurchaseService)
 local DrinkService = require(Services.DrinkService)
 local JackpotService = require(Services.JackpotService)
+local AdminService = require(Services.AdminService)
 
 -- init: connect remotes and signals. Order matters only for PlayerData.Loaded
 -- listeners, which must exist before PlayerData starts loading players.
@@ -43,6 +44,7 @@ SettingsService.init()
 PurchaseService.init()
 DrinkService.init()
 DigService.onHiddenFound = JackpotService.onFound
+AdminService.init()
 LeaderboardService.init() -- before PlayerData: its leave handler must run first
 CharacterService.init()
 PlayerData.init()
