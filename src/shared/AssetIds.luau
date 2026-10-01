@@ -106,8 +106,8 @@ local AssetIds = {
 	Animations = {
 		-- The dig (Config/DigAnimation), uploaded by the "Upload animations"
 		-- workflow. Empty = played in code from the same keyframes.
-		DigR15 = "",
-		DigR6 = "",
+		DigR15 = "rbxassetid://113717601836066",
+		DigR6 = "rbxassetid://116719361124226",
 	},
 }
 
