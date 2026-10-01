@@ -37,7 +37,7 @@ Upgrades.Shovels = {
 	{ level = 4, name = "Golden Shovel", cost = 20000, hits = 3, hitInterval = 0.32, bladeColor = "#FFC933", handleColor = "#5B3A22", bladeMaterial = "Metal", glow = false },
 	{ level = 5, name = "Diamond Shovel", cost = 80000, hits = 3, hitInterval = 0.27, bladeColor = "#7FF3FF", handleColor = "#2E4A6B", bladeMaterial = "Glass", glow = false },
 	{ level = 6, name = "Rainbow Shovel", cost = 400000, hits = 3, hitInterval = 0.23, bladeColor = "#FF5FD2", handleColor = "#FFFFFF", bladeMaterial = "Neon", glow = true },
-	{ level = 7, name = "Magma Shovel", cost = 1500000, hits = 3, hitInterval = 0.2, bladeColor = "#FF6A1A", handleColor = "#2B2323", bladeMaterial = "Neon", glow = true },
+	{ level = 7, name = "Magma Shovel", cost = 800000, hits = 3, hitInterval = 0.2, bladeColor = "#FF6A1A", handleColor = "#2B2323", bladeMaterial = "Neon", glow = true },
 	{ level = 8, name = "Legendary Shovel", cost = 5000000, hits = 3, hitInterval = 0.17, bladeColor = "#B66BFF", handleColor = "#FFD24A", bladeMaterial = "Neon", glow = true },
 } :: { ShovelDef }
 
