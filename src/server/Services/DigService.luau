@@ -48,6 +48,9 @@ local random = Random.new()
 local lastRushLogged: { [Player]: number } = {}
 local autoSellQueued: { [Player]: boolean } = {}
 
+-- Set by JackpotService: a hidden treasure was dug up.
+DigService.onHiddenFound = function(_player: Player, _spotId: number, _find: { [string]: any }) end
+
 -- Set by PurchaseService: whether paid luck may apply to this player
 -- (PolicyService's paid-random-items restriction).
 DigService.luckAllowed = function(_player: Player): boolean
@@ -224,6 +227,7 @@ function finish(
 		clue = spot.clue,
 		luck = if DigService.luckAllowed(player) then Perks.luckMultipliers(data) else nil,
 		serverBoost = ServerBoostService.isActive(),
+		jackpot = spot.jackpot,
 		streak = Streak.onDig(streak, os.clock()),
 		deep = wasDeep,
 		goldenX = isGoldenX,
@@ -248,7 +252,11 @@ function finish(
 		bagValue = Bag.totalValue(data.bagContents),
 	})
 	CollectionService.onFind(player, data, find)
-	AnnouncementService.onFind(player, find, spot.position)
+	if spot.jackpot then
+		DigService.onHiddenFound(player, spotId, find)
+	else
+		AnnouncementService.onFind(player, find, spot.position)
+	end
 	PlayerData.changed(player)
 
 	-- Auto Sell: a full bag sells itself (after the find's reveal).

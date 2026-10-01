@@ -25,6 +25,8 @@ export type Spot = {
 	reservedUntil: number,
 	-- The VIP dig spot at the base (VIP only; never moves).
 	vip: boolean?,
+	-- A hidden treasure's rarity (server only; the spot looks normal).
+	jackpot: string?,
 }
 
 local DigSpotService = {}
@@ -365,6 +367,21 @@ local function spawnVipSpot()
 		vip = true,
 	}
 	model.Parent = spotsFolder
+end
+
+-- A random ordinary spot in an area to hide a treasure under (not the VIP
+-- spot, not one already hiding something or being Deep Dug).
+function DigSpotService.pickHidden(areaId: string): Spot?
+	local options = {}
+	for _, spot in active do
+		if spot.areaId == areaId and not spot.vip and not spot.jackpot and not spot.reservedBy then
+			table.insert(options, spot)
+		end
+	end
+	if #options == 0 then
+		return nil
+	end
+	return options[rng:NextInteger(1, #options)]
 end
 
 function DigSpotService.get(spotId: number): Spot?

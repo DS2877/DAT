@@ -53,6 +53,7 @@ export type DigContext = {
 	friends: number, -- friends in the server (cash bonus)
 	luck: { [string]: number }?, -- 2x Luck pass odds multipliers (off by default)
 	serverBoost: boolean?, -- a bought server-wide 2x Cash is running
+	jackpot: string?, -- a hidden treasure's rarity (Config/Jackpots)
 }
 
 local function atLeast(current: string?, minimum: string): string
@@ -83,6 +84,9 @@ function LootService.rollFor(data: { [string]: any }, context: DigContext): Find
 	end
 	if context.goldenX then
 		minRarity = atLeast(minRarity, Retention.goldenX.minRarity)
+	end
+	if context.jackpot then
+		minRarity = atLeast(minRarity, context.jackpot)
 	end
 	-- Reward charges (from gifts / daily): spent only when they'd matter.
 	local charges = data.digCharges

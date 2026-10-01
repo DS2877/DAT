@@ -473,6 +473,41 @@ local jungleFind = digSpot(player, spotList("Jungle")[1])
 check(jungleFind ~= nil, "dug in the Jungle with the Iron Shovel")
 
 ---------------------------------------------------------------------------
+print("\n== Hidden treasure ==")
+do
+	local JackpotService = H.require(Services.JackpotService)
+	local DigSpotService = H.require(Services.DigSpotService)
+	check(JackpotService.hide("Mythic", "Ruins"), "a Mythic was hidden in the Ruins")
+	task.wait(0.1)
+	local told = false
+	for _, event in H.clientEvents("Announce") do
+		told = told
+			or tostring(event[1].text):find("buried somewhere in the ANCIENT RUINS") ~= nil
+			or tostring(event[1].text):find("buried somewhere in the RUINS") ~= nil
+	end
+	check(told, "everyone is told the area, not the spot")
+	local entry = JackpotService.list()[1]
+	local spot = entry and DigSpotService.get(entry.spotId)
+	check(spot ~= nil and spot.model:GetAttribute("Jackpot") == nil, "the spot looks like any other")
+	if spot then
+		local saved = data.shovelLevel
+		data.shovelLevel = 5
+		local find = digSpot(player, spot.model)
+		check(
+			find ~= nil and (find.rarity == "Mythic" or find.rarity == "Secret"),
+			"digging it gives the Mythic (" .. tostring(find and find.rarity) .. ")"
+		)
+		task.wait(0.1)
+		local found = false
+		for _, event in H.clientEvents("Notify", player) do
+			found = found or tostring(event[1]):find("found the hidden") ~= nil
+		end
+		check(found, "everyone hears who found it")
+		check(#JackpotService.list() == 0, "no longer hidden")
+		data.shovelLevel = saved
+	end
+end
+
 print("\n== Golden X ==")
 H.fireServer(player, "RequestSync")
 task.wait(0.1)
