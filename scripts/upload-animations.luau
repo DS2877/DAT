@@ -63,17 +63,47 @@ local function request(options: { [string]: any }): (number, any)
 end
 
 -- The experience's owner (user or group): the animations must belong to it.
-local status, games =
-	request({ url = "https://games.roblox.com/v1/games?universeIds=" .. universeId, method = "GET" })
-local creator = status == 200 and games and games.data and games.data[1] and games.data[1].creator
-if not creator then
-	print("::error::Couldn't look up the owner of universe " .. universeId .. " (" .. status .. ")")
-	process.exit(1)
+-- Open Cloud first (works for private games), the public API as a fallback.
+local creationContext = nil
+do
+	local s, universe = request({
+		url = "https://apis.roblox.com/cloud/v2/universes/" .. universeId,
+		method = "GET",
+		headers = { ["x-api-key"] = apiKey :: string },
+	})
+	if s == 200 and type(universe) == "table" then
+		local user = type(universe.user) == "string" and universe.user:match("users/(%d+)")
+		local group = type(universe.group) == "string" and universe.group:match("groups/(%d+)")
+		if group then
+			creationContext = { creator = { groupId = group } }
+			print("Owner: group " .. group)
+		elseif user then
+			creationContext = { creator = { userId = user } }
+			print("Owner: user " .. user)
+		end
+	else
+		print(string.format("  universe lookup -> %d", s))
+	end
+	if not creationContext then
+		local gs, games =
+			request({ url = "https://games.roblox.com/v1/games?universeIds=" .. universeId, method = "GET" })
+		local creator = gs == 200 and games and games.data and games.data[1] and games.data[1].creator
+		if creator and tonumber(creator.id) and tonumber(creator.id) > 0 then
+			creationContext = if creator.type == "Group"
+				then { creator = { groupId = tostring(creator.id) } }
+				else { creator = { userId = tostring(creator.id) } }
+			print(string.format("Owner: %s %s", creator.type, tostring(creator.id)))
+		end
+	end
+	if not creationContext then
+		print(
+			"::error::Couldn't find the owner of universe "
+				.. universeId
+				.. ". Give the API key the universe:read permission (Universes API) for it."
+		)
+		process.exit(1)
+	end
 end
-local creationContext = if creator.type == "Group"
-	then { creator = { groupId = tostring(creator.id) } }
-	else { creator = { userId = tostring(creator.id) } }
-print(string.format("Owner: %s %s (%s)", creator.type, tostring(creator.id), tostring(creator.name)))
 
 local function multipart(requestJson: string, fileName: string, file: string): (string, string)
 	local boundary = "----DigForCashAnim" .. tostring(math.random(1e9, 2e9))
