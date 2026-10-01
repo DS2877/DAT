@@ -48,12 +48,6 @@ local function animationId(character: Model): string
 	return (if isR15(character) then ids.DigR15 else ids.DigR6) or ""
 end
 
--- True when digs are played from an uploaded animation (they then show for
--- other players by themselves).
-function Effects.usesAnimationAsset(character: Model): boolean
-	return animationId(character) ~= ""
-end
-
 -- The character's joints, by the body part each one moves.
 local function jointsOf(character: Model): { [string]: Instance }
 	local found: { [string]: Instance } = {}
@@ -159,18 +153,18 @@ local function playTrack(character: Model, duration: number): boolean
 		tracks[humanoid] = track
 	end
 	local t = track :: AnimationTrack
+	if t.Length <= 0 then
+		-- Not loaded (yet, or not allowed): the coded dig plays meanwhile.
+		return false
+	end
 	t:Play(0.05, 1, DigAnimation.length / math.max(0.12, duration))
 	trackEnds[character] = os.clock() + duration
 	return true
 end
 
--- Plays one dig on `character` over `duration` seconds. A dig already
--- playing finishes first (fast shovels just dig back to back).
-function Effects.swing(character: Model, duration: number)
-	if digs[character] or (trackEnds[character] or 0) > os.clock() then
-		return
-	end
-	if playTrack(character, duration) then
+-- Starts the coded dig on `character`.
+local function startCoded(character: Model, duration: number)
+	if digs[character] then
 		return
 	end
 	local keys = if isR15(character) then DigAnimation.R15 else DigAnimation.R6
@@ -194,6 +188,39 @@ function Effects.swing(character: Model, duration: number)
 		keys = keys,
 		joints = used,
 	}
+end
+
+-- Plays one dig on `character` (this player's) over `duration` seconds. A
+-- dig already playing finishes first (fast shovels just dig back to back).
+function Effects.swing(character: Model, duration: number)
+	if digs[character] or (trackEnds[character] or 0) > os.clock() then
+		return
+	end
+	if not playTrack(character, duration) then
+		startCoded(character, duration)
+	end
+end
+
+-- Another player's dig: their uploaded animation reaches us through Roblox;
+-- if it isn't playing (not loaded, or none uploaded), play the coded one.
+function Effects.swingOther(character: Model, duration: number)
+	local id = animationId(character)
+	if id == "" then
+		startCoded(character, duration)
+		return
+	end
+	task.delay(0.1, function()
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
+		if animator then
+			for _, track in animator:GetPlayingAnimationTracks() do
+				if track.Animation and track.Animation.AnimationId == id and track.Length > 0 then
+					return
+				end
+			end
+		end
+		startCoded(character, duration - 0.1)
+	end)
 end
 
 -- Is a dig playing on `character` (tests)?

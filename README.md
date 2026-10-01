@@ -197,6 +197,17 @@ meaningful at every stage. Buying one that's running adds 5 minutes.
     MessagingService, shown at the top of everyone's screen as a speech
     bubble from your avatar).
 
+## Dig animation
+
+`Config/DigAnimation.luau` holds the dig as keyframes (wind up, dig in,
+scoop, toss), keyed by body part so it works on Motor6D and the newer
+AnimationConstraint rigs. The "Upload animations" workflow (Actions tab)
+builds them into Roblox animations (`scripts/build-dig-animation.luau`) and
+uploads them with Open Cloud (`scripts/upload-animations.luau`, needs the
+asset:read/asset:write permissions on the API key); put the printed ids in
+`AssetIds.Animations`. The game then plays them through the Animator (seen
+by everyone); until they're set or loaded, the same keyframes play in code.
+
 ## Audio
 
 All audio comes from Roblox's own licensed Creator Store libraries (Pro Sound

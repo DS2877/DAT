@@ -15,11 +15,7 @@ local function watchCharacter(character: Model)
 		if not root or not camera or (camera.CFrame.Position - root.Position).Magnitude > 150 then
 			return
 		end
-		-- An uploaded dig animation shows for everyone by itself; the coded one
-		-- is played here.
-		if not Effects.usesAnimationAsset(character) then
-			Effects.swing(character, 0.4)
-		end
+		Effects.swingOther(character, 0.4)
 		task.delay(0.2, function()
 			Effects.dirtBurst(root.Position + root.CFrame.LookVector * 3 - Vector3.new(0, 2.5, 0), 4)
 		end)

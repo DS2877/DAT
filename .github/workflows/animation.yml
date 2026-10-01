@@ -1,0 +1,57 @@
+name: Upload animations
+
+# Builds the dig animation (src/shared/Config/DigAnimation.luau) as Roblox
+# animations and uploads them with Open Cloud (scripts/upload-animations.luau),
+# owned by the experience's owner. Manual only: run it from the Actions tab.
+# The ids appear in the run's log and summary and in the animation-ids
+# artifact; put them in src/shared/AssetIds.luau (Animations).
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: animation-upload
+  cancel-in-progress: false
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rokit
+        run: |
+          curl -sSLf -o rokit.zip https://github.com/rojo-rbx/rokit/releases/download/v1.0.0/rokit-1.0.0-linux-x86_64.zip
+          mkdir -p "$RUNNER_TEMP/rokit"
+          unzip -q rokit.zip -d "$RUNNER_TEMP/rokit"
+          rm rokit.zip
+          "$RUNNER_TEMP/rokit/rokit" self-install
+          echo "$HOME/.rokit/bin" >> "$GITHUB_PATH"
+
+      - name: Install toolchain (rokit.toml)
+        run: rokit install --no-trust-check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build the animations
+        run: lune run scripts/build-dig-animation.luau animations
+
+      - name: Upload to Roblox
+        env:
+          API_KEY: ${{ secrets.DAT_PUBLISHING_KEY }}
+        run: lune run scripts/upload-animations.luau animations
+
+      - name: Keep the ids
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: animation-ids
+          path: |
+            animation-ids.json
+            animations/
+          if-no-files-found: ignore
