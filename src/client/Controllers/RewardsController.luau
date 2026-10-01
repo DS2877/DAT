@@ -415,7 +415,7 @@ function RewardsController.init()
 	dailyButton.Activated:Connect(function()
 		dailyPanel.Visible = not dailyPanel.Visible
 		if dailyPanel.Visible then
-			Sound.play("UiClick", 0.5)
+			Sound.play("UiClick")
 			refreshDaily()
 		end
 	end)

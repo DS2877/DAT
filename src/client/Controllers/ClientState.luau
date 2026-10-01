@@ -30,6 +30,7 @@ export type Snapshot = {
 	groupRewardClaimed: boolean,
 	digCharges: { Rare: number, Epic: number },
 	activeBoosts: { [string]: number },
+	settings: { music: boolean, sounds: boolean }?,
 }
 
 local ClientState = {}

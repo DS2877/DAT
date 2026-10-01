@@ -11,6 +11,7 @@ return table.freeze({
 	ClaimDaily = "ClaimDaily", -- ()
 	ClaimGroupReward = "ClaimGroupReward", -- ()
 	Rebirth = "Rebirth", -- ()
+	SetSetting = "SetSetting", -- (key: "music" | "sounds", on: boolean)
 
 	-- Server -> Client
 	DataSync = "DataSync", -- (snapshot)

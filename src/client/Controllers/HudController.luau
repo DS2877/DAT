@@ -216,7 +216,7 @@ local function build()
 		Name = "TopButtons",
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, -12, 0, 8),
-		Size = UDim2.fromOffset(320, 60),
+		Size = UDim2.fromOffset(360, 60),
 		BackgroundTransparency = 1,
 		Parent = root,
 	}, {
@@ -496,7 +496,7 @@ function Hud.holdBag(hold: boolean)
 	if not hold then
 		refreshBag()
 		Ui.pop(bagPill, 0.15)
-		Sound.play("BagTick", 0.4, 1.2)
+		Sound.play("BagTick")
 	end
 end
 
@@ -512,7 +512,7 @@ function Hud.flashBagFull()
 	end
 	bagFullBanner.Visible = true
 	Ui.pop(bagFullBanner, 0.2)
-	Sound.play("BagFull", 0.6)
+	Sound.play("BagFull")
 end
 
 function Hud.toast(text: string, color: Color3?, duration: number?)
@@ -571,7 +571,7 @@ function Hud.showStreak(count: number, bonus: number)
 	end
 	streakFrame.Visible = true
 	Ui.pop(streakFrame, 0.2 + math.min(count, 10) * 0.02)
-	Sound.play("Streak", 0.35, 1 + math.min(count, 10) * 0.05)
+	Sound.play("Streak", 1, 1 + math.min(count, 10) * 0.06)
 	task.delay(Loot.streak.window, function()
 		if token ~= streakToken then
 			return
@@ -589,7 +589,8 @@ end
 
 -- Coin burst + counting "+$X" for a sale, then the next-goal nudge.
 function Hud.showSale(info: { total: number, count: number, cash: number, goal: any, nearGoal: boolean })
-	Sound.play("Sell", 0.7)
+	Sound.play("Sell")
+	Sound.play("SellCoins")
 	local label = Ui.label({
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.42),
@@ -674,13 +675,13 @@ function Hud.init()
 	(remotes:WaitForChild("Notify") :: RemoteEvent).OnClientEvent:Connect(
 		function(text: string, kind: string?)
 			if kind == "Denied" then
-				Sound.play("Denied", 0.5)
+				Sound.play("Denied")
 				Hud.toast(text, C.Red)
 			elseif kind == "Big" then
-				Sound.play("Upgrade", 0.8)
+				Sound.play("Upgrade")
 				Hud.bigText(text, C.Green, 3)
 			elseif kind == "Reward" then
-				Sound.play("Upgrade", 0.7)
+				Sound.play("Reward")
 				Hud.toast(text, C.Gold, 3.5)
 			else
 				Hud.toast(text)

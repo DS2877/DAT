@@ -33,7 +33,7 @@ local function toChat(text: string, color: Color3)
 end
 
 local function secretMoment(position: Vector3)
-	Sound.play("SecretWorld", 1)
+	Sound.play("SecretWorld")
 	HudController.bigText("A SECRET WAS FOUND!", Color3.new(1, 1, 1), 3)
 	local flash = Ui.new("Frame", {
 		Size = UDim2.fromScale(1, 1),
@@ -83,7 +83,7 @@ local function show(announcement: Announcement)
 		Parent = feed,
 	})
 	Ui.pop(label, 0.15)
-	Sound.play("Announce", 0.35, 1.2)
+	Sound.play("Announce")
 	toChat(announcement.text, color)
 
 	-- Keep only the newest few.

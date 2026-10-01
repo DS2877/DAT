@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Retention = require(ReplicatedStorage.Shared.Config.Retention)
 local Rush = require(ReplicatedStorage.Shared.Logic.Rush)
 local Sound = require(script.Parent.Parent.Sound)
+local AudioController = require(script.Parent.AudioController)
 local Ui = require(script.Parent.Parent.Ui)
 local HudController = require(script.Parent.HudController)
 
@@ -56,8 +57,9 @@ local function update()
 		HudController.setRushText("Treasure Rush in " .. clock(seconds), false)
 	end
 	if active ~= wasActive then
+		AudioController.setRush(active)
 		if active and wasActive == false then
-			Sound.play("AreaUnlocked", 0.8)
+			Sound.play("AreaUnlocked")
 			HudController.bigText("TREASURE RUSH!", Ui.Colors.Gold, 2.5)
 			HudController.toast(
 				string.format("Better treasure for %d minutes!", Retention.rush.duration // 60),

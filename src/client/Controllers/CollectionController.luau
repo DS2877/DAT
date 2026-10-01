@@ -337,7 +337,7 @@ function CollectionController.setOpen(open: boolean)
 	end
 	panel.Visible = open
 	if open then
-		Sound.play("UiClick", 0.5)
+		Sound.play("UiClick")
 		refresh()
 	end
 end

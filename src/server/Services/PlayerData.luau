@@ -67,6 +67,7 @@ local function snapshot(player: Player, data: { [string]: any })
 		sales = data.stats.sales,
 		guideDone = data.onboarding.guideDone,
 		discovered = data.discovered,
+		settings = data.settings,
 	}
 	for _, extend in snapshotExtensions do
 		local ok, extra = pcall(extend, player, data)

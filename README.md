@@ -28,19 +28,21 @@ src/
     Data/            SessionStore: session-locked DataStore profiles
     Services/        PlayerData, DigSpotService, DigService, LootService,
                      EconomyService, UpgradeService, AreaService,
-                     CharacterService, Analytics
+                     CharacterService, SettingsService, Analytics
     World/           MapBuilder (assembles the island), World (built-world holder)
       Build/         Terrain, Base, Gates, Beach, Jungle, Ruins, Volcano, Candidates, Kit
     Net.luau         Remotes + per-player rate limiting
   client/            StarterPlayerScripts.Client (init.client.luau = bootstrap)
     Controllers/     HUD, digging, reveal, stations, tutorial, gates, other players,
-                     ambient life (birds, butterflies, crabs, fish, animated decor)
+                     ambient life (birds, butterflies, crabs, fish, animated decor),
+                     audio (music, area ambience, 3D loops), settings
+    Sound.luau       Plays sound effects (variants, lead-in skip, pitch jitter)
   shared/            ReplicatedStorage.Shared
     Config/          ALL tuning numbers (odds, values, costs, timers, map layout)
     Logic/           Pure game rules (loot, progression, bag, save schema, zones)
     Builders/        Shovel and treasure models from primitive parts
     Util/            Format, RateLimiter, Signal
-    AssetIds.luau    Every sound / animation id (placeholders marked TODO)
+    AssetIds.luau    Every sound / animation id, with level and trim per clip
 tests/               Offline tests for the pure logic (run with Lune)
 scripts/             Pacing simulator, build verification
 ```
@@ -117,6 +119,18 @@ placing anything. The test harness copies both behaviors
 (`Harness.terrainOffset`, `Harness.terrainSettle`), so code that trusts
 fill heights or measures too early fails in CI. Roblox draws a Ball part with its smallest size axis,
 so stretched round shapes use `Kit.ellipsoid` (a sphere mesh on a block).
+
+## Audio
+
+All audio comes from Roblox's own licensed Creator Store libraries (Pro Sound
+Effects, APM Music, and the Roblox UI pack), so it is cleared for use in any
+experience. `AssetIds.luau` lists each clip with a measured volume (so sounds
+sit at an even level), a start offset (skips library lead-ins) and a length.
+Digging uses a different set of hits per ground type (sand, jungle dirt,
+volcanic rock). Fanfares briefly duck the music. Each area has its own
+ambience bed, crossfaded as you walk, and the waterfall, campfire, lava and
+crater have 3D loops. Players can turn Music and Sounds off in ⚙️ Settings
+(saved in their profile).
 
 ## Data
 

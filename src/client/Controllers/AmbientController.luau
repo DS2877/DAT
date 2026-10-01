@@ -3,20 +3,15 @@
 -- beach, parrots over the jungle, vultures over the ruins and volcano,
 -- butterflies, crabs on the shore, fish jumping out of the sea, and the
 -- animated decor the world builder tags with an "Ambient" attribute
--- (Spin, Float, Bob, Beam). Also loops each area's ambience sound when an
--- id is set in AssetIds.
+-- (Spin, Float, Bob, Beam). Sounds live in AudioController.
 --
 -- Cheap by design: creatures are a few small parts, only creatures near the
 -- camera are updated, and all moves go through one BulkMoveTo per frame.
 
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local SoundService = game:GetService("SoundService")
 
-local AssetIds = require(ReplicatedStorage.Shared.AssetIds)
 local MapLayout = require(ReplicatedStorage.Shared.Config.MapLayout)
-local Zones = require(ReplicatedStorage.Shared.Logic.Zones)
 
 local AmbientController = {}
 
@@ -395,41 +390,6 @@ local function decorCFrame(entry: any, t: number): CFrame
 end
 
 ---------------------------------------------------------------------------
--- Ambience sound per area
----------------------------------------------------------------------------
-
-local ambience: { [string]: Sound } = {}
-local currentArea: string? = nil
-
-local function updateAmbience(position: Vector3)
-	local area = Zones.areaAt(position.X, position.Z)
-	if area == currentArea then
-		return
-	end
-	currentArea = area
-	local ids = (AssetIds :: any).Ambient or {}
-	for id, sound in ambience do
-		if id ~= area then
-			sound:Stop()
-		end
-	end
-	local soundId = ids[area]
-	if type(soundId) == "string" and soundId ~= "" then
-		local sound = ambience[area]
-		if not sound then
-			sound = Instance.new("Sound")
-			sound.Name = "Ambience" .. area
-			sound.SoundId = soundId
-			sound.Looped = true
-			sound.Volume = 0.35
-			sound.Parent = SoundService
-			ambience[area] = sound
-		end
-		sound:Play()
-	end
-end
-
----------------------------------------------------------------------------
 
 function AmbientController.init()
 	folder = Instance.new("Folder")
@@ -442,8 +402,6 @@ function AmbientController.init()
 		spawnCreatures()
 		collectDecor()
 		local start = os.clock()
-		local player = Players.LocalPlayer
-		local lastAmbience = 0
 		RunService.RenderStepped:Connect(function()
 			local t = os.clock() - start
 			local camera = workspace.CurrentCamera
@@ -471,14 +429,6 @@ function AmbientController.init()
 			if not ok then
 				for i, p in parts do
 					p.CFrame = cframes[i]
-				end
-			end
-			if t - lastAmbience > 1 then
-				lastAmbience = t
-				local character = player.Character
-				local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-				if root then
-					updateAmbience(root.Position)
 				end
 			end
 		end)

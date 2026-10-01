@@ -195,6 +195,17 @@ task.wait(0.05)
 check(data.bagLevel == 2, "bag upgraded")
 
 ---------------------------------------------------------------------------
+print("\n== Settings ==")
+check(data.settings.music == true and data.settings.sounds == true, "settings default to on")
+H.fireServer(player, "SetSetting", "music", false)
+task.wait(0.05)
+check(data.settings.music == false, "music setting saved")
+H.fireServer(player, "SetSetting", "cash", true)
+H.fireServer(player, "SetSetting", "sounds", "yes")
+task.wait(0.05)
+check(data.settings.cash == nil and data.settings.sounds == true, "malformed settings ignored")
+H.fireServer(player, "SetSetting", "music", true)
+
 print("\n== Bad client input ==")
 local errorsBefore = #H.errors
 for _, args in

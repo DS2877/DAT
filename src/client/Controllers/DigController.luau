@@ -24,6 +24,14 @@ local player = Players.LocalPlayer
 
 local DigController = {}
 
+-- Each area's ground has its own dig sound.
+local DIG_SOUND = {
+	Beach = "DigHitSand",
+	Ruins = "DigHitSand",
+	Jungle = "DigHitDirt",
+	Volcano = "DigHitRock",
+}
+
 local spotsFolder: Folder
 -- Client-only spots (the player's daily Golden X), created by RewardsController.
 local localSpots: Folder
@@ -175,7 +183,7 @@ local function tryHit()
 	Effects.swing(character, math.min(0.36, interval * 0.95))
 	Effects.dirtBurst(position, 6)
 	Effects.cameraNudge()
-	Sound.play("DigHit", 0.55, 0.9 + math.random() * 0.2)
+	Sound.play(DIG_SOUND[spot:GetAttribute("AreaId") :: string? or "Beach"] or "DigHitSand")
 	local hole = holes[spot]
 	local current = hole and hole.spotId == id and hole
 	local required = if current then current.required else shovel.hits
@@ -232,7 +240,7 @@ local function onDigResult(result: { [string]: any })
 
 	if result.deepDig then
 		-- The ground rumbles: this spot needs extra hits, and the reward is big.
-		Sound.play("DeepDig", 0.8)
+		Sound.play("DeepDig")
 		HudController.bigText("SOMETHING IS BURIED DEEP...", Ui.Colors.Orange, 2.6)
 		HudController.toast("Keep digging!", Ui.Colors.Gold, 2.6)
 		for i = 0, 4 do
@@ -256,6 +264,7 @@ local function onDigResult(result: { [string]: any })
 			clearHole(spot)
 		end
 		Effects.dirtBurst(position, 12)
+		Sound.play("DigBurst")
 		RevealController.reveal(position, result.find)
 		HudController.showStreak(result.find.streak, result.find.streakBonus)
 	end

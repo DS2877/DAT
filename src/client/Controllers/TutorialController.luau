@@ -298,7 +298,7 @@ local function showStep(step: string, text: string)
 		stepNumber.Text = string.format("%d/%d", index, #STEPS)
 		Ui.pop(banner, 0.1)
 		if not first then
-			Sound.play("Streak", 0.4, 1.3)
+			Sound.play("Streak", 0.8, 1.25)
 		end
 	end
 	-- Shop panels show their own instructions; step aside for them.

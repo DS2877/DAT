@@ -37,6 +37,7 @@ function DataSchema.template(): { [string]: any }
 		processedPurchaseIds = {}, -- Phase 5
 		ownedCosmetics = {}, -- Phase 5
 		activeBoosts = {}, -- [boostId] = expiry unix time
+		settings = { music = true, sounds = true }, -- player's audio settings
 		onboarding = {
 			funnelStep = 0, -- highest analytics onboarding step logged
 			guideDone = false, -- the new-player arrow has finished

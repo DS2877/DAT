@@ -596,6 +596,9 @@ methods.Play = function(_proxy, inst)
 	end
 end
 methods.Stop = function() end
+methods.Pause = function() end
+methods.Resume = function() end
+methods.PreloadAsync = function() end
 
 ---------------------------------------------------------------------------
 -- Terrain model (from the game's own fill calls)

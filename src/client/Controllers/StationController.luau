@@ -145,7 +145,7 @@ local function build()
 		if ok then
 			buyUpgrade:FireServer(kind)
 		elseif reason == "NotEnoughCash" then
-			Sound.play("Denied", 0.5)
+			Sound.play("Denied")
 			HudController.toast("You need " .. Format.cash(missing) .. " more!", C.Red)
 			Ui.pop(buyButton, 0.08)
 		end
@@ -154,7 +154,7 @@ end
 
 local function onUpgradeResult(result: { [string]: any })
 	if result.ok then
-		Sound.play("Upgrade", 0.8, 0.9)
+		Sound.play("Upgrade")
 		HudController.bigText(
 			string.upper(result.name) .. "!",
 			if result.kind == "Shovel" then C.Blue else C.Purple
@@ -170,7 +170,7 @@ local function onUpgradeResult(result: { [string]: any })
 				local def = Areas.Defs[areaId]
 				if def.enabled and def.requiredShovel == result.level then
 					task.delay(1.7, function()
-						Sound.play("AreaUnlocked", 0.8)
+						Sound.play("AreaUnlocked")
 						HudController.bigText(string.upper(def.displayName) .. " UNLOCKED!", C.Green, 2.4)
 						HudController.toast("The gate is open - go explore!", C.Green, 4)
 					end)

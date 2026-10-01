@@ -286,9 +286,12 @@ function RevealController.reveal(position: Vector3, find: Find)
 	-- Tiered effects.
 	local pillar: Part? = nil
 	if style.tier == 0 then
-		Sound.play("RevealCommon", 0.6)
+		Sound.play("RevealCommon")
 	else
-		Sound.play("RevealRare", 0.7, 1.1 + style.tier * 0.1)
+		Sound.play("RevealRare")
+		if style.tier == 1 and (find.rarity == "Epic" or find.mutation == "Shiny") then
+			Sound.play("RevealEpic")
+		end
 		Effects.sparkles(position + Vector3.new(0, 2.5, 0), color, 15 + style.tier * 20)
 		pillar = lightPillar(position, color, style.rise + style.hold, 2 + style.tier)
 		local light = Instance.new("PointLight")
@@ -298,7 +301,7 @@ function RevealController.reveal(position: Vector3, find: Find)
 		light.Parent = model.PrimaryPart
 	end
 	if style.tier >= 2 then
-		Sound.play(if style.tier >= 3 then "StingSecret" else "StingLegendary", 0.8)
+		Sound.play(if style.tier >= 3 then "StingSecret" else "StingLegendary")
 		screenFlash(if style.tier >= 3 then Color3.new(1, 1, 1) else color)
 		focusCamera(position + Vector3.new(0, style.height, 0), style.rise + style.hold * 0.8)
 		local headline = if find.mutation == "Golden" and (info == nil or info.fxTier < 2)
@@ -343,6 +346,7 @@ function RevealController.reveal(position: Vector3, find: Find)
 		local from = if screenPoint and screenPoint.Z > 0
 			then Vector2.new(screenPoint.X, screenPoint.Y)
 			else HudController.bagIconPosition() + Vector2.new(200, 0)
+		Sound.play("Whoosh")
 		flyToBag(from, color, function()
 			HudController.holdBag(false)
 		end)
