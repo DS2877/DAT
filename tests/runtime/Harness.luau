@@ -1116,12 +1116,14 @@ local function makeCharacter(player: any): any
 	end
 	local root = part("HumanoidRootPart", R.Vector3.new(2, 2, 1), R.Vector3.new(0, 3, 0))
 	part("Head", R.Vector3.new(1, 1, 1), R.Vector3.new(0, 4.5, 0))
-	part("UpperTorso", R.Vector3.new(2, 1.6, 1), R.Vector3.new(0, 3.2, 0))
+	local upperTorso = part("UpperTorso", R.Vector3.new(2, 1.6, 1), R.Vector3.new(0, 3.2, 0))
 	local upperArm = part("RightUpperArm", R.Vector3.new(1, 1.2, 1), R.Vector3.new(1.5, 3.5, 0))
 	part("RightHand", R.Vector3.new(1, 0.4, 1), R.Vector3.new(1.5, 2.2, 0))
 	local shoulder = R.Instance.new("Motor6D")
 	shoulder.Name = "RightShoulder"
 	shoulder.C0 = R.CFrame.new(0, 0.5, 0)
+	shoulder.Part0 = upperTorso
+	shoulder.Part1 = upperArm
 	shoulder.Parent = upperArm
 	local humanoid = R.Instance.new("Humanoid")
 	humanoid.Health = 100

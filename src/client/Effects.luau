@@ -3,8 +3,12 @@
 -- Dirt chunks are pooled parts; everything here is client-only.
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+
+local AssetIds = require(ReplicatedStorage.Shared.AssetIds)
+local DigAnimation = require(ReplicatedStorage.Shared.Config.DigAnimation)
 
 local Effects = {}
 
@@ -13,128 +17,87 @@ fxFolder.Name = "LocalFx"
 fxFolder.Parent = workspace
 
 ---------------------------------------------------------------------------
--- The dig (procedural, whole body)
+-- The dig animation (Config/DigAnimation)
 ---------------------------------------------------------------------------
--- One dig: wind up (shovel raised, leaning back), drive it down into the
--- ground (leaning in, knees bent), scoop and toss the dirt to the side,
--- then back to the start. Joints are posed on top of the running
--- animations (walk, idle) by offsetting each Motor6D's C0.
+-- With an uploaded animation (AssetIds.Animations), it plays through the
+-- character's Animator: Roblox's own way, on any rig, and the local
+-- player's animation shows for everyone. Otherwise the same keyframes are
+-- played here in code, by turning the joints on top of the running walk /
+-- idle animations. Both kinds of joints are handled: Motor6D (turn its C0)
+-- and the newer AnimationConstraint (turn its Attachment0).
 
-type Pose = { [string]: Vector3 } -- joint -> (pitch, yaw, roll) degrees
-type Key = { at: number, pose: Pose, style: Enum.EasingStyle, direction: Enum.EasingDirection }
-
-local REST: Pose = {}
--- R15: +pitch swings a limb forward (arms up, thighs forward), tilts the
--- torso / head back; knees bend with -pitch.
-local DIG_R15: { Key } = {
-	{ at = 0, pose = REST, style = Enum.EasingStyle.Linear, direction = Enum.EasingDirection.In },
-	{
-		at = 0.3,
-		style = Enum.EasingStyle.Quad,
-		direction = Enum.EasingDirection.Out,
-		pose = {
-			Waist = Vector3.new(8, -12, 0), -- twisted right, shovel up
-			Neck = Vector3.new(6, 0, 0),
-			RightShoulder = Vector3.new(135, 0, 0),
-			RightElbow = Vector3.new(35, 0, 0),
-			LeftShoulder = Vector3.new(100, 0, 10),
-			LeftElbow = Vector3.new(50, 0, 0),
-		},
-	},
-	{
-		at = 0.55,
-		style = Enum.EasingStyle.Quad,
-		direction = Enum.EasingDirection.In,
-		pose = {
-			Waist = Vector3.new(-30, 0, 0),
-			Neck = Vector3.new(-15, 0, 0),
-			RightShoulder = Vector3.new(25, 0, 0),
-			RightElbow = Vector3.new(8, 0, 0),
-			LeftShoulder = Vector3.new(50, 0, 15),
-			LeftElbow = Vector3.new(25, 0, 0),
-			RightHip = Vector3.new(20, 0, 0),
-			LeftHip = Vector3.new(14, 0, 0),
-			RightKnee = Vector3.new(-28, 0, 0),
-			LeftKnee = Vector3.new(-22, 0, 0),
-		},
-	},
-	{
-		at = 0.8,
-		style = Enum.EasingStyle.Quad,
-		direction = Enum.EasingDirection.Out,
-		pose = {
-			Waist = Vector3.new(-12, 22, 0), -- the dirt goes over to the left
-			Neck = Vector3.new(-6, -10, 0),
-			RightShoulder = Vector3.new(70, 0, 0),
-			RightElbow = Vector3.new(30, 0, 0),
-			LeftShoulder = Vector3.new(65, 0, 15),
-			LeftElbow = Vector3.new(40, 0, 0),
-			RightHip = Vector3.new(8, 0, 0),
-			LeftHip = Vector3.new(6, 0, 0),
-			RightKnee = Vector3.new(-10, 0, 0),
-			LeftKnee = Vector3.new(-8, 0, 0),
-		},
-	},
-	{ at = 1, pose = REST, style = Enum.EasingStyle.Quad, direction = Enum.EasingDirection.InOut },
-}
--- R6 has fewer joints, each with its own axes: shoulders turn on Z (right
--- +, left -), the root joint pitches the whole body on X.
-local DIG_R6: { Key } = {
-	{ at = 0, pose = REST, style = Enum.EasingStyle.Linear, direction = Enum.EasingDirection.In },
-	{
-		at = 0.3,
-		style = Enum.EasingStyle.Quad,
-		direction = Enum.EasingDirection.Out,
-		pose = {
-			["Right Shoulder"] = Vector3.new(0, 0, 135),
-			["Left Shoulder"] = Vector3.new(0, 0, -100),
-			RootJoint = Vector3.new(-6, 0, 0),
-		},
-	},
-	{
-		at = 0.55,
-		style = Enum.EasingStyle.Quad,
-		direction = Enum.EasingDirection.In,
-		pose = {
-			["Right Shoulder"] = Vector3.new(0, 0, 25),
-			["Left Shoulder"] = Vector3.new(0, 0, -50),
-			RootJoint = Vector3.new(22, 0, 0),
-		},
-	},
-	{
-		at = 0.8,
-		style = Enum.EasingStyle.Quad,
-		direction = Enum.EasingDirection.Out,
-		pose = {
-			["Right Shoulder"] = Vector3.new(0, 0, 70),
-			["Left Shoulder"] = Vector3.new(0, 0, -65),
-			RootJoint = Vector3.new(8, 0, 18),
-		},
-	},
-	{ at = 1, pose = REST, style = Enum.EasingStyle.Quad, direction = Enum.EasingDirection.InOut },
-}
-
+type Joint = { instance: Instance, rest: CFrame }
 type Dig = {
 	started: number,
 	duration: number,
-	keys: { Key },
-	motors: { [string]: Motor6D },
-	rest: { [Motor6D]: CFrame },
+	keys: { DigAnimation.Key },
+	joints: { [string]: Joint },
 }
 
 local digs: { [Model]: Dig } = {}
-local restC0: { [Motor6D]: CFrame } = setmetatable({}, { __mode = "k" }) :: any
+local restOf: { [Instance]: CFrame } = setmetatable({}, { __mode = "k" }) :: any
+local tracks: { [Humanoid]: AnimationTrack } = setmetatable({}, { __mode = "k" }) :: any
+local trackEnds: { [Model]: number } = setmetatable({}, { __mode = "k" }) :: any
 
-local function motorsOf(character: Model): ({ [string]: Motor6D }, boolean)
-	local motors: { [string]: Motor6D } = {}
-	local isR15 = character:FindFirstChild("UpperTorso") ~= nil
+local function isR15(character: Model): boolean
+	return character:FindFirstChild("UpperTorso") ~= nil
+end
+
+local function animationId(character: Model): string
+	local ids = AssetIds.Animations :: any
+	return (if isR15(character) then ids.DigR15 else ids.DigR6) or ""
+end
+
+-- True when digs are played from an uploaded animation (they then show for
+-- other players by themselves).
+function Effects.usesAnimationAsset(character: Model): boolean
+	return animationId(character) ~= ""
+end
+
+-- The character's joints, by the body part each one moves.
+local function jointsOf(character: Model): { [string]: Instance }
+	local found: { [string]: Instance } = {}
 	for _, d in character:GetDescendants() do
-		if d:IsA("Motor6D") then
-			motors[d.Name] = d
+		if d:IsA("AnimationConstraint") then
+			local a1 = d.Attachment1
+			if d.Attachment0 and a1 and a1.Parent then
+				found[a1.Parent.Name] = d -- the newer joints win
+			end
+		elseif d:IsA("Motor6D") then
+			local parent = d.Parent
+			local moved = d.Part1 or (if parent and parent:IsA("BasePart") then parent else nil)
+			if moved and not found[moved.Name] then
+				found[moved.Name] = d
+			end
 		end
 	end
-	return motors, isR15
+	return found
 end
+
+local function getJoint(joint: Instance): CFrame
+	if joint:IsA("Motor6D") then
+		return joint.C0
+	end
+	local a0 = (joint :: AnimationConstraint).Attachment0
+	return if a0 then a0.CFrame else CFrame.identity
+end
+
+local function setJoint(joint: Instance, value: CFrame)
+	if joint:IsA("Motor6D") then
+		joint.C0 = value
+	else
+		local a0 = (joint :: AnimationConstraint).Attachment0
+		if a0 then
+			a0.CFrame = value
+		end
+	end
+end
+
+local EASE: { [string]: Enum.EasingDirection } = {
+	In = Enum.EasingDirection.In,
+	Out = Enum.EasingDirection.Out,
+	InOut = Enum.EasingDirection.InOut,
+}
 
 local function angles(v: Vector3): CFrame
 	return CFrame.Angles(math.rad(v.X), math.rad(v.Y), math.rad(v.Z))
@@ -149,46 +112,76 @@ local function apply(d: Dig, t: number)
 	end
 	local a, b = keys[i], keys[i + 1]
 	local span = math.max(1e-3, b.at - a.at)
-	local alpha = TweenService:GetValue(math.clamp((t - a.at) / span, 0, 1), b.style, b.direction)
-	for name, motor in d.motors do
+	local x = math.clamp((t - a.at) / span, 0, 1)
+	local alpha = if b.ease == "Linear"
+		then x
+		else TweenService:GetValue(x, Enum.EasingStyle.Quad, EASE[b.ease])
+	for name, joint in d.joints do
 		local from = a.pose[name] or Vector3.zero
 		local to = b.pose[name] or Vector3.zero
-		local rest = d.rest[motor]
-		if rest and (from ~= Vector3.zero or to ~= Vector3.zero) then
-			motor.C0 = rest * angles(from:Lerp(to, alpha))
-		elseif rest then
-			motor.C0 = rest
-		end
+		setJoint(joint.instance, joint.rest * angles(from:Lerp(to, alpha)))
 	end
 end
 
 local function finish(character: Model, d: Dig)
-	for _, motor in d.motors do
-		local rest = d.rest[motor]
-		if rest and motor.Parent then
-			motor.C0 = rest
+	for _, joint in d.joints do
+		if joint.instance.Parent then
+			setJoint(joint.instance, joint.rest)
 		end
 	end
 	digs[character] = nil
 end
 
+-- Plays the uploaded dig animation; false if it can't.
+local function playTrack(character: Model, duration: number): boolean
+	local id = animationId(character)
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if id == "" or not humanoid then
+		return false
+	end
+	local track = tracks[humanoid]
+	if not track then
+		local animator = humanoid:FindFirstChildOfClass("Animator")
+		if not animator then
+			return false
+		end
+		local animation = Instance.new("Animation")
+		animation.AnimationId = id
+		local ok, loaded = pcall(function()
+			return (animator :: Animator):LoadAnimation(animation)
+		end)
+		if not ok or not loaded then
+			return false
+		end
+		track = loaded
+		track.Priority = Enum.AnimationPriority.Action
+		track.Looped = false
+		tracks[humanoid] = track
+	end
+	local t = track :: AnimationTrack
+	t:Play(0.05, 1, DigAnimation.length / math.max(0.12, duration))
+	trackEnds[character] = os.clock() + duration
+	return true
+end
+
 -- Plays one dig on `character` over `duration` seconds. A dig already
 -- playing finishes first (fast shovels just dig back to back).
 function Effects.swing(character: Model, duration: number)
-	if digs[character] then
+	if digs[character] or (trackEnds[character] or 0) > os.clock() then
 		return
 	end
-	local motors, isR15 = motorsOf(character)
-	local keys = if isR15 then DIG_R15 else DIG_R6
-	local used: { [string]: Motor6D } = {}
-	local rest: { [Motor6D]: CFrame } = {}
+	if playTrack(character, duration) then
+		return
+	end
+	local keys = if isR15(character) then DigAnimation.R15 else DigAnimation.R6
+	local all = jointsOf(character)
+	local used: { [string]: Joint } = {}
 	for _, key in keys do
 		for name in key.pose do
-			local motor = motors[name]
-			if motor and not used[name] then
-				used[name] = motor
-				restC0[motor] = restC0[motor] or motor.C0
-				rest[motor] = restC0[motor]
+			local joint = all[name]
+			if joint and not used[name] then
+				restOf[joint] = restOf[joint] or getJoint(joint)
+				used[name] = { instance = joint, rest = restOf[joint] }
 			end
 		end
 	end
@@ -199,14 +192,13 @@ function Effects.swing(character: Model, duration: number)
 		started = os.clock(),
 		duration = math.max(0.12, duration),
 		keys = keys,
-		motors = used,
-		rest = rest,
+		joints = used,
 	}
 end
 
 -- Is a dig playing on `character` (tests)?
 function Effects.isDigging(character: Model): boolean
-	return digs[character] ~= nil
+	return digs[character] ~= nil or (trackEnds[character] or 0) > os.clock()
 end
 
 RunService.RenderStepped:Connect(function()

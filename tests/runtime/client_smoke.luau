@@ -172,6 +172,38 @@ do
 	check(Effects.isDigging(character) and moved, "digging plays the dig animation")
 	task.wait(0.4)
 	check(not Effects.isDigging(character) and shoulder.C0 == rest, "and the body goes back to rest after")
+
+	-- A rig with the newer joints (AnimationConstraint instead of Motor6D).
+	local rig = roblox.Instance.new("Model")
+	rig.Name = "ConstraintRig"
+	local function limb(name: string): any
+		local p = roblox.Instance.new("Part")
+		p.Name = name
+		p.Parent = rig
+		return p
+	end
+	local torso, arm = limb("UpperTorso"), limb("RightUpperArm")
+	local a0 = roblox.Instance.new("Attachment")
+	a0.Name = "RightShoulderRigAttachment"
+	a0.Parent = torso
+	local a1 = roblox.Instance.new("Attachment")
+	a1.Name = "RightShoulderRigAttachment"
+	a1.Parent = arm
+	local joint = roblox.Instance.new("AnimationConstraint")
+	joint.Name = "RightShoulder"
+	joint.Attachment0 = a0
+	joint.Attachment1 = a1
+	joint.Parent = arm
+	rig.Parent = H.unwrap(H.workspace)
+	local wrappedRig = H.wrap(rig)
+	local attachment = H.wrap(a0)
+	local restAttachment = attachment.CFrame
+	Effects.swing(wrappedRig, 0.4)
+	task.wait(0.18)
+	check(attachment.CFrame ~= restAttachment, "the dig animation also works on rigs with the newer joints")
+	task.wait(0.4)
+	check(attachment.CFrame == restAttachment, "and they go back to rest too")
+	rig:Destroy()
 end
 task.wait(2.5) -- reveal + fly to bag
 check(root.Bag.Value.Text:find("1/5") ~= nil, "bag counter ticked to 1 (" .. root.Bag.Value.Text .. ")")

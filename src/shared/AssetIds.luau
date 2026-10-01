@@ -104,7 +104,10 @@ local AssetIds = {
 	},
 
 	Animations = {
-		DigSwing = "", -- unused: the dig is a procedural whole-body animation (Effects.swing)
+		-- The dig (Config/DigAnimation), uploaded by the "Upload animations"
+		-- workflow. Empty = played in code from the same keyframes.
+		DigR15 = "",
+		DigR6 = "",
 	},
 }
 
