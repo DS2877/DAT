@@ -42,9 +42,7 @@ local marker: BillboardGui
 local markerText: TextLabel
 local banner: Frame
 local stepNumber: TextLabel
-local stepTitle: TextLabel
 local stepText: TextLabel
-local pips: { Frame } = {}
 local digPointer: Frame? = nil
 local currentStep = ""
 
@@ -88,18 +86,14 @@ local function evaluate(root: BasePart): (string?, Vector3?, string, string, str
 
 	if data.finds == 0 then
 		if DigController.hasTarget() then
-			return "DIG",
-				nil,
-				"",
-				"Dig it up!",
-				tapWord .. " the big DIG! button until the treasure pops out."
+			return "DIG", nil, "", "Dig it up!", tapWord .. " DIG! until the treasure pops out"
 		end
 		local spot = nearestSpot(root.Position)
 		return "FIND",
 			spot and spot.Position,
 			"DIG HERE!",
 			"Find treasure!",
-			"Follow the golden arrow to a dig spot in the sand."
+			"Follow the golden arrow to a dig spot"
 	end
 	if data.cash >= cost then
 		local pad = StationController.padFor("Shovel")
@@ -107,7 +101,7 @@ local function evaluate(root: BasePart): (string?, Vector3?, string, string, str
 			pad and pad.Position,
 			"BUY HERE!",
 			"Buy the " .. name .. "!",
-			"Step onto the blue SHOVELS pad and tap BUY. It digs faster!"
+			"Buy the " .. name .. " at the SHOVELS shop"
 	end
 	if ClientState.isBagFull() or (data.cash + bagValue >= cost and #data.bag > 0) then
 		local pad = sellPad()
@@ -115,7 +109,7 @@ local function evaluate(root: BasePart): (string?, Vector3?, string, string, str
 			pad and pad.Position,
 			"SELL HERE!",
 			"Sell your treasure!",
-			"Walk onto the golden SELL pad at the base."
+			"Bring your treasure to the golden SELL pad"
 	end
 	local spot = nearestSpot(root.Position)
 	return "FILL",
@@ -123,12 +117,10 @@ local function evaluate(root: BasePart): (string?, Vector3?, string, string, str
 		"DIG HERE!",
 		"Dig more treasure!",
 		string.format(
-			"%s of %s for the %s. Bag %d/%d.",
+			"Dig more: %s / %s for the %s",
 			Format.cash(data.cash + bagValue),
 			Format.cash(cost),
-			name,
-			#data.bag,
-			ClientState.bagCapacity()
+			name
 		)
 end
 
@@ -177,21 +169,21 @@ local function buildWorldGuide()
 
 	marker = Ui.new("BillboardGui", {
 		Adornee = anchor,
-		Size = UDim2.fromOffset(220, 120),
+		Size = UDim2.fromOffset(150, 84),
 		AlwaysOnTop = true,
 		LightInfluence = 0,
 		Enabled = false,
 		Parent = anchor,
 	})
 	markerText = Ui.label({
-		Size = UDim2.new(1, 0, 0, 46),
+		Size = UDim2.new(1, 0, 0, 32),
 		Font = Ui.TitleFont,
 		TextColor3 = C.Gold,
 		Parent = marker,
 	})
 	Ui.label({
-		Position = UDim2.fromOffset(0, 42),
-		Size = UDim2.new(1, 0, 0, 70),
+		Position = UDim2.fromOffset(0, 30),
+		Size = UDim2.new(1, 0, 0, 50),
 		Font = Ui.TitleFont,
 		Text = "▼",
 		TextColor3 = C.Gold,
@@ -199,69 +191,46 @@ local function buildWorldGuide()
 	})
 end
 
+-- A slim strip at the bottom center (between the thumbstick and the jump
+-- button), out of the way of the action.
 local function buildBanner()
 	banner = Ui.new("Frame", {
 		Name = "Tutorial",
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 118),
-		Size = UDim2.fromOffset(600, 104),
-		BackgroundColor3 = C.Cream,
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -14),
+		Size = UDim2.fromOffset(500, 50),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = 0.08,
 		Visible = false,
 		Parent = HudController.root(),
 	}, {
-		Ui.corner(UDim.new(0, 22)),
-		Ui.stroke(4),
+		Ui.corner(UDim.new(1, 0)),
+		Ui.stroke(3),
 		Ui.gradient(Color3.fromRGB(255, 252, 240), Color3.fromRGB(255, 236, 196)),
 	})
 	local badge = Ui.new("Frame", {
 		Name = "Badge",
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 12, 0.5, -6),
-		Size = UDim2.fromOffset(72, 72),
-		BackgroundColor3 = C.Gold,
+		Position = UDim2.new(0, 5, 0.5, 0),
+		Size = UDim2.fromOffset(62, 40),
+		BackgroundColor3 = Color3.new(1, 1, 1),
 		Parent = banner,
-	}, { Ui.corner(UDim.new(1, 0)), Ui.stroke(4), Ui.gradient(Color3.fromRGB(255, 226, 120), C.Orange) })
+	}, { Ui.corner(UDim.new(1, 0)), Ui.stroke(2), Ui.gradient(Color3.fromRGB(255, 214, 90), C.Orange) })
 	stepNumber = Ui.label({
-		Size = UDim2.fromScale(1, 1),
+		Position = UDim2.fromOffset(6, 6),
+		Size = UDim2.new(1, -12, 1, -12),
 		Font = Ui.TitleFont,
-		Text = "1",
+		Text = "1/5",
 		Parent = badge,
 	})
-	stepTitle = Ui.label({
-		Position = UDim2.fromOffset(98, 10),
-		Size = UDim2.new(1, -112, 0, 36),
-		Font = Ui.TitleFont,
-		TextColor3 = C.Orange,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Parent = banner,
-	})
 	stepText = Ui.plainLabel({
-		Position = UDim2.fromOffset(98, 46),
-		Size = UDim2.new(1, -112, 0, 30),
+		Position = UDim2.fromOffset(76, 10),
+		Size = UDim2.new(1, -92, 1, -20),
 		TextColor3 = C.Ink,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Parent = banner,
 	})
-	local pipRow = Ui.new("Frame", {
-		Position = UDim2.fromOffset(98, 80),
-		Size = UDim2.new(1, -112, 0, 14),
-		BackgroundTransparency = 1,
-		Parent = banner,
-	}, {
-		Ui.new("UIListLayout", {
-			FillDirection = Enum.FillDirection.Horizontal,
-			Padding = UDim.new(0, 8),
-			VerticalAlignment = Enum.VerticalAlignment.Center,
-		}),
-	})
-	for i = 1, #STEPS do
-		pips[i] = Ui.new("Frame", {
-			LayoutOrder = i,
-			Size = UDim2.fromOffset(56, 10),
-			BackgroundColor3 = Color3.fromRGB(220, 205, 175),
-			Parent = pipRow,
-		}, { Ui.corner(UDim.new(1, 0)) })
-	end
+	Ui.maxText(24).Parent = stepText
 end
 
 -- A pulsing ring and "TAP!" hand around the DIG button.
@@ -310,25 +279,30 @@ local function characterAttachment(): Attachment?
 	return attachment
 end
 
-local function showStep(step: string, title: string, text: string)
+local function sheetOpen(): boolean
+	local root = HudController.root()
+	for _, name in { "UpgradePanel", "RebirthPanel" } do
+		local sheet = root:FindFirstChild(name)
+		if sheet and (sheet :: GuiObject).Visible then
+			return true
+		end
+	end
+	return false
+end
+
+local function showStep(step: string, text: string)
 	local index = table.find(STEPS, step) or 1
 	if step ~= currentStep then
 		local first = currentStep == ""
 		currentStep = step
-		stepNumber.Text = tostring(index)
-		stepTitle.Text = string.upper(title)
-		banner.Visible = true
-		Ui.pop(banner, 0.12)
+		stepNumber.Text = string.format("%d/%d", index, #STEPS)
+		Ui.pop(banner, 0.1)
 		if not first then
 			Sound.play("Streak", 0.4, 1.3)
 		end
-		for i, pip in pips do
-			pip.BackgroundColor3 = if i < index
-				then C.Green
-				elseif i == index then C.Gold
-				else Color3.fromRGB(220, 205, 175)
-		end
 	end
+	-- Shop panels show their own instructions; step aside for them.
+	banner.Visible = not sheetOpen()
 	stepText.Text = text
 	HudController.suppressBagFull(true)
 	setDigPointer(step == "DIG")
@@ -391,7 +365,8 @@ function TutorialController.init()
 			return
 		end
 		seenActive = true
-		showStep(step, title, text)
+		local _ = title
+		showStep(step, text)
 		local show = position ~= nil
 		beam.Enabled = show
 		marker.Enabled = show

@@ -809,16 +809,16 @@ function Base.build(rng: Random): BaseInfo
 		canCollide = false,
 		castShadow = false,
 	})
-	for _, yaw in { 0, 90 } do
-		part(base, {
-			name = "SpawnRoseStar",
-			size = Vector3.new(1.4, 0.14, 11),
-			cframe = CFrame.new(L.spawn.x, top + 0.09, L.spawn.z) * CFrame.Angles(0, math.rad(yaw + 45), 0),
-			color = hex("#B5482E"),
-			canCollide = false,
-			castShadow = false,
-		})
-	end
+	part(base, {
+		name = "SpawnRoseInner",
+		shape = Enum.PartType.Cylinder,
+		size = Vector3.new(0.14, 7, 7),
+		cframe = CFrame.new(L.spawn.x, top + 0.09, L.spawn.z) * CFrame.Angles(0, 0, math.rad(90)),
+		color = hex("#C99A55"),
+		material = Enum.Material.WoodPlanks,
+		canCollide = false,
+		castShadow = false,
+	})
 
 	-- Entrance arch at the front of the deck, facing the island.
 	local archZ = b.minZ + 1

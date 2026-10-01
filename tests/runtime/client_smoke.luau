@@ -93,7 +93,7 @@ local function tutorialText(): string
 	return table.concat(parts, " | ")
 end
 check(
-	tutorialTitle ~= nil and tutorialText():find("FIND TREASURE") ~= nil,
+	tutorialTitle ~= nil and tutorialText():find("dig spot") ~= nil,
 	"tutorial starts at FIND (" .. tutorialText() .. ")"
 )
 
@@ -144,7 +144,7 @@ task.wait(0.5)
 local upgradePanel = root:FindFirstChild("UpgradePanel")
 check(upgradePanel and upgradePanel.Visible, "shovel shop panel opens on the pad")
 check(
-	tutorialText():find("STONE SHOVEL") ~= nil,
+	tutorialText():find("SHOVELS shop") ~= nil,
 	"tutorial points at the shovel shop (" .. tutorialText() .. ")"
 )
 H.signal(upgradePanel:FindFirstChild("Buy", true), "Activated")

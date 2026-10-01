@@ -51,7 +51,7 @@ local bagFullSuppressed = false
 local function applyScale()
 	local camera = workspace.CurrentCamera
 	local viewport = camera and camera.ViewportSize or Vector2.new(1280, 720)
-	local scale = math.clamp(viewport.Y / 650, 0.62, 1.3)
+	local scale = math.clamp(viewport.Y / 720, 0.54, 1.2)
 	local uiScale = root:FindFirstChildOfClass("UIScale") :: UIScale
 	uiScale.Scale = scale
 	root.Size = UDim2.fromScale(1 / scale, 1 / scale)
@@ -66,7 +66,7 @@ local function pill(name: string, position: UDim2, icon: string, color: Color3):
 		Name = name,
 		AnchorPoint = Vector2.new(0, 0),
 		Position = position,
-		Size = UDim2.fromOffset(250, 58),
+		Size = UDim2.fromOffset(200, 46),
 		BackgroundColor3 = Color3.new(1, 1, 1),
 		Parent = root,
 	}, {
@@ -76,7 +76,7 @@ local function pill(name: string, position: UDim2, icon: string, color: Color3):
 	})
 	Ui.new("Frame", {
 		Name = "IconBg",
-		Size = UDim2.fromOffset(58, 58),
+		Size = UDim2.fromOffset(46, 46),
 		BackgroundColor3 = Color3.new(1, 1, 1),
 		Parent = frame,
 	}, {
@@ -86,13 +86,13 @@ local function pill(name: string, position: UDim2, icon: string, color: Color3):
 	})
 	Ui.label({
 		Name = "Icon",
-		Size = UDim2.fromOffset(58, 58),
+		Size = UDim2.fromOffset(46, 46),
 		Text = icon,
 		Parent = frame,
 	})
 	local label = Ui.label({
 		Name = "Value",
-		Position = UDim2.fromOffset(66, 8),
+		Position = UDim2.fromOffset(54, 7),
 		Size = UDim2.new(1, -80, 1, -16),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextColor3 = C.Ink,
@@ -121,15 +121,15 @@ local function build()
 		Parent = screenGui,
 	}, { Ui.new("UIScale") })
 
-	cashPill, cashLabel = pill("Cash", UDim2.fromOffset(14, 70), "💰", C.Gold)
-	bagPill, bagLabel = pill("Bag", UDim2.fromOffset(14, 138), "🎒", C.Orange)
+	cashPill, cashLabel = pill("Cash", UDim2.fromOffset(12, 8), "💰", C.Gold)
+	bagPill, bagLabel = pill("Bag", UDim2.fromOffset(12, 60), "🎒", C.Orange)
 
 	-- Next-goal bar (top center).
 	goalFrame = Ui.new("Frame", {
 		Name = "Goal",
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, 8),
-		Size = UDim2.fromOffset(440, 46),
+		Size = UDim2.fromOffset(340, 36),
 		BackgroundColor3 = C.Dark,
 		Parent = root,
 	}, { Ui.corner(UDim.new(1, 0)), Ui.stroke(4) })
@@ -149,8 +149,8 @@ local function build()
 	bagFullBanner = Ui.label({
 		Name = "BagFull",
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 120),
-		Size = UDim2.fromOffset(520, 52),
+		Position = UDim2.new(0.5, 0, 0, 84),
+		Size = UDim2.fromOffset(420, 42),
 		BackgroundTransparency = 0,
 		BackgroundColor3 = C.Red,
 		Font = Ui.TitleFont,
@@ -171,7 +171,7 @@ local function build()
 	toastHolder = Ui.new("Frame", {
 		Name = "Toasts",
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 236), -- below the tutorial banner
+		Position = UDim2.new(0.5, 0, 0, 134),
 		Size = UDim2.fromOffset(560, 200),
 		BackgroundTransparency = 1,
 		Parent = root,
@@ -214,8 +214,8 @@ local function build()
 	topButtons = Ui.new("Frame", {
 		Name = "TopButtons",
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -14, 0, 70),
-		Size = UDim2.fromOffset(420, 80),
+		Position = UDim2.new(1, -12, 0, 8),
+		Size = UDim2.fromOffset(320, 60),
 		BackgroundTransparency = 1,
 		Parent = root,
 	}, {
@@ -231,8 +231,8 @@ local function build()
 	rushLabel = Ui.label({
 		Name = "Rush",
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 58),
-		Size = UDim2.fromOffset(420, 26),
+		Position = UDim2.new(0.5, 0, 0, 48),
+		Size = UDim2.fromOffset(320, 22),
 		Parent = root,
 	})
 
@@ -240,8 +240,8 @@ local function build()
 	chipRow = Ui.new("Frame", {
 		Name = "Chips",
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 88),
-		Size = UDim2.fromOffset(600, 26),
+		Position = UDim2.new(0.5, 0, 0, 74),
+		Size = UDim2.fromOffset(600, 24),
 		BackgroundTransparency = 1,
 		Parent = root,
 	}, {
@@ -391,7 +391,7 @@ function Hud.addTopButton(
 	local button = Ui.new("TextButton", {
 		Name = name,
 		LayoutOrder = order,
-		Size = UDim2.fromOffset(78, 78),
+		Size = UDim2.fromOffset(60, 60),
 		BackgroundColor3 = Color3.new(1, 1, 1),
 		Text = "",
 		Parent = topButtons,

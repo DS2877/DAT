@@ -255,7 +255,7 @@ window.renderScene = (gui) => {
 	const screen = document.getElementById("screen");
 	screen.innerHTML = "";
 	const root = arr(gui.children).find(c => c.name === "Root");
-	const scale = Math.min(1.3, Math.max(0.62, H / 650));
+	const scale = Math.min(1.2, Math.max(0.54, H / 720)); // matches HudController.applyScale
 	root.size = [1 / scale, 0, 1 / scale, 0];
 	const ui = arr(root.children).find(c => c.class === "UIScale");
 	if (ui) ui.scale = scale;

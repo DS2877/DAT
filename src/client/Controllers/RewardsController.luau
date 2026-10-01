@@ -439,8 +439,8 @@ function RewardsController.init()
 	giftButton = Ui.new("TextButton", {
 		Name = "Gift",
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -14, 0, 158),
-		Size = UDim2.fromOffset(230, 44),
+		Position = UDim2.new(1, -12, 0, 76),
+		Size = UDim2.fromOffset(178, 34),
 		BackgroundColor3 = Color3.fromRGB(35, 30, 40),
 		Font = Ui.TitleFont,
 		TextScaled = true,
