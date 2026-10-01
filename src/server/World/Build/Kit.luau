@@ -234,6 +234,58 @@ function Kit.billboard(
 	return gui
 end
 
+-- A wooden sign on two posts, standing on the ground at `position` and
+-- facing `facing` (readable from both sides): a title board, and an
+-- optional smaller board under it.
+function Kit.standingSign(
+	parent: Instance,
+	position: Vector3,
+	facing: Vector3,
+	title: string,
+	subtitle: string?,
+	color: Color3,
+	width: number
+): Model
+	local model = Instance.new("Model")
+	model.Name = "StandingSign"
+	local flat = Vector3.new(facing.X, 0, facing.Z)
+	local look = if flat.Magnitude > 0.01 then flat.Unit else Vector3.zAxis
+	local frame = CFrame.lookAt(position, position + look)
+	local wood = Kit.hex("#8B5A2B")
+	local dark = Kit.hex("#5B3A22")
+	local boardsTop = if subtitle then 7.4 else 6.6
+	for _, side in { -1, 1 } do
+		Kit.part(model, {
+			name = "SignLeg",
+			size = Vector3.new(0.6, boardsTop + 0.4, 0.6),
+			cframe = frame * CFrame.new(side * (width / 2 + 0.3), (boardsTop + 0.4) / 2 - 0.4, 0),
+			color = dark,
+			material = Enum.Material.Wood,
+		})
+	end
+	local titleBoard = Kit.part(model, {
+		name = "SignBoard",
+		size = Vector3.new(width, 2.4, 0.5),
+		cframe = frame * CFrame.new(0, boardsTop - 1.2, 0),
+		color = wood,
+		material = Enum.Material.WoodPlanks,
+	})
+	Kit.signText(titleBoard, title, color)
+	if subtitle then
+		local sub = Kit.part(model, {
+			name = "SignBoardSmall",
+			size = Vector3.new(width * 0.9, 1.4, 0.4),
+			cframe = frame * CFrame.new(0, boardsTop - 3.2, 0),
+			color = wood,
+			material = Enum.Material.WoodPlanks,
+		})
+		Kit.signText(sub, subtitle, Color3.new(1, 1, 1))
+	end
+	model.Parent = parent
+	Kit.addObstacle(position, width / 2 + 1)
+	return model
+end
+
 -- Text painted on a sign board. `faces` defaults to front and back.
 function Kit.signText(
 	board: BasePart,

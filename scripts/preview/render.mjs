@@ -52,6 +52,9 @@ const VIEWS = {
 	signFromBase: { pos: [7, beachY + 9, 100], target: [7, beachY + 7, 72] },
 	signFromNorth: { pos: [-10, beachY + 9, 46], target: [7, beachY + 7, 72] },
 	rebirth: { pos: [-84, beachY + 10, 150], target: [-84, beachY + 2, 176] },
+	rebirthSign: { pos: [-53, beachY + 6, 190], target: [-74, beachY + 4, 180] },
+	tikiSign: { pos: [-86, beachY + 8, 222], target: [-112, beachY + 4, 226] },
+	vipSign: { pos: [55, beachY + 8, 196], target: [84, beachY + 3, 180] },
 	tiki: { pos: [-112, beachY + 12, 204], target: [-118, beachY + 3, 232] },
 	vipSite: {
 		pos: [L.vipSite.x - 10, beachY + 22, L.vipSite.z - 34],

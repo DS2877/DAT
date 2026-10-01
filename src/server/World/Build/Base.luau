@@ -623,7 +623,18 @@ local function rebirthTemple(base: Instance, rng: Random): BasePart
 	altar.CanQuery = true
 	altar:SetAttribute("Station", "Rebirth")
 	altar:SetAttribute("Radius", ra.radius)
-	Kit.billboard(altar, "REBIRTH", "Rank up: +25% cash forever", hex("#C77DFF"), 17, 16)
+	-- A wooden sign in front of the temple, facing the plaza.
+	local toPlaza = Vector3.new(L.spawn.x - ra.x, 0, L.spawn.z - ra.z).Unit
+	local signAt = Vector3.new(ra.x, 0, ra.z) + toPlaza * (ra.radius * 1.5 + 3)
+	Kit.standingSign(
+		base,
+		Vector3.new(signAt.X, Kit.groundOr(signAt.X, signAt.Z, L.beachHeight), signAt.Z),
+		toPlaza,
+		"REBIRTH",
+		"Rank up: +25% cash forever",
+		hex("#C77DFF"),
+		10
+	)
 	for i = 0, 5 do
 		local a = i / 6 * math.pi * 2
 		local pillar = part(base, {
@@ -731,14 +742,17 @@ local function vipSite(base: Instance): Vector3
 		canCollide = false,
 		castShadow = false,
 	})
-	local sign = part(base, {
-		name = "VipSign",
-		size = Vector3.new(0.4, 0.4, 0.4),
-		cframe = CFrame.new(site.x, ground + 7, site.z + site.radius),
-		transparency = 1,
-		canCollide = false,
-	})
-	Kit.billboard(sign, "👑 VIP DIG SITE", "Best-area treasure, right at the base", GOLD, 2, 20)
+	local toPlaza = Vector3.new(L.spawn.x - site.x, 0, L.spawn.z - site.z).Unit
+	local signAt = Vector3.new(site.x, 0, site.z) + toPlaza * (site.radius + 3)
+	Kit.standingSign(
+		base,
+		Vector3.new(signAt.X, Kit.groundOr(signAt.X, signAt.Z, L.beachHeight), signAt.Z),
+		toPlaza,
+		"VIP DIG SITE",
+		"Best-area treasure for VIPs",
+		GOLD,
+		10
+	)
 	local sparkle =
 		Kit.volume(base, "VipSparkles", CFrame.new(site.x, ground + 2, site.z), Vector3.new(12, 4, 12))
 	Kit.emitter(sparkle, {

@@ -545,7 +545,17 @@ local function tikiBar(parent: Instance, base: Vector3, rng: Random): BasePart
 	})
 	pad:SetAttribute("Station", "Drinks")
 	pad:SetAttribute("Radius", Drinks.stationRadius)
-	Kit.billboard(pad, "TIKI BAR", "Drinks: 5-minute boosts", hex("#FF8A3D"), 3, 12)
+	-- A wooden sign beside the pad, facing the base.
+	local signAt = base + Vector3.new(Drinks.stationRadius + 3, 0, -11)
+	Kit.standingSign(
+		parent,
+		Vector3.new(signAt.X, Kit.groundOr(signAt.X, signAt.Z, level), signAt.Z),
+		Vector3.xAxis,
+		"TIKI BAR",
+		"Drinks: 5-minute boosts",
+		hex("#FFD54A"),
+		9
+	)
 	local _ = rng
 	model.Parent = parent
 	Kit.addObstacle(base, 10)
