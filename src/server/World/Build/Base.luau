@@ -692,6 +692,8 @@ end
 local function vipSite(base: Instance): Vector3
 	local site = L.vipSite
 	local ground = Kit.highestGround(site.x, site.z, site.radius + 1, L.beachHeight)
+	-- The entrance faces the plaza; a red carpet runs to it from the deck.
+	local toPlaza = Vector3.new(L.spawn.x - site.x, 0, L.spawn.z - site.z).Unit
 	local posts = {}
 	for i = 0, 7 do
 		local a = i / 8 * math.pi * 2
@@ -715,18 +717,18 @@ local function vipSite(base: Instance): Vector3
 		})
 		table.insert(posts, post)
 	end
-	-- Velvet rope between the posts (left open at the front, facing the island).
+	-- Velvet rope between the posts, open toward the plaza.
 	for i = 1, #posts do
 		local a, b = posts[i].Position, posts[i % #posts + 1].Position
 		local mid = (a + b) / 2
-		if mid.Z < site.z - site.radius * 0.6 then
+		if Vector3.new(mid.X - site.x, 0, mid.Z - site.z).Unit:Dot(toPlaza) > 0.75 then
 			continue
 		end
 		local length = (b - a).Magnitude
 		part(base, {
 			name = "VipRope",
-			size = Vector3.new(0.35, 0.35, length),
-			cframe = CFrame.lookAt(mid + Vector3.new(0, 1.2, 0), b + Vector3.new(0, 1.2, 0)),
+			size = Vector3.new(length, 0.35, 0.35),
+			cframe = CFrame.fromMatrix(mid + Vector3.new(0, 1.2, 0), (b - a).Unit, Vector3.yAxis),
 			color = hex("#C0182F"),
 			material = Enum.Material.Fabric,
 			canCollide = false,
@@ -742,8 +744,65 @@ local function vipSite(base: Instance): Vector3
 		canCollide = false,
 		castShadow = false,
 	})
-	local toPlaza = Vector3.new(L.spawn.x - site.x, 0, L.spawn.z - site.z).Unit
-	local signAt = Vector3.new(site.x, 0, site.z) + toPlaza * (site.radius + 3)
+	-- Red carpet from the deck's edge to the entrance, with gold borders,
+	-- following the sand in short pieces.
+	local entrance = Vector3.new(site.x, 0, site.z) + toPlaza * (site.radius - 0.5)
+	local runway = (entrance.X - (L.base.maxX + 2)) / -toPlaza.X
+	local side = Vector3.new(-toPlaza.Z, 0, toPlaza.X)
+	local pieces = math.max(1, math.ceil(runway / 3))
+	for i = 1, pieces do
+		local center = entrance + toPlaza * ((i - 0.5) * runway / pieces)
+		local y = Kit.groundOr(center.X, center.Z, L.beachHeight)
+		-- X runs along the carpet.
+		local frame = CFrame.fromMatrix(Vector3.new(center.X, y + 0.08, center.Z), toPlaza, Vector3.yAxis)
+		part(base, {
+			name = "VipRunway",
+			size = Vector3.new(runway / pieces + 0.3, 0.16, 4.4),
+			cframe = frame,
+			color = hex("#9E1B32"),
+			material = Enum.Material.Fabric,
+			canCollide = false,
+			castShadow = false,
+		})
+		for _, s in { -1, 1 } do
+			part(base, {
+				name = "VipRunwayTrim",
+				size = Vector3.new(runway / pieces + 0.3, 0.2, 0.3),
+				cframe = frame * CFrame.new(0, 0.02, s * 2.35),
+				color = GOLD,
+				material = Enum.Material.Metal,
+				canCollide = false,
+				castShadow = false,
+			})
+		end
+		Kit.addObstacle(center, 4)
+	end
+	-- Gold posts with lights at the start of the carpet.
+	local start = entrance + toPlaza * runway
+	for _, s in { -1, 1 } do
+		local p = start + side * s * 3.2
+		local y = Kit.groundOr(p.X, p.Z, L.beachHeight)
+		part(base, {
+			name = "VipPost",
+			shape = Enum.PartType.Cylinder,
+			size = Vector3.new(4, 0.7, 0.7),
+			cframe = CFrame.new(p.X, y + 2, p.Z) * CFrame.Angles(0, 0, math.rad(90)),
+			color = GOLD,
+			material = Enum.Material.Metal,
+		})
+		local top = part(base, {
+			name = "VipPostTop",
+			shape = Enum.PartType.Ball,
+			size = Vector3.new(1.1, 1.1, 1.1),
+			cframe = CFrame.new(p.X, y + 4.2, p.Z),
+			color = GOLD,
+			material = Enum.Material.Neon,
+			canCollide = false,
+		})
+		Kit.light(top, GOLD, 10, 1)
+	end
+	-- The sign stands beside the carpet, near the entrance.
+	local signAt = Vector3.new(site.x, 0, site.z) + toPlaza * (site.radius + 4) + side * 6
 	Kit.standingSign(
 		base,
 		Vector3.new(signAt.X, Kit.groundOr(signAt.X, signAt.Z, L.beachHeight), signAt.Z),

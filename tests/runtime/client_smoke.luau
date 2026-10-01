@@ -290,6 +290,34 @@ H.moveTo(player, V3(0, deck.Position.Y + 3, 206))
 task.wait(0.6)
 check(not tiki.Visible, "the menu closes when you walk away")
 
+print("\n== One-way walls ==")
+local cliff = nil
+for _, wall in H.workspace.Walls:GetChildren() do
+	if
+		wall:GetAttribute("OneWay")
+		and wall:GetAttribute("PlaneZ") == MapLayout.beachNorthZ
+		and wall:GetAttribute("PlaneX") < -100
+	then
+		cliff = wall
+	end
+end
+check(cliff ~= nil and cliff.CanCollide, "cliff walls block players coming from the beach")
+if cliff then
+	data.shovelLevel = 3 -- the Jungle is open
+	H.fireServer(player, "RequestSync")
+	local px, pz = cliff:GetAttribute("PlaneX"), cliff:GetAttribute("PlaneZ")
+	H.moveTo(player, V3(px, MapLayout.plateauHeight + 3, pz - 10))
+	task.wait(0.3)
+	check(not cliff.CanCollide, "from inside the Jungle the cliff lets you jump down")
+	H.moveTo(player, V3(px, MapLayout.beachHeight + 3, pz + 1.5))
+	task.wait(0.3)
+	check(not cliff.CanCollide, "it stays open while you pass through")
+	H.moveTo(player, V3(px, MapLayout.beachHeight + 3, pz + 12))
+	task.wait(0.3)
+	check(cliff.CanCollide, "and closes again once you're out")
+end
+check(H.workspace.Base:FindFirstChild("VipRunway") ~= nil, "a red carpet leads to the VIP dig site")
+
 print("\n== Shop ==")
 local shop = root:FindFirstChild("Shop")
 H.signal(root.ShopButton, "Activated"):Fire({})

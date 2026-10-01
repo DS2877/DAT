@@ -170,7 +170,9 @@ function TikiController.init()
 			local character = player.Character
 			local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 			local onPad = false
-			if pad and root then
+			-- Not part of the tutorial: the bar opens once it's finished.
+			local data = ClientState.data
+			if pad and root and data and data.guideDone then
 				local offset = root.Position - (pad :: BasePart).Position
 				onPad = Vector3.new(offset.X, 0, offset.Z).Magnitude <= Drinks.stationRadius
 					and math.abs(offset.Y) < 8

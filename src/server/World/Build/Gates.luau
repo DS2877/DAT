@@ -31,13 +31,16 @@ local STONE = {
 	Volcano = { "#4A4246", "#3A3336" },
 }
 
-local function invisibleWall(parent: Instance, from: Vector3, to: Vector3)
+-- `inside` (a flat direction) makes the wall one-way: it only stops players
+-- coming from outside; players on the `inside` side can walk or jump out
+-- through it (WallController turns its collision off for them locally).
+local function invisibleWall(parent: Instance, from: Vector3, to: Vector3, inside: Vector3?)
 	local length = (to - from).Magnitude
 	if length < 0.5 then
 		return
 	end
 	local mid = (from + to) / 2
-	part(parent, {
+	local wall = part(parent, {
 		name = "Boundary",
 		size = Vector3.new(length, 200, 2),
 		cframe = CFrame.lookAt(mid, mid + (to - from).Unit)
@@ -46,6 +49,13 @@ local function invisibleWall(parent: Instance, from: Vector3, to: Vector3)
 		transparency = 1,
 		castShadow = false,
 	})
+	if inside then
+		wall:SetAttribute("OneWay", true)
+		wall:SetAttribute("InsideX", inside.X)
+		wall:SetAttribute("InsideZ", inside.Z)
+		wall:SetAttribute("PlaneX", mid.X)
+		wall:SetAttribute("PlaneZ", mid.Z)
+	end
 end
 
 local function lowTier(areaId: string): number
@@ -227,15 +237,17 @@ function Gates.build(): { [string]: GateInfo }
 	local halfGate = L.gateWidth / 2 + 4
 
 	-- Beach | plateau boundary (the cliff), open at the Jungle and Ruins gates.
+	-- One-way: you enter through the gates, but can jump down to leave.
+	local north = Vector3.new(0, 0, -1)
 	local jx, rx = L.gates.Jungle.x, L.gates.Ruins.x
 	local z = L.beachNorthZ
-	invisibleWall(walls, Vector3.new(b.minX, 0, z), Vector3.new(jx - halfGate, 0, z))
-	invisibleWall(walls, Vector3.new(jx + halfGate, 0, z), Vector3.new(rx - halfGate, 0, z))
-	invisibleWall(walls, Vector3.new(rx + halfGate, 0, z), Vector3.new(b.maxX, 0, z))
-	-- Volcano cliff, open at the Volcano gate.
+	invisibleWall(walls, Vector3.new(b.minX, 0, z), Vector3.new(jx - halfGate, 0, z), north)
+	invisibleWall(walls, Vector3.new(jx + halfGate, 0, z), Vector3.new(rx - halfGate, 0, z), north)
+	invisibleWall(walls, Vector3.new(rx + halfGate, 0, z), Vector3.new(b.maxX, 0, z), north)
+	-- Volcano cliff, open at the Volcano gate (one-way too).
 	local vx, vz = L.gates.Volcano.x, L.volcanoSouthZ
-	invisibleWall(walls, Vector3.new(b.minX, 0, vz), Vector3.new(vx - halfGate, 0, vz))
-	invisibleWall(walls, Vector3.new(vx + halfGate, 0, vz), Vector3.new(b.maxX, 0, vz))
+	invisibleWall(walls, Vector3.new(b.minX, 0, vz), Vector3.new(vx - halfGate, 0, vz), north)
+	invisibleWall(walls, Vector3.new(vx + halfGate, 0, vz), Vector3.new(b.maxX, 0, vz), north)
 	-- Canyon sides behind every gate.
 	for _, g in L.gates do
 		for _, side in { -1, 1 } do
@@ -243,8 +255,10 @@ function Gates.build(): { [string]: GateInfo }
 			invisibleWall(walls, Vector3.new(x, 0, g.z), Vector3.new(x, 0, g.z - L.rampLength - 4))
 		end
 	end
-	-- Jungle | Ruins ridge.
-	invisibleWall(walls, Vector3.new(L.jungleRuinsX, 0, z), Vector3.new(L.jungleRuinsX, 0, vz))
+	-- Jungle | Ruins ridge: the Ruins (east) need the better shovel, so the
+	-- ridge only stops people climbing from the Jungle into the Ruins.
+	local ruinsSide = Vector3.new(if rx > L.jungleRuinsX then 1 else -1, 0, 0)
+	invisibleWall(walls, Vector3.new(L.jungleRuinsX, 0, z), Vector3.new(L.jungleRuinsX, 0, vz), ruinsSide)
 	-- Play-area limits.
 	invisibleWall(walls, Vector3.new(b.minX, 0, b.minZ), Vector3.new(b.minX, 0, b.maxZ))
 	invisibleWall(walls, Vector3.new(b.maxX, 0, b.minZ), Vector3.new(b.maxX, 0, b.maxZ))

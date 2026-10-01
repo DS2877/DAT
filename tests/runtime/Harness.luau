@@ -266,8 +266,27 @@ local function firePropertyChanged(inst: any, key: string)
 	end
 end
 
+-- What a destroyed instance still answers in Roblox (class and name);
+-- Lune refuses every read once an instance is destroyed.
+local destroyedInfo: { [any]: { className: string, name: string } } = setmetatable({}, { __mode = "k" }) :: any
+
 ProxyMeta.__index = function(proxy, key)
 	local inst = realOf[proxy]
+	-- Roblox still answers these on a destroyed instance; Lune doesn't.
+	local info = destroyedInfo[inst]
+	if info then
+		if key == "Parent" then
+			return nil
+		elseif key == "ClassName" then
+			return info.className
+		elseif key == "Name" then
+			return info.name
+		elseif key == "IsA" then
+			return function(_self, className: string)
+				return R.Instance.new(info.className :: any):IsA(className)
+			end
+		end
+	end
 	local method = methods[key]
 	if method then
 		return function(self, ...)
@@ -528,6 +547,7 @@ end
 
 methods.Destroy = function(proxy, inst)
 	local parent = inst.Parent
+	destroyedInfo[inst] = { className = inst.ClassName, name = inst.Name }
 	inst:Destroy()
 	if parent then
 		local s = states[parent:GetAttribute("HarnessId") or -1]

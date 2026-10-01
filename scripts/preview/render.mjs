@@ -56,6 +56,7 @@ const VIEWS = {
 	tikiSign: { pos: [-86, beachY + 8, 222], target: [-112, beachY + 4, 226] },
 	vipSign: { pos: [55, beachY + 8, 196], target: [84, beachY + 3, 180] },
 	tiki: { pos: [-112, beachY + 12, 204], target: [-118, beachY + 3, 232] },
+	vipCarpet: { pos: [62, beachY + 26, 222], target: [74, beachY, 180] },
 	vipSite: {
 		pos: [L.vipSite.x - 10, beachY + 22, L.vipSite.z - 34],
 		target: [L.vipSite.x, beachY + 2, L.vipSite.z],
