@@ -85,7 +85,27 @@ function CharacterService.refreshTitle(player: Player)
 	gui.Parent = head
 end
 
+-- Is the character holding its shovel (welded to a hand it still has)?
+local function holdingShovel(character: Model): boolean
+	local shovel = character:FindFirstChild("Shovel") :: Model?
+	local handle = shovel and shovel.PrimaryPart
+	local weld = handle and handle:FindFirstChild("HandWeld") :: Weld?
+	local hand = weld and weld.Part0
+	return hand ~= nil and hand.Parent == character
+end
+
 local function onCharacterAdded(player: Player, character: Model)
+	-- The avatar's appearance can replace the hands after spawning, taking
+	-- the shovel welded to the old one with it: attach again to the new one.
+	character.ChildAdded:Connect(function(child)
+		if child.Name == "RightHand" or child.Name == "Right Arm" then
+			task.delay(0.1, function()
+				if player.Character == character and not holdingShovel(character) then
+					CharacterService.refreshShovel(player)
+				end
+			end)
+		end
+	end)
 	local humanoid = character:WaitForChild("Humanoid", 10) :: Humanoid?
 	character:WaitForChild("HumanoidRootPart", 10)
 	-- Wait for the hand to exist (R15 parts stream in after the root).
@@ -131,6 +151,25 @@ function CharacterService.init()
 			end
 		end)
 		player:LoadCharacter()
+	end)
+	-- Safety net: anyone alive without their shovel in hand gets it back.
+	task.spawn(function()
+		while true do
+			task.wait(2)
+			for _, player in Players:GetPlayers() do
+				local character = player.Character
+				local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+				if
+					character
+					and humanoid
+					and humanoid.Health > 0
+					and PlayerData.get(player)
+					and not holdingShovel(character)
+				then
+					CharacterService.refreshShovel(player)
+				end
+			end
+		end
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		if player.Character then

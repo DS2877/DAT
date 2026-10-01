@@ -89,6 +89,19 @@ local data = PlayerData.get(player)
 check(data ~= nil, "profile loaded")
 check(player.Character ~= nil, "character spawned after load")
 check(player.Character and player.Character:FindFirstChild("Shovel") ~= nil, "shovel in hand")
+do
+	-- The avatar's appearance loading swaps the hand (taking the shovel).
+	local character = player.Character
+	local oldHand = character:FindFirstChild("RightHand")
+	local newHand = oldHand:Clone()
+	oldHand:Destroy()
+	character:FindFirstChild("Shovel"):Destroy()
+	newHand.Parent = character
+	task.wait(0.5)
+	local shovel = character:FindFirstChild("Shovel")
+	local weld = shovel and shovel.PrimaryPart and shovel.PrimaryPart:FindFirstChild("HandWeld")
+	check(weld and weld.Part0 == newHand, "the shovel comes back when the avatar swaps the hand")
+end
 check(player:FindFirstChild("leaderstats") ~= nil, "leaderstats created")
 task.wait(0.1)
 check(H.lastClientEvent("DataSync", player) ~= nil, "client got a data snapshot")
