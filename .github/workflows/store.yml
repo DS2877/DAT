@@ -1,0 +1,60 @@
+name: Sync store
+
+# Creates / updates the game passes and developer products listed in
+# src/shared/Config/Monetization.luau on Roblox (see scripts/store-sync.luau).
+# Manual only: run it from the Actions tab ("Run workflow").
+#   check  lists what exists and what would change (no writes)
+#   apply  creates missing items and updates changed ones
+# The ids appear in the run's log and summary, and in the store-ids artifact.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "check or apply"
+        required: true
+        default: check
+        type: choice
+        options: [check, apply]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: store-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rokit
+        run: |
+          curl -sSLf -o rokit.zip https://github.com/rojo-rbx/rokit/releases/download/v1.0.0/rokit-1.0.0-linux-x86_64.zip
+          mkdir -p "$RUNNER_TEMP/rokit"
+          unzip -q rokit.zip -d "$RUNNER_TEMP/rokit"
+          rm rokit.zip
+          "$RUNNER_TEMP/rokit/rokit" self-install
+          echo "$HOME/.rokit/bin" >> "$GITHUB_PATH"
+
+      - name: Install toolchain (rokit.toml)
+        run: rokit install --no-trust-check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sync passes and products
+        env:
+          API_KEY: ${{ secrets.DAT_PUBLISHING_KEY }}
+        run: lune run scripts/store-sync.luau "${{ inputs.mode }}"
+
+      - name: Upload ids
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: store-ids
+          path: store-ids.json
+          if-no-files-found: ignore

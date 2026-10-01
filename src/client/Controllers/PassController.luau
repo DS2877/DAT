@@ -93,7 +93,7 @@ local function build(): Frame
 		Position = UDim2.fromOffset(14, 10),
 		Size = UDim2.new(1, -60, 0, 30),
 		Font = Ui.TitleFont,
-		Text = pass.icon .. " " .. string.upper(pass.name),
+		Text = pass.emoji .. " " .. string.upper(pass.name),
 		TextColor3 = C.Ink,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Parent = frame,
@@ -101,7 +101,7 @@ local function build(): Frame
 	Ui.plainLabel({
 		Position = UDim2.fromOffset(14, 50),
 		Size = UDim2.new(1, -28, 0, 22),
-		Text = pass.description,
+		Text = pass.blurb,
 		TextColor3 = C.Ink,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Parent = frame,

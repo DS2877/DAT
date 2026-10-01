@@ -89,7 +89,7 @@ function MonetizationService.init()
 				return
 			end
 			grant(player, name)
-			Net.fire("Notify", player, pass.icon .. " " .. string.upper(pass.name) .. " UNLOCKED!", "Big")
+			Net.fire("Notify", player, pass.emoji .. " " .. string.upper(pass.name) .. " UNLOCKED!", "Big")
 		end
 	)
 end
