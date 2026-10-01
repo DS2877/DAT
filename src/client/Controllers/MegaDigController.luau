@@ -49,7 +49,8 @@ local function findSite(): Model?
 	return nil
 end
 
--- The big sign over the open site.
+-- The sign over the open site: small, seen from afar, and hidden once
+-- you're digging there (the HUD line shows the progress then).
 local function updateSiteSign(active: boolean, progress: number, left: number)
 	if not active then
 		if siteSign then
@@ -69,48 +70,51 @@ local function updateSiteSign(active: boolean, progress: number, left: number)
 		local gui = Ui.new("BillboardGui", {
 			Name = "MegaDigSign",
 			Adornee = site.PrimaryPart,
-			Size = UDim2.fromOffset(260, 90),
-			StudsOffsetWorldSpace = Vector3.new(0, 12, 0),
+			Size = UDim2.fromOffset(150, 52),
+			StudsOffsetWorldSpace = Vector3.new(0, 14, 0),
 			AlwaysOnTop = true,
 			MaxDistance = 1000,
 			LightInfluence = 0,
 			Parent = player:WaitForChild("PlayerGui"),
 		})
 		Ui.label({
-			Size = UDim2.new(1, 0, 0, 36),
+			Size = UDim2.new(1, 0, 0, 20),
 			Font = Ui.TitleFont,
 			Text = "⛏️ MEGA DIG",
 			TextColor3 = C.Gold,
 			Parent = gui,
 		})
 		local bar = Ui.new("Frame", {
-			Position = UDim2.fromOffset(10, 40),
-			Size = UDim2.new(1, -20, 0, 22),
+			Position = UDim2.fromOffset(8, 23),
+			Size = UDim2.new(1, -16, 0, 11),
 			BackgroundColor3 = C.Dark,
 			Parent = gui,
-		}, { Ui.corner(UDim.new(1, 0)), Ui.stroke(3) })
+		}, { Ui.corner(UDim.new(1, 0)), Ui.stroke(2) })
 		siteFill = Ui.new("Frame", {
 			Size = UDim2.fromScale(0, 1),
 			BackgroundColor3 = C.Gold,
 			Parent = bar,
 		}, { Ui.corner(UDim.new(1, 0)) })
 		siteText = Ui.label({
-			Position = UDim2.fromOffset(0, 64),
-			Size = UDim2.new(1, 0, 0, 24),
+			Position = UDim2.fromOffset(0, 36),
+			Size = UDim2.new(1, 0, 0, 16),
 			Text = "",
 			Parent = gui,
 		})
 		siteSign = gui
 	end
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if siteSign and root then
+		local offset = root.Position - site.PrimaryPart.Position
+		siteSign.Enabled = Vector3.new(offset.X, 0, offset.Z).Magnitude > MegaDig.digRange + 10
+	end
 	if siteFill then
 		siteFill.Size = UDim2.fromScale(math.max(progress, 0.03), 1)
 	end
 	if siteText then
-		siteText.Text = string.format(
-			"%d%% dug · %s left · everyone dig!",
-			math.floor(progress * 100),
-			MegaDigClock.format(left)
-		)
+		siteText.Text =
+			string.format("%d%% · %s left", math.floor(progress * 100), MegaDigClock.format(left))
 	end
 end
 
@@ -288,10 +292,18 @@ local function showDraw(info: { [string]: any })
 		Ui.pop(frame, 0.15)
 		Sound.play(if find.rarity == "Secret" then "StingSecret" else "StingLegendary")
 		if won then
-			-- The reveal shows the treasure big (and its rarity banner).
-			task.delay(0.8, function()
-				RevealController.reveal(info.position, find)
-			end)
+			-- Out of the way quickly so the winner sees the treasure come
+			-- out of the ground (the reveal shows it big, with its rarity).
+			task.wait(1)
+			TweenService:Create(
+				frame,
+				TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+				{ Position = UDim2.new(0.5, 0, 0, -200) }
+			):Play()
+			task.wait(0.3)
+			frame:Destroy()
+			RevealController.reveal(info.position, find)
+			return
 		end
 		task.wait(4)
 		frame:Destroy()

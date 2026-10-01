@@ -515,7 +515,9 @@ do
 		root.MegaDig.Text:find("MEGA DIG!") ~= nil,
 		"the HUD shows the open site (" .. root.MegaDig.Text .. ")"
 	)
-	check(playerGui:FindFirstChild("MegaDigSign") ~= nil, "a big progress sign floats over the site")
+	local sign = playerGui:FindFirstChild("MegaDigSign")
+	check(sign ~= nil, "a progress sign floats over the site")
+	check(sign and not sign.Enabled, "it hides while you dig there (the HUD shows the progress)")
 	check(digButton.Visible, "DIG works from the edge of the big site")
 	local site
 	for _, spot in spots:GetChildren() do
@@ -535,7 +537,10 @@ do
 	local drawFrame = root:FindFirstChild("MegaDraw")
 	check(drawFrame ~= nil, "the winner draw spins on screen")
 	task.wait(H.require(Shared.Config.MegaDig).drawSeconds + 0.5)
-	check(drawFrame and drawFrame:FindFirstChild("Window") and true, "the draw finished without errors")
+	check(
+		drawFrame and drawFrame.Parent == nil and root:FindFirstChild("MegaDraw") == nil,
+		"for the winner the draw clears away so the treasure reveal is in view"
+	)
 end
 
 print("\n== Admin: messages and reset ==")
