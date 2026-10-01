@@ -60,6 +60,10 @@ local MapLayout = {
 	-- The Island Guide board (map, how to play, events) on the plaza's east
 	-- side, facing the spawn.
 	infoBoard = { x = 40, z = 214, width = 17, height = 11 },
+	-- The Frost Portal to the next world (Config/Worlds), on the beach
+	-- ahead and to the right of the plaza: it rises between the SELL gate
+	-- and the bag shop when you look out from the spawn.
+	portal = { x = 80, z = 90 },
 	-- Trophy shelf in front of the boards (slots spread along x).
 	trophyShelf = { z = 224, minX = -24.5, maxX = 24.5 },
 

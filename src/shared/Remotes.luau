@@ -31,4 +31,5 @@ return table.freeze({
 	GlobalMessage = "GlobalMessage", -- ({ text, userId, name }) an admin's message to every server
 	Fireworks = "Fireworks", -- (position, count) to everyone
 	CoinPicked = "CoinPicked", -- (amount, position) a money-rain coin
+	Portal = "Portal", -- (kind: "Locked" | "Attuned" | "ComingSoon" | "Teleporting", info) the Frost Portal
 })

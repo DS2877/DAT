@@ -46,6 +46,7 @@ type Site = {
 }
 
 local site: Site? = nil
+local scheduled = true
 local rng = Random.new()
 
 local function now(): number
@@ -338,6 +339,11 @@ function MegaDigService.helpers(): { [Player]: number }
 	return if site then site.helpers else {}
 end
 
+-- Turns the 15-minute schedule on or off (tests; admins can still start one).
+function MegaDigService.setScheduled(on: boolean)
+	scheduled = on
+end
+
 -- Runs the 15-minute schedule (and collapses sites that run out of time).
 function MegaDigService.run()
 	local lastScheduled = MegaDigClock.nextStart(now()) - MegaDig.interval -- not one already past
@@ -354,7 +360,7 @@ function MegaDigService.run()
 			local previous = nextStart - MegaDig.interval
 			if previous > lastScheduled then
 				lastScheduled = previous
-				if not site then
+				if not site and scheduled then
 					MegaDigService.start()
 				end
 			end

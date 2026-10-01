@@ -24,6 +24,7 @@ local BeachBuilder = require(Build.Beach)
 local Candidates = require(Build.Candidates)
 local GatesBuilder = require(Build.Gates)
 local JungleBuilder = require(Build.Jungle)
+local PortalBuilder = require(Build.Portal)
 local Kit = require(Build.Kit)
 local RuinsBuilder = require(Build.Ruins)
 local TerrainBuilder = require(Build.Terrain)
@@ -42,6 +43,8 @@ export type BuiltWorld = {
 	baseFront: Vector3,
 	shelfSlots: { CFrame },
 	vipSpot: Vector3,
+	-- The Frost Portal: its ring center, the top of its dais, and the way it faces.
+	portal: { center: Vector3, ground: number, normal: Vector3 },
 }
 
 local function shelfSlots(deckTop: number): { CFrame }
@@ -94,6 +97,8 @@ function MapBuilder.build(): BuiltWorld
 	})
 	local deckTop = base.deckTop
 	local gates = GatesBuilder.build()
+	-- Before the beach decor, so its scatter keeps clear of the portal.
+	local portal = PortalBuilder.build(rng)
 	local beach = BeachBuilder.build(rng)
 	JungleBuilder.build(rng)
 	RuinsBuilder.build(rng)
@@ -131,6 +136,7 @@ function MapBuilder.build(): BuiltWorld
 	end
 	return {
 		spawnPosition = Vector3.new(L.spawn.x, deckTop + 3, L.spawn.z),
+		portal = { center = portal.center, ground = portal.ground, normal = portal.normal },
 		sellZone = { cframe = CFrame.new(sp.x, deckTop + 4, sp.z), size = Vector3.new(sp.size, 10, sp.size) },
 		stations = {
 			Shovel = station("Shovel", L.shovelStation.radius),

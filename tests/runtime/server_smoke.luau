@@ -30,6 +30,14 @@ H.runScript(game:GetService("ServerScriptService").Server)
 print(string.format("server script finished in %.2fs", os.clock() - started))
 
 local workspace = H.workspace
+
+-- The Mega Dig runs on the real clock: keep its schedule out of the way
+-- (the Mega Dig checks start one themselves).
+do
+	local MegaDigService = H.require(game:GetService("ServerScriptService").Server.Services.MegaDigService)
+	MegaDigService.setScheduled(false)
+	MegaDigService.cancel()
+end
 local spots = workspace:FindFirstChild("DigSpots")
 check(workspace:FindFirstChild("Base") ~= nil, "base built")
 check(workspace:FindFirstChild("Gates") ~= nil, "gates built")
@@ -734,6 +742,63 @@ do
 	)
 	table.remove(Admin.userIds)
 	admin:Kick("done")
+end
+
+print("\n== Frost Portal ==")
+do
+	local Worlds = H.require(Shared.Config.Worlds)
+	local portalModel = workspace:FindFirstChild("FrostPortal")
+	check(portalModel ~= nil, "the Frost Portal stands on the beach")
+	local center = portalModel:GetAttribute("Center")
+	local explorer = H.addPlayer("Explorer", 5003)
+	H.waitFor(function()
+		return PlayerData.get(explorer) ~= nil and explorer.Character ~= nil
+	end, 5, "explorer")
+	local explorerData = PlayerData.get(explorer)
+	explorerData.rebirths = 1
+	H.moveTo(explorer, center)
+	task.wait(0.5)
+	local locked = H.lastClientEvent("Portal", explorer)
+	check(locked and locked[1] == "Locked" and locked[2].have == 1, "below Rebirth 3 the portal stays shut")
+	local pos = explorer.Character.HumanoidRootPart.Position
+	check(
+		V3(pos.X - center.X, 0, pos.Z - center.Z).Magnitude > Worlds.portal.triggerRadius,
+		"and pushes you back out"
+	)
+	check(explorerData.worldUnlocks.Frost == nil, "not unlocked yet")
+
+	explorerData.rebirths = Worlds.next.requiredRebirths
+	task.wait(0.5)
+	check(type(explorerData.worldUnlocks.Frost) == "number", "Rebirth 3 opens the portal for you")
+	local attuned = false
+	for _, args in H.clientEvents("Portal", explorer) do
+		attuned = attuned or args[1] == "Attuned"
+	end
+	check(attuned, "with a fanfare")
+	check(H.ordered["FirstExplorers_Frost"]["u5003"] ~= nil, "and your name goes on the First Explorers list")
+	H.clockOffset += Worlds.portal.cooldown + 1
+	H.moveTo(explorer, center)
+	task.wait(0.5)
+	local soon = H.lastClientEvent("Portal", explorer)
+	check(soon and soon[1] == "ComingSoon", "stepping in shows that the world is being built")
+	task.wait(1.5)
+	local list = portalModel:FindFirstChild("List", true)
+	check(
+		list and list.Text:find("1%.") ~= nil,
+		"the board lists the first explorers (" .. tostring(list and list.Text) .. ")"
+	)
+	-- Once the world exists (a placeId), the portal takes you there.
+	Worlds.next.placeId = 123456
+	H.clockOffset += Worlds.portal.cooldown + 1
+	H.moveTo(explorer, center)
+	task.wait(0.5)
+	local trip = H.teleports[#H.teleports]
+	check(
+		trip and trip.placeId == 123456 and trip.players[1] == explorer,
+		"with a world built, it teleports you there"
+	)
+	Worlds.next.placeId = nil
+	explorer:Kick("done")
 end
 
 print("\n== Golden X ==")

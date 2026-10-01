@@ -847,7 +847,7 @@ function Beach.build(rng: Random): BeachInfo
 	do
 		for _ = 1, rng:NextInteger(3, 5) do
 			local p = at(grove[1] + rng:NextNumber(-12, 12), grove[2] + rng:NextNumber(-12, 12))
-			if p then
+			if p and Kit.clearOfObstacles(p.X, p.Z, 2) then
 				Kit.palm(decor, p, rng, rng:NextInteger(6, 9))
 			end
 		end
@@ -897,7 +897,7 @@ function Beach.build(rng: Random): BeachInfo
 		}
 	do
 		local p = at(c[1], c[2])
-		if p then
+		if p and Kit.clearOfObstacles(p.X, p.Z, 2) then
 			umbrella(decor, p, rng, i % 2 == 1)
 		end
 	end
@@ -972,7 +972,11 @@ function Beach.build(rng: Random): BeachInfo
 	end
 	for _ = 1, 50 do
 		local p = at(rng:NextNumber(-210, 210), rng:NextNumber(-10, 330))
-		if p and not (p.X > -110 and p.X < 70 and p.Z > 140 and p.Z < 260) then
+		if
+			p
+			and not (p.X > -110 and p.X < 70 and p.Z > 140 and p.Z < 260)
+			and Kit.clearOfObstacles(p.X, p.Z, 1)
+		then
 			beachGrass(decor, p, rng)
 		end
 	end

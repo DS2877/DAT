@@ -333,6 +333,7 @@ local function build()
 		{ "Summit", "Teleport", C.Red, "Summit" },
 		{ "VIP site", "Teleport", C.Purple, "VIP" },
 		{ "Tiki Bar", "Teleport", C.Orange, "Tiki" },
+		{ "❄️ Portal", "Teleport", C.Blue, "Portal" },
 	})
 	section(worldPage, 2, "🌅 TIME OF DAY", {
 		{ "Morning", "Time", C.Gold, 8 },

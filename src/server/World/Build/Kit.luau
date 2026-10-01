@@ -250,7 +250,9 @@ function Kit.standingSign(
 	model.Name = "StandingSign"
 	local flat = Vector3.new(facing.X, 0, facing.Z)
 	local look = if flat.Magnitude > 0.01 then flat.Unit else Vector3.zAxis
-	local frame = CFrame.lookAt(position, position + look)
+	-- Same as CFrame.lookAt(position, position + look), built from its axes.
+	local up = Vector3.new(0, 1, 0)
+	local frame = CFrame.fromMatrix(position, up:Cross(-look).Unit, up)
 	local wood = Kit.hex("#8B5A2B")
 	local dark = Kit.hex("#5B3A22")
 	local boardsTop = if subtitle then 7.4 else 6.6

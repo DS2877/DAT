@@ -72,6 +72,7 @@ Every number lives in `src/shared/Config/`:
 | `Jackpots.luau` | Hidden treasures: how often, which rarity, which area |
 | `Admin.luau` | Who gets the admin panel; ADMIN ABUSE settings |
 | `MegaDig.luau` | Mega Dig: schedule, size, hits needed, prize, draw, helper cash |
+| `Worlds.luau` | The next world: name, rebirths to unlock, its place id; the portal's sizes |
 | `Monetization.luau` | Passes, products, skins, perk numbers, offer limits |
 
 To add a treasure: append a row in `Treasures.luau` (tests check its value band
@@ -155,6 +156,16 @@ meaningful at every stage. Buying one that's running adds 5 minutes.
   next one. When it's dug out, one helper wins its Mythic+ treasure in an
   on-screen draw (one ticket per hit, 3 hits to enter); the other helpers
   get some cash.
+* **Frost Portal** (`Config/Worlds.luau`): an ice ring on the beach, in
+  view from the spawn, leading to the next world (Frostbite Peaks, not
+  built yet). Its three seals light up with your rebirths; until Rebirth 3
+  it pushes you back. At Rebirth 3 it opens for you for good (fanfare,
+  server announcement, your name on the First Explorers board). Stepping in
+  then shows a "being built" window whose GET NOTIFIED button opens the
+  Island Guide's events, so create a launch event in the Roblox app. When
+  the world is published as a place in this experience, put its id in
+  `Worlds.next.placeId` and the portal teleports there (saves are shared
+  across places, so progress comes along).
 * **Admin panel** (🛠️, `Config/Admin.luau`): for the game's owner (and any
   listed user ids; everyone in Studio). Every action is checked on the
   server.

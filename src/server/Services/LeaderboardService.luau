@@ -136,6 +136,16 @@ local function displayNames(userIds: { number })
 	end
 end
 
+-- Display names for user ids (cached; "Player" when unknown).
+function LeaderboardService.names(userIds: { number }): { [number]: string }
+	displayNames(userIds)
+	local out = {}
+	for _, id in userIds do
+		out[id] = nameCache[id] or "Player"
+	end
+	return out
+end
+
 local function readBoard(name: string): { { userId: number, value: number } }
 	local s = store(name)
 	local rows = {}

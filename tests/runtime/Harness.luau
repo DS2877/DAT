@@ -911,6 +911,13 @@ methods.GetOrderedDataStore = function(_proxy, _inst, name)
 		)
 		data[key] = value
 	end
+	function store.UpdateAsync(_self, key, transform)
+		local result = transform(data[key])
+		if result ~= nil then
+			data[key] = result
+		end
+		return result
+	end
 	function store.GetSortedAsync(_self, ascending, pageSize)
 		local rows = {}
 		for key, value in data do
@@ -1010,6 +1017,12 @@ methods.PublishAsync = function(_proxy, _inst, topic, message)
 	for _, callback in subscribers[topic] or {} do
 		realTask.defer(callback, { Data = message, Sent = os.time() })
 	end
+end
+
+-- TeleportService: records trips instead of leaving.
+H.teleports = {} :: { { placeId: number, players: { any } } }
+methods.TeleportAsync = function(_proxy, _inst, placeId, players)
+	table.insert(H.teleports, { placeId = placeId, players = players })
 end
 
 -- Avatar thumbnails.

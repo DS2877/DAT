@@ -28,6 +28,14 @@ local Shared = game:GetService("ReplicatedStorage").Shared
 local PlayerData = H.require(game:GetService("ServerScriptService").Server.Services.PlayerData)
 local MapLayout = H.require(Shared.Config.MapLayout)
 
+-- The Mega Dig runs on the real clock: keep its schedule out of the way
+-- (the Mega Dig checks start one themselves).
+do
+	local MegaDigService = H.require(game:GetService("ServerScriptService").Server.Services.MegaDigService)
+	MegaDigService.setScheduled(false)
+	MegaDigService.cancel()
+end
+
 -- A player with a PlayerGui, joined on the server.
 table.insert(H.require(Shared.Config.Admin).userIds, 7001) -- this player is an admin
 local player = H.addPlayer("Kid", 7001)
@@ -566,6 +574,45 @@ do
 	H.signal(adminButton, "Activated"):Fire({})
 	task.wait(0.8)
 	check(root.Tutorial.Visible, "the tutorial starts over right away")
+end
+
+print("\n== Frost Portal ==")
+do
+	local portalModel = H.workspace:FindFirstChild("FrostPortal")
+	local function litSeals(): number
+		local n = 0
+		for _, child in portalModel:GetChildren() do
+			if child:GetAttribute("Seal") and child.Material == roblox.Enum.Material.Neon then
+				n += 1
+			end
+		end
+		return n
+	end
+	data.rebirths = 1
+	H.fireServer(player, "RequestSync")
+	task.wait(0.4)
+	check(litSeals() == 1, "one seal lit at Rebirth 1 (" .. litSeals() .. ")")
+	local sign =
+		portalModel:FindFirstChild("SignBoardSmall", true):FindFirstChildOfClass("SurfaceGui").TextLabel
+	check(sign.Text:find("You: 1/3") ~= nil, "the sign shows your progress (" .. sign.Text .. ")")
+	local flakes = 0
+	for _, d in portalModel:GetDescendants() do
+		flakes += if d.Name == "Flake" then 1 else 0
+	end
+	check(flakes > 0, "snow falls in the glimpse of the next world")
+	data.rebirths = 3
+	H.fireServer(player, "RequestSync")
+	task.wait(0.6)
+	check(litSeals() == 3 and sign.Text:find("OPEN") ~= nil, "all three seals light at Rebirth 3")
+	H.clockOffset += 10
+	H.moveTo(player, portalModel:GetAttribute("Center"))
+	task.wait(0.6)
+	local soon = root:FindFirstChild("WorldPortal")
+	check(soon and soon.Visible, "stepping in shows the 'being built' window")
+	H.signal(soon:FindFirstChild("Notify", true), "Activated"):Fire({})
+	task.wait(0.3)
+	check(not soon.Visible and root.IslandGuide.Visible, "GET NOTIFIED opens the events sign-up")
+	H.signal(root.TopButtons.GuideButton, "Activated"):Fire({})
 end
 
 running = false

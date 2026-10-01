@@ -39,6 +39,14 @@ local Shared = game:GetService("ReplicatedStorage").Shared
 local PlayerData = H.require(game:GetService("ServerScriptService").Server.Services.PlayerData)
 local MapLayout = H.require(Shared.Config.MapLayout)
 
+-- The Mega Dig runs on the real clock: keep its schedule out of the way
+-- (the Mega Dig checks start one themselves).
+do
+	local MegaDigService = H.require(game:GetService("ServerScriptService").Server.Services.MegaDigService)
+	MegaDigService.setScheduled(false)
+	MegaDigService.cancel()
+end
+
 table.insert(H.require(Shared.Config.Admin).userIds, 7001)
 local player = H.addPlayer("Kid", 7001)
 local playerGui
@@ -338,6 +346,16 @@ for _ = 1, 2000 do
 end
 task.wait(5.6)
 snap("megadraw")
+
+-- The Frost Portal at Rebirth 3: the "being built" window.
+task.wait(3)
+data.rebirths = 3
+H.fireServer(player, "RequestSync")
+task.wait(4)
+H.clockOffset += 10
+H.moveTo(player, H.workspace.FrostPortal:GetAttribute("Center"))
+task.wait(0.8)
+snap("portal")
 
 running = false
 fs.writeFile(process.args[2] or "ui.json", serde.encode("json", scenes))

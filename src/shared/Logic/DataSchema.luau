@@ -41,6 +41,7 @@ function DataSchema.template(): { [string]: any }
 		starterPackBought = false,
 		instantDeepDigs = 0, -- Instant Deep Digs bought while none was running
 		robuxSpent = 0,
+		worldUnlocks = {}, -- [worldId] = unix time the portal opened for this player
 		activeBoosts = {}, -- [boostId] = expiry unix time
 		pausedBoosts = {}, -- [boostId] = seconds left (switched off by the player)
 		-- Audio settings, and on/off switches for perks the player owns.

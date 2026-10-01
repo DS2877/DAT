@@ -104,6 +104,9 @@ local function place(name: string): Vector3?
 	elseif name == "Tiki" then
 		local drinks = world.stations.Drinks
 		return if drinks then drinks.position else nil
+	elseif name == "Portal" then
+		local portal = world.portal
+		return Vector3.new(portal.center.X, portal.ground, portal.center.Z) + portal.normal * 16
 	elseif name == "Summit" then
 		local v = MapLayout.volcano
 		return ground(v.x + 22, v.z)
