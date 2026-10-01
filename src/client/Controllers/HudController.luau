@@ -42,6 +42,7 @@ local chipRow: Frame
 local shownCash = 0
 local cashTweenToken = 0
 local bagHeld = 0
+local bagFullSuppressed = false
 
 ---------------------------------------------------------------------------
 -- Layout scaling: design at 720p height, scale down on phones.
@@ -66,15 +67,23 @@ local function pill(name: string, position: UDim2, icon: string, color: Color3):
 		AnchorPoint = Vector2.new(0, 0),
 		Position = position,
 		Size = UDim2.fromOffset(250, 58),
-		BackgroundColor3 = C.Cream,
+		BackgroundColor3 = Color3.new(1, 1, 1),
 		Parent = root,
-	}, { Ui.corner(UDim.new(1, 0)), Ui.stroke(4) })
+	}, {
+		Ui.corner(UDim.new(1, 0)),
+		Ui.stroke(4),
+		Ui.gradient(Color3.fromRGB(255, 252, 240), Color3.fromRGB(255, 234, 196)),
+	})
 	Ui.new("Frame", {
 		Name = "IconBg",
 		Size = UDim2.fromOffset(58, 58),
-		BackgroundColor3 = color,
+		BackgroundColor3 = Color3.new(1, 1, 1),
 		Parent = frame,
-	}, { Ui.corner(UDim.new(1, 0)), Ui.stroke(4) })
+	}, {
+		Ui.corner(UDim.new(1, 0)),
+		Ui.stroke(4),
+		Ui.gradient(Ui.lighten(color, 0.3), Ui.darken(color, 0.1)),
+	})
 	Ui.label({
 		Name = "Icon",
 		Size = UDim2.fromOffset(58, 58),
@@ -162,7 +171,7 @@ local function build()
 	toastHolder = Ui.new("Frame", {
 		Name = "Toasts",
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 180),
+		Position = UDim2.new(0.5, 0, 0, 236), -- below the tutorial banner
 		Size = UDim2.fromOffset(560, 200),
 		BackgroundTransparency = 1,
 		Parent = root,
@@ -304,7 +313,7 @@ local function refreshBag()
 	bagLabel.Text = string.format("%d/%d · %s", count, capacity, Format.cash(ClientState.bagValue()))
 	local full = count >= capacity
 	bagLabel.TextColor3 = if full then C.Red else C.Ink
-	bagFullBanner.Visible = full
+	bagFullBanner.Visible = full and not bagFullSuppressed
 end
 
 local function refreshGoal()
@@ -383,10 +392,14 @@ function Hud.addTopButton(
 		Name = name,
 		LayoutOrder = order,
 		Size = UDim2.fromOffset(78, 78),
-		BackgroundColor3 = color,
+		BackgroundColor3 = Color3.new(1, 1, 1),
 		Text = "",
 		Parent = topButtons,
-	}, { Ui.corner(UDim.new(1, 0)), Ui.stroke(4) })
+	}, {
+		Ui.corner(UDim.new(1, 0)),
+		Ui.stroke(4),
+		Ui.gradient(Ui.lighten(color, 0.3), Ui.darken(color, 0.12)),
+	})
 	Ui.label({
 		Name = "Icon",
 		Size = UDim2.new(1, 0, 0.62, 0),
@@ -486,7 +499,16 @@ function Hud.holdBag(hold: boolean)
 	end
 end
 
+-- The tutorial shows its own instructions, so it hides the BAG FULL banner.
+function Hud.suppressBagFull(on: boolean)
+	bagFullSuppressed = on
+	refreshBag()
+end
+
 function Hud.flashBagFull()
+	if bagFullSuppressed then
+		return
+	end
 	bagFullBanner.Visible = true
 	Ui.pop(bagFullBanner, 0.2)
 	Sound.play("BagFull", 0.6)

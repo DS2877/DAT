@@ -42,61 +42,43 @@ local function refresh()
 	local ok, reason, missing = Rebirth.canRebirth(data :: any)
 	if ok then
 		button.Text = if confirming then "TAP AGAIN TO CONFIRM" else "REBIRTH (" .. Format.cash(cost) .. ")"
-		button.BackgroundColor3 = if confirming then C.Red else C.Purple
+		Ui.setButtonColor(button, if confirming then C.Red else C.Purple)
 	elseif reason == "NeedShovel" then
 		local shovel = Progression.getShovel(Retention.rebirth.requiredShovel)
 		button.Text = "Needs the " .. shovel.name
-		button.BackgroundColor3 = C.Grey
+		Ui.setButtonColor(button, C.Grey)
 	else
 		button.Text = "Need " .. Format.cash(missing) .. " more"
-		button.BackgroundColor3 = C.Grey
+		Ui.setButtonColor(button, C.Grey)
 	end
 end
 
 local function build()
-	panel = Ui.new("Frame", {
-		Name = "RebirthPanel",
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -24),
-		Size = UDim2.fromOffset(480, 230),
-		BackgroundColor3 = C.Cream,
-		Visible = false,
-		Parent = HudController.root(),
-	}, { Ui.corner(UDim.new(0, 22)), Ui.stroke(5) })
-	Ui.label({
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0, 0),
-		Size = UDim2.fromOffset(300, 44),
-		Font = Ui.TitleFont,
-		Text = "REBIRTH",
-		TextColor3 = C.Purple,
-		Parent = panel,
+	local p = Ui.panel({
+		name = "RebirthPanel",
+		title = "REBIRTH",
+		icon = "✨",
+		accent = C.Purple,
+		width = 520,
+		height = 300,
+		parent = HudController.root(),
+		position = UDim2.new(0.5, 0, 1, -20),
+		anchor = Vector2.new(0.5, 1),
 	})
-	infoLabel = Ui.label({
-		Position = UDim2.fromOffset(16, 28),
-		Size = UDim2.new(1, -32, 0, 100),
+	panel = p.root
+	p.close.Visible = false
+	infoLabel = Ui.plainLabel({
+		Size = UDim2.new(1, 0, 1, -84),
 		TextColor3 = C.Ink,
-		Parent = panel,
+		TextWrapped = true,
+		Parent = p.body,
 	})
-	local outline = infoLabel:FindFirstChildOfClass("UIStroke")
-	if outline then
-		outline:Destroy()
-	end
-	button = Ui.new("TextButton", {
+	button = Ui.button({
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -16),
-		Size = UDim2.new(1, -40, 0, 70),
-		BackgroundColor3 = C.Purple,
-		Font = Ui.TitleFont,
-		TextScaled = true,
-		TextColor3 = C.White,
-		Parent = panel,
-	}, {
-		Ui.corner(UDim.new(0, 18)),
-		Ui.stroke(4),
-		Ui.textStroke(3),
-		Ui.new("UIPadding", { PaddingTop = UDim.new(0, 12), PaddingBottom = UDim.new(0, 12) }),
-	})
+		Position = UDim2.new(0.5, 0, 1, 0),
+		Size = UDim2.new(1, -20, 0, 70),
+		Parent = p.body,
+	}, C.Purple)
 	button.Activated:Connect(function()
 		local data = ClientState.data
 		if not data or not Rebirth.canRebirth(data :: any) then

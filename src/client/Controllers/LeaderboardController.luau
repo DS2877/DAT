@@ -78,73 +78,78 @@ local function drawPanel()
 	end
 end
 
+local BOARD_COLORS = {
+	Richest = Color3.fromRGB(255, 190, 50),
+	Rebirths = Color3.fromRGB(180, 92, 255),
+	Rarest = Color3.fromRGB(63, 169, 255),
+}
+local BOARD_ICONS = { Richest = "💰", Rebirths = "✨", Rarest = "💎" }
+
 local function build()
-	panel = Ui.new("Frame", {
-		Name = "Leaderboards",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.52),
-		Size = UDim2.fromOffset(860, 460),
-		BackgroundColor3 = Color3.fromRGB(35, 30, 40),
-		Visible = false,
-		ZIndex = 20,
-		Parent = HudController.root(),
-	}, { Ui.corner(UDim.new(0, 24)), Ui.stroke(5) })
-	Ui.label({
-		Position = UDim2.fromOffset(24, 10),
-		Size = UDim2.new(0, 360, 0, 44),
-		Font = Ui.TitleFont,
-		Text = "LEADERBOARDS",
-		TextColor3 = C.Gold,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Parent = panel,
+	local p = Ui.panel({
+		name = "Leaderboards",
+		title = "LEADERBOARDS",
+		icon = "🏆",
+		accent = C.Gold,
+		width = 900,
+		height = 500,
+		parent = HudController.root(),
+		dim = true,
 	})
-	modeButton = Ui.new("TextButton", {
-		Position = UDim2.fromOffset(400, 14),
-		Size = UDim2.fromOffset(200, 40),
-		BackgroundColor3 = C.Blue,
-		Font = Ui.TitleFont,
-		TextScaled = true,
-		TextColor3 = C.White,
-		Parent = panel,
-	}, { Ui.corner(UDim.new(1, 0)), Ui.stroke(3), Ui.textStroke(2) })
+	panel = p.root
+	modeButton = Ui.button({
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -66, 0.5, 0),
+		Size = UDim2.fromOffset(190, 44),
+		Parent = p.header,
+	}, C.Blue)
 	modeButton.Activated:Connect(function()
 		showWeekly = not showWeekly
 		drawPanel()
 	end)
-	local close = Ui.new("TextButton", {
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -14, 0, 14),
-		Size = UDim2.fromOffset(52, 52),
-		BackgroundColor3 = C.Red,
-		Font = Ui.TitleFont,
-		Text = "X",
-		TextScaled = true,
-		TextColor3 = C.White,
-		Parent = panel,
-	}, { Ui.corner(UDim.new(1, 0)), Ui.stroke(4), Ui.textStroke(2) })
-	close.Activated:Connect(function()
-		panel.Visible = false
-	end)
 	HudController.registerModal(panel)
+	local row = Ui.new("Frame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Parent = p.body,
+	}, {
+		Ui.new("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			Padding = UDim.new(0, 12),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+	})
 	for i, board in BOARDS do
-		local x = 20 + (i - 1) * 280
+		local color = BOARD_COLORS[board]
+		local column = Ui.new("Frame", {
+			LayoutOrder = i,
+			Size = UDim2.new(0.33, -8, 1, -4),
+			BackgroundColor3 = Color3.fromRGB(40, 32, 48),
+			Parent = row,
+		}, { Ui.corner(UDim.new(0, 18)), Ui.stroke(4) })
+		local top = Ui.new("Frame", {
+			Size = UDim2.new(1, 0, 0, 50),
+			BackgroundColor3 = Color3.new(1, 1, 1),
+			Parent = column,
+		}, { Ui.corner(UDim.new(0, 18)), Ui.gradient(Ui.lighten(color, 0.25), Ui.darken(color, 0.1)) })
 		Ui.label({
-			Position = UDim2.fromOffset(x, 70),
-			Size = UDim2.fromOffset(260, 32),
+			Position = UDim2.fromOffset(8, 8),
+			Size = UDim2.new(1, -16, 1, -16),
 			Font = Ui.TitleFont,
-			Text = TITLES[board],
-			TextColor3 = C.Gold,
-			Parent = panel,
+			Text = BOARD_ICONS[board] .. " " .. TITLES[board],
+			Parent = top,
 		})
 		columns[board] = Ui.label({
-			Position = UDim2.fromOffset(x, 108),
-			Size = UDim2.fromOffset(260, 330),
+			Position = UDim2.fromOffset(14, 62),
+			Size = UDim2.new(1, -28, 1, -72),
 			TextScaled = false,
-			TextSize = 18,
+			TextSize = 20,
 			TextWrapped = true,
+			LineHeight = 1.15,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextYAlignment = Enum.TextYAlignment.Top,
-			Parent = panel,
+			Parent = column,
 		})
 	end
 end

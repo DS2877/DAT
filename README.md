@@ -33,7 +33,7 @@ src/
       Build/         Terrain, Base, Gates, Beach, Jungle, Ruins, Volcano, Candidates, Kit
     Net.luau         Remotes + per-player rate limiting
   client/            StarterPlayerScripts.Client (init.client.luau = bootstrap)
-    Controllers/     HUD, digging, reveal, stations, guide arrow, gates, other players,
+    Controllers/     HUD, digging, reveal, stations, tutorial, gates, other players,
                      ambient life (birds, butterflies, crabs, fish, animated decor)
   shared/            ReplicatedStorage.Shared
     Config/          ALL tuning numbers (odds, values, costs, timers, map layout)
@@ -81,6 +81,9 @@ lune run scripts/export-map.luau build.rbxl map.json && python3 scripts/render-m
                                           # top-down map + view from the base (needs Pillow, numpy)
 (cd scripts/preview && npm install) && node scripts/preview/render.mjs map.json out/
                                           # 3D views from the player's eye (three.js in headless Chromium)
+lune run scripts/ui-snapshot.luau build.rbxl ui.json && node scripts/preview/render-ui.mjs ui.json out/
+                                          # the real HUD and menus at phone size (fonts: scripts/preview/fonts/
+                                          # LuckiestGuy.woff2 + FredokaOne.woff2 from Google Fonts, optional)
 rojo build default.project.json -o build.rbxl
 lune run scripts/verify-build.luau build.rbxl
 ```
@@ -107,9 +110,12 @@ permission for this universe, and its IP allowlist must allow GitHub runners
 Roblox draws terrain a few studs above a fill's top (voxels are 4 studs), so
 the builders never trust fill heights for placement: props, the base deck,
 gate ramps and dig spots all measure the real ground with raycasts
-(`Kit.groundY`, `Kit.onLevel`, `Candidates.areaLevel`). The test harness
-copies the offset (`Harness.terrainOffset`), so code that trusts fill
-heights fails in CI. Roblox draws a Ball part with its smallest size axis,
+(`Kit.groundY`, `Kit.onLevel`, `Candidates.areaLevel`). Roblox also builds
+terrain collision a moment after the voxels are written, so MapBuilder
+waits for the terrain to answer raycasts (`Kit.waitForTerrain`) before
+placing anything. The test harness copies both behaviors
+(`Harness.terrainOffset`, `Harness.terrainSettle`), so code that trusts
+fill heights or measures too early fails in CI. Roblox draws a Ball part with its smallest size axis,
 so stretched round shapes use `Kit.ellipsoid` (a sphere mesh on a block).
 
 ## Data

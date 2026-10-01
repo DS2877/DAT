@@ -80,6 +80,22 @@ check(
 local cashText = root and root.Cash.Value.Text
 check(cashText == "$0", "cash shows $0 (" .. tostring(cashText) .. ")")
 check(root and not root.Loading.Visible, "loading text hidden after data arrived")
+local tutorial = root and root:FindFirstChild("Tutorial")
+check(tutorial ~= nil and tutorial.Visible, "tutorial banner shows for a new player")
+local tutorialTitle = tutorial and tutorial:FindFirstChild("TextLabel", true)
+local function tutorialText(): string
+	local parts = {}
+	for _, d in tutorial:GetDescendants() do
+		if d:IsA("TextLabel") then
+			table.insert(parts, d.Text)
+		end
+	end
+	return table.concat(parts, " | ")
+end
+check(
+	tutorialTitle ~= nil and tutorialText():find("FIND TREASURE") ~= nil,
+	"tutorial starts at FIND (" .. tutorialText() .. ")"
+)
 
 -- The daily calendar should NOT pop over a brand-new player's first minute.
 task.wait(3.5)
@@ -127,9 +143,16 @@ H.moveTo(player, V3(MapLayout.shovelStation.x, deckTop, MapLayout.shovelStation.
 task.wait(0.5)
 local upgradePanel = root:FindFirstChild("UpgradePanel")
 check(upgradePanel and upgradePanel.Visible, "shovel shop panel opens on the pad")
-H.signal(upgradePanel.Buy, "Activated"):Fire({ UserInputType = roblox.Enum.UserInputType.Touch })
+check(
+	tutorialText():find("STONE SHOVEL") ~= nil,
+	"tutorial points at the shovel shop (" .. tutorialText() .. ")"
+)
+H.signal(upgradePanel:FindFirstChild("Buy", true), "Activated")
+	:Fire({ UserInputType = roblox.Enum.UserInputType.Touch })
 task.wait(0.3)
 check(data.shovelLevel == 2, "BUY button bought the Stone Shovel")
+task.wait(0.4)
+check(not tutorial.Visible, "tutorial finishes after the first upgrade")
 
 for _, name in { "CollectionButton", "DailyButton", "TopButton" } do
 	local button = root.TopButtons:FindFirstChild(name)

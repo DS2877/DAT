@@ -31,6 +31,7 @@ local titleLabel: TextLabel
 local fromToLabel: TextLabel
 local statLabel: TextLabel
 local buyButton: TextButton
+local header: Frame
 
 local function describe(kind: string, level: number): (string, string?)
 	if kind == "Shovel" then
@@ -69,12 +70,15 @@ local function refreshPanel()
 	local level = if kind == "Shovel" then data.shovelLevel else data.bagLevel
 	local nextDef = Progression.nextUpgrade(kind :: any, level) :: any
 	local currentName, stat = describe(kind, level)
-	titleLabel.Text = if kind == "Shovel" then "SHOVEL SHOP" else "BAG SHOP"
+	titleLabel.Text = if kind == "Shovel" then "⛏  SHOVEL SHOP" else "🎒  BAG SHOP"
+	local accent = if kind == "Shovel" then C.Blue else C.Purple
+	local gradient = header:FindFirstChildOfClass("UIGradient") :: UIGradient
+	gradient.Color = ColorSequence.new(Ui.lighten(accent, 0.3), Ui.darken(accent, 0.1))
 	if not nextDef then
 		fromToLabel.Text = currentName
 		statLabel.Text = "You have the best one!"
 		buyButton.Text = "MAXED OUT"
-		buyButton.BackgroundColor3 = C.Purple
+		Ui.setButtonColor(buyButton, C.Purple)
 		buyButton.AutoButtonColor = false
 		return
 	end
@@ -83,74 +87,53 @@ local function refreshPanel()
 	local missing = nextDef.cost - data.cash
 	if missing <= 0 then
 		buyButton.Text = "BUY  " .. Format.cash(nextDef.cost)
-		buyButton.BackgroundColor3 = C.Green
+		Ui.setButtonColor(buyButton, C.Green)
 		buyButton.AutoButtonColor = true
 	else
 		buyButton.Text = "Need " .. Format.cash(missing) .. " more"
-		buyButton.BackgroundColor3 = C.Grey
+		Ui.setButtonColor(buyButton, C.Grey)
 		buyButton.AutoButtonColor = false
 	end
 end
 
 local function build()
-	panel = Ui.new("Frame", {
-		Name = "UpgradePanel",
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -24),
-		Size = UDim2.fromOffset(420, 200),
-		BackgroundColor3 = C.Cream,
-		Visible = false,
-		Parent = HudController.root(),
-	}, { Ui.corner(UDim.new(0, 22)), Ui.stroke(5) })
-
-	titleLabel = Ui.label({
-		Name = "Title",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0, 0),
-		Size = UDim2.fromOffset(300, 44),
-		Font = Ui.TitleFont,
-		TextColor3 = C.Gold,
-		Parent = panel,
+	local p = Ui.panel({
+		name = "UpgradePanel",
+		title = "SHOP",
+		accent = C.Blue,
+		width = 500,
+		height = 270,
+		parent = HudController.root(),
+		position = UDim2.new(0.5, 0, 1, -20),
+		anchor = Vector2.new(0.5, 1),
 	})
-	fromToLabel = Ui.label({
-		Name = "FromTo",
-		Position = UDim2.fromOffset(16, 30),
-		Size = UDim2.new(1, -32, 0, 38),
-		TextColor3 = C.Ink,
-		Parent = panel,
-	});
-	(fromToLabel:FindFirstChildOfClass("UIStroke") :: UIStroke):Destroy()
-	statLabel = Ui.label({
-		Name = "Stat",
-		Position = UDim2.fromOffset(16, 70),
-		Size = UDim2.new(1, -32, 0, 30),
-		TextColor3 = Color3.fromRGB(90, 70, 50),
-		Parent = panel,
-	});
-	(statLabel:FindFirstChildOfClass("UIStroke") :: UIStroke):Destroy()
+	panel = p.root
+	titleLabel = p.title
+	header = p.header
+	p.close.Visible = false
 
-	buyButton = Ui.new("TextButton", {
+	fromToLabel = Ui.plainLabel({
+		Name = "FromTo",
+		Size = UDim2.new(1, 0, 0, 36),
+		Font = Ui.TitleFont,
+		TextColor3 = C.Ink,
+		Parent = p.body,
+	})
+	statLabel = Ui.plainLabel({
+		Name = "Stat",
+		Position = UDim2.fromOffset(0, 40),
+		Size = UDim2.new(1, 0, 0, 28),
+		TextColor3 = Color3.fromRGB(110, 80, 50),
+		Parent = p.body,
+	})
+	buyButton = Ui.button({
 		Name = "Buy",
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -16),
-		Size = UDim2.new(1, -40, 0, 70),
-		BackgroundColor3 = C.Green,
-		Font = Ui.TitleFont,
-		TextColor3 = C.White,
-		TextScaled = true,
+		Position = UDim2.new(0.5, 0, 1, 0),
+		Size = UDim2.new(1, -20, 0, 70),
 		Text = "BUY",
-		Parent = panel,
-	}, {
-		Ui.corner(UDim.new(0, 18)),
-		Ui.stroke(4),
-		Ui.textStroke(3),
-		Ui.new("UIPadding", {
-			PaddingTop = UDim.new(0, 12),
-			PaddingBottom = UDim.new(0, 12),
-			PaddingLeft = UDim.new(0, 12),
-			PaddingRight = UDim.new(0, 12),
-		}),
-	})
+		Parent = p.body,
+	}, C.Green)
 	buyButton.Activated:Connect(function()
 		local kind = openKind
 		local data = ClientState.data

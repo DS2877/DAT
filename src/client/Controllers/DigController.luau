@@ -294,6 +294,7 @@ local function buildButton()
 		Ui.corner(UDim.new(1, 0)),
 		Ui.stroke(5),
 		Ui.textStroke(3),
+		Ui.shade(),
 		Ui.new("UIPadding", {
 			PaddingTop = UDim.new(0, 34),
 			PaddingBottom = UDim.new(0, 34),
@@ -405,6 +406,16 @@ function DigController.init()
 			tryHit()
 		end
 	end)
+end
+
+-- The on-screen DIG button (for the tutorial's pointer).
+function DigController.button(): TextButton?
+	return button
+end
+
+-- True while a dig spot is in reach (the DIG button is showing).
+function DigController.hasTarget(): boolean
+	return target ~= nil
 end
 
 return DigController

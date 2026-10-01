@@ -355,9 +355,52 @@ function Kit.surface(x: number, z: number): (number?, Enum.Material?)
 	return hit.Position.Y, hit.Material
 end
 
+-- Roblox draws terrain about this much above a fill's top. Only used as a
+-- last-resort guess when the real ground can't be measured.
+Kit.FILL_OFFSET = 2.5
+
+-- Waits until the terrain answers raycasts with settled heights. Roblox
+-- builds terrain collision a moment after the voxels are written, so
+-- anything measured straight after a fill would see nothing.
+function Kit.waitForTerrain(points: { Vector2 }, timeout: number?): boolean
+	local deadline = os.clock() + (timeout or 20)
+	local previous: { number }? = nil
+	local stableReads = 0
+	while os.clock() < deadline do
+		local heights: { number } = {}
+		for _, p in points do
+			local y = Kit.groundY(p.X, p.Y)
+			if not y then
+				break
+			end
+			table.insert(heights, y)
+		end
+		if #heights == #points then
+			local same = previous ~= nil
+			if previous then
+				for i, y in heights do
+					if math.abs(y - previous[i]) > 0.05 then
+						same = false
+						break
+					end
+				end
+			end
+			stableReads = if same then stableReads + 1 else 0
+			if stableReads >= 2 then
+				return true
+			end
+			previous = heights
+		end
+		task.wait(0.1)
+	end
+	warn("[MapBuilder] terrain did not settle in time; placement may be off")
+	return false
+end
+
 -- Ground height with a fallback (used where something must be placed).
-function Kit.groundOr(x: number, z: number, fallback: number): number
-	return Kit.groundY(x, z) or fallback
+-- `fillHeight` is the layout's fill height; the guess adds the usual offset.
+function Kit.groundOr(x: number, z: number, fillHeight: number): number
+	return Kit.groundY(x, z) or (fillHeight + Kit.FILL_OFFSET)
 end
 
 -- Median ground height over a set of points (robust to a stray rock).
@@ -370,7 +413,7 @@ function Kit.medianGround(points: { Vector2 }, fallback: number): number
 		end
 	end
 	if #values == 0 then
-		return fallback
+		return fallback + Kit.FILL_OFFSET
 	end
 	table.sort(values)
 	return values[math.floor((#values + 1) / 2)]

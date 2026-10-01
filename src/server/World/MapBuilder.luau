@@ -60,7 +60,36 @@ function MapBuilder.build(): BuiltWorld
 
 	TerrainBuilder.lighting()
 	TerrainBuilder.build(rng)
+	-- Everything below measures the real ground: wait for terrain collision.
+	local probes = {}
+	for _, p in
+		{
+			{ 0, 120 },
+			{ -140, 60 },
+			{ 140, 60 },
+			{ 0, 240 },
+			{ -120, -120 },
+			{ 120, -120 },
+			{ -200, -200 },
+			{ 200, -200 },
+			{ 0, -320 },
+			{ -150, -360 },
+			{ 150, -360 },
+			{ L.volcano.x, L.volcano.z + L.volcano.radius * 0.5 },
+		}
+	do
+		table.insert(probes, Vector2.new(p[1], p[2]))
+	end
+	Kit.waitForTerrain(probes)
 	local base = BaseBuilder.build(rng)
+	-- The base clears the sand under its deck; let that settle too.
+	local b = L.base
+	Kit.waitForTerrain({
+		Vector2.new(b.minX - 12, b.minZ - 12),
+		Vector2.new(b.maxX + 12, b.maxZ + 12),
+		Vector2.new(b.minX - 12, b.maxZ + 12),
+		Vector2.new(b.maxX + 12, b.minZ - 12),
+	})
 	local deckTop = base.deckTop
 	local gates = GatesBuilder.build()
 	BeachBuilder.build(rng)
@@ -72,6 +101,14 @@ function MapBuilder.build(): BuiltWorld
 	local candidateRng = Random.new(1337)
 	for _, areaId in Areas.Order do
 		candidates[areaId] = Candidates.generate(areaId, candidateRng)
+		-- Never start an area without dig spots: if the ground couldn't be
+		-- read yet, give the terrain more time and try again.
+		local tries = 0
+		while #candidates[areaId] == 0 and tries < 30 do
+			tries += 1
+			task.wait(1)
+			candidates[areaId] = Candidates.generate(areaId, candidateRng)
+		end
 	end
 
 	local counts = {}

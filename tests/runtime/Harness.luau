@@ -628,12 +628,18 @@ local function opExtent(op: Op): (number, number)
 	end
 	return op.a, op.a
 end
+-- Roblox builds terrain collision a moment after voxels are written, so a
+-- raycast right after a fill sees nothing there. Emulated per cell.
+H.terrainSettle = 0.3
+local dirtyAt: { [number]: number } = {}
+
 local function addOp(op: Op)
 	table.insert(terrainOps, op)
 	local ex, ez = opExtent(op)
 	for cx = math.floor((op.x - ex) / CELL), math.floor((op.x + ex) / CELL) do
 		for cz = math.floor((op.z - ez) / CELL), math.floor((op.z + ez) / CELL) do
 			local key = cellKey(cx, cz)
+			dirtyAt[key] = os.clock()
 			local list = cells[key]
 			if not list then
 				list = {}
@@ -788,6 +794,10 @@ H.terrainTopRaw = terrainTopRaw
 methods.Raycast = function(_proxy, _inst, origin, direction)
 	if math.abs(direction.X) > 1e-6 or math.abs(direction.Z) > 1e-6 or direction.Y >= 0 then
 		return nil -- only straight-down rays are modeled
+	end
+	local written = dirtyAt[cellKey(math.floor(origin.X / CELL), math.floor(origin.Z / CELL))]
+	if written and os.clock() - written < H.terrainSettle then
+		return nil -- collision not built yet
 	end
 	local y, mat = terrainTop(origin.X, origin.Z, origin.Y)
 	if not y or origin.Y - y > -direction.Y then

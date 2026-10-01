@@ -74,6 +74,8 @@ end
 -- Daily panel
 ---------------------------------------------------------------------------
 
+local CELL_IDLE = Color3.fromRGB(255, 252, 240)
+
 local function refreshDaily()
 	local data = ClientState.data
 	if not data then
@@ -83,19 +85,25 @@ local function refreshDaily()
 	for day, cell in dayCells do
 		local label = cell:FindFirstChild("Reward") :: TextLabel
 		label.Text = describeReward(Retention.daily[day])
-		local claimedToday = not data.dailyCanClaim and day == data.dailyStreak
+		local done = if data.dailyCanClaim then day < data.dailyDay else day <= data.dailyStreak
 		local isNext = data.dailyCanClaim and day == data.dailyDay
-		cell.BackgroundColor3 = if isNext
-			then C.Gold
-			elseif claimedToday then C.Green
-			else Color3.fromRGB(255, 252, 240)
+		local tick = cell:FindFirstChild("Tick") :: TextLabel
+		tick.Visible = done
+		local fill = if isNext then C.Gold elseif done then Ui.lighten(C.Green, 0.35) else CELL_IDLE
+		local gradient = cell:FindFirstChildOfClass("UIGradient") :: UIGradient
+		gradient.Color = ColorSequence.new(Ui.lighten(fill, 0.35), fill)
+		local stroke = cell:FindFirstChildOfClass("UIStroke") :: UIStroke
+		stroke.Color = if isNext then C.Orange else C.Ink
+		stroke.Thickness = if isNext then 5 else 3
 	end
 	if data.dailyCanClaim then
-		claimButton.Text = "CLAIM DAY " .. data.dailyDay
-		claimButton.BackgroundColor3 = C.Green
+		claimButton.Text = "CLAIM DAY " .. data.dailyDay .. "!"
+		Ui.setButtonColor(claimButton, C.Green)
+		claimButton.AutoButtonColor = true
 	else
-		claimButton.Text = "Come back in " .. clock((os.time() // 86400 + 1) * 86400 - os.time())
-		claimButton.BackgroundColor3 = C.Grey
+		claimButton.Text = "Next reward in " .. clock((os.time() // 86400 + 1) * 86400 - os.time())
+		Ui.setButtonColor(claimButton, C.Grey)
+		claimButton.AutoButtonColor = false
 	end
 	if groupButton then
 		groupButton.Visible = not data.groupRewardClaimed
@@ -103,98 +111,95 @@ local function refreshDaily()
 end
 
 local function buildDaily()
-	dailyPanel = Ui.new("Frame", {
-		Name = "Daily",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.52),
-		Size = UDim2.fromOffset(760, 400),
-		BackgroundColor3 = C.Cream,
-		Visible = false,
-		ZIndex = 20,
-		Parent = HudController.root(),
-	}, { Ui.corner(UDim.new(0, 24)), Ui.stroke(5) })
-	Ui.label({
-		Position = UDim2.fromOffset(24, 10),
-		Size = UDim2.new(0, 400, 0, 44),
-		Font = Ui.TitleFont,
-		Text = "DAILY REWARDS",
-		TextColor3 = C.Gold,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Parent = dailyPanel,
+	local hasGroup = Retention.group.groupId ~= 0
+	local p = Ui.panel({
+		name = "Daily",
+		title = "DAILY REWARDS",
+		icon = "📅",
+		accent = C.Orange,
+		width = 860,
+		height = if hasGroup then 430 else 372,
+		parent = HudController.root(),
+		dim = true,
 	})
-	local close = Ui.new("TextButton", {
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -14, 0, 14),
-		Size = UDim2.fromOffset(56, 56),
-		BackgroundColor3 = C.Red,
-		Font = Ui.TitleFont,
-		Text = "X",
-		TextScaled = true,
-		TextColor3 = C.White,
-		Parent = dailyPanel,
-	}, { Ui.corner(UDim.new(1, 0)), Ui.stroke(4), Ui.textStroke(2) })
-	close.Activated:Connect(function()
-		dailyPanel.Visible = false
-	end)
+	dailyPanel = p.root
 	HudController.registerModal(dailyPanel)
 
 	local row = Ui.new("Frame", {
-		Position = UDim2.fromOffset(20, 70),
-		Size = UDim2.new(1, -40, 0, 150),
+		Size = UDim2.new(1, 0, 0, 170),
 		BackgroundTransparency = 1,
-		Parent = dailyPanel,
+		Parent = p.body,
 	}, {
 		Ui.new("UIListLayout", {
 			FillDirection = Enum.FillDirection.Horizontal,
 			HorizontalAlignment = Enum.HorizontalAlignment.Center,
-			Padding = UDim.new(0, 8),
+			VerticalAlignment = Enum.VerticalAlignment.Center,
+			Padding = UDim.new(0, 10),
+			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
 	})
 	for day = 1, #Retention.daily do
+		local big = day == #Retention.daily
 		local cell = Ui.new("Frame", {
+			Name = "Day" .. day,
 			LayoutOrder = day,
-			Size = UDim2.fromOffset(94, if day == #Retention.daily then 150 else 130),
-			BackgroundColor3 = Color3.fromRGB(255, 252, 240),
+			Size = UDim2.fromOffset(if big then 128 else 100, 156),
+			BackgroundColor3 = Color3.new(1, 1, 1),
 			Parent = row,
-		}, { Ui.corner(UDim.new(0, 12)), Ui.stroke(3) })
+		}, {
+			Ui.corner(UDim.new(0, 16)),
+			Ui.stroke(3),
+			Ui.gradient(CELL_IDLE, CELL_IDLE),
+		})
 		Ui.label({
-			Size = UDim2.new(1, 0, 0, 34),
+			Name = "DayTitle",
+			Position = UDim2.fromOffset(6, 6),
+			Size = UDim2.new(1, -12, 0, 30),
 			Font = Ui.TitleFont,
-			Text = "DAY " .. day,
+			Text = if big then "DAY 7 ★" else "DAY " .. day,
+			TextColor3 = if big then C.Gold else C.White,
 			Parent = cell,
 		})
-		local reward = Ui.label({
+		local rewardLabel = Ui.plainLabel({
 			Name = "Reward",
-			Position = UDim2.fromOffset(4, 38),
-			Size = UDim2.new(1, -8, 1, -44),
+			Position = UDim2.fromOffset(8, 42),
+			Size = UDim2.new(1, -16, 1, -52),
 			TextColor3 = C.Ink,
+			TextWrapped = true,
 			Parent = cell,
 		})
-		local outline = reward:FindFirstChildOfClass("UIStroke")
-		if outline then
-			outline:Destroy()
-		end
+		Ui.maxText(28).Parent = rewardLabel
+		Ui.label({
+			Name = "Tick",
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, 6, 0, -8),
+			Size = UDim2.fromOffset(34, 34),
+			BackgroundTransparency = 0,
+			BackgroundColor3 = C.Green,
+			Font = Ui.TitleFont,
+			Text = "✓",
+			Visible = false,
+			Parent = cell,
+		})
+		local tick = cell:FindFirstChild("Tick") :: TextLabel
+		Ui.corner(UDim.new(1, 0)).Parent = tick
 		dayCells[day] = cell
 	end
-	Ui.label({
-		Position = UDim2.fromOffset(20, 226),
-		Size = UDim2.new(1, -40, 0, 24),
-		Text = "Come back every day! Missing a day starts the calendar again at day 1.",
-		TextColor3 = C.Ink,
-		Parent = dailyPanel,
+	Ui.plainLabel({
+		Position = UDim2.fromOffset(0, 178),
+		Size = UDim2.new(1, 0, 0, 24),
+		Text = "Come back every day for bigger rewards! Missing a day starts again at day 1.",
+		TextColor3 = Color3.fromRGB(120, 90, 60),
+		Parent = p.body,
 	})
 
-	claimButton = Ui.new("TextButton", {
+	claimButton = Ui.button({
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 262),
-		Size = UDim2.fromOffset(360, 60),
-		BackgroundColor3 = C.Green,
-		Font = Ui.TitleFont,
-		TextScaled = true,
-		TextColor3 = C.White,
+		Position = UDim2.new(0.5, 0, 0, 214),
+		Size = UDim2.fromOffset(380, 66),
 		Text = "CLAIM",
-		Parent = dailyPanel,
-	}, { Ui.corner(UDim.new(0, 16)), Ui.stroke(4), Ui.textStroke(3) })
+		Parent = p.body,
+	}, C.Green)
 	claimButton.Activated:Connect(function()
 		local data = ClientState.data
 		if data and data.dailyCanClaim then
@@ -205,17 +210,14 @@ local function buildDaily()
 	-- Group reward (only when a group is configured).
 	local groupId = Retention.group.groupId
 	if groupId ~= 0 then
-		local button = Ui.new("TextButton", {
+		local button = Ui.button({
 			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.new(0.5, 0, 0, 330),
-			Size = UDim2.fromOffset(460, 48),
-			BackgroundColor3 = C.Blue,
+			Position = UDim2.new(0.5, 0, 0, 292),
+			Size = UDim2.fromOffset(480, 52),
 			Font = Ui.Font,
-			TextScaled = true,
-			TextColor3 = C.White,
 			Text = "Join our group for a free " .. describeReward(Retention.group.reward) .. "!",
-			Parent = dailyPanel,
-		}, { Ui.corner(UDim.new(0, 14)), Ui.stroke(3), Ui.textStroke(2) })
+			Parent = dailyPanel:FindFirstChild("Card"):FindFirstChild("Body"),
+		}, C.Blue)
 		button.Activated:Connect(function()
 			task.spawn(function()
 				local ok, status = pcall(function()
@@ -400,7 +402,6 @@ local function onChanged()
 		if data.dailyCanClaim and data.sales > 0 then
 			task.delay(3, function()
 				dailyPanel.Visible = true
-				Ui.pop(dailyPanel, 0.06)
 			end)
 		end
 	end
