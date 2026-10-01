@@ -13,6 +13,23 @@ local H = require("../tests/runtime/Harness")
 local game = H.load(process.args[1] or "build.rbxl")
 H.runScript(game:GetService("ServerScriptService").Server)
 
+-- MEGADIG_PREVIEW=1: three Mega Dig sites side by side on the beach, at
+-- 0%, 50% and dug out, for the 3D preview (view "megaSites").
+if process.env.MEGADIG_PREVIEW then
+	local roblox = require("@lune/roblox")
+	local Site = H.require(game:GetService("ServerScriptService").Server.World.Build.MegaDigSite)
+	for i, progress in { 0, 0.5, 1 } do
+		local x, z = -210 + i * 60, 110
+		local y = H.terrainTop(x, z, 500)
+		local look = Site.build(roblox.Vector3.new(x, y, z), "Beach")
+		look.model.Parent = H.workspace
+		look.update(progress)
+		if progress == 1 then
+			look.reveal()
+		end
+	end
+end
+
 local MapLayout = H.require(game:GetService("ReplicatedStorage").Shared.Config.MapLayout)
 -- Terrain beyond the play area too (the volcano cone, islets).
 local pb = MapLayout.bounds

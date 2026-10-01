@@ -59,6 +59,8 @@ const VIEWS = {
 	infoBoard: { pos: [14, beachY + 9, 214], target: [40, beachY + 7, 214] },
 	megaClock: { pos: [-26, beachY + 18, 104], target: [-26, beachY + 16, 134] },
 	portal: { pos: [52, beachY + 14, 126], target: [80, beachY + 12, 90] },
+	megaSites: { pos: [-90, beachY + 44, 186], target: [-90, beachY + 2, 112] },
+	megaSiteClose: { pos: [-57, beachY + 14, 140], target: [-30, beachY + 4, 110] },
 	portalSide: { pos: [130, beachY + 30, 70], target: [80, beachY + 10, 92] },
 	megaClockSide: { pos: [4, beachY + 14, 150], target: [-26, beachY + 14, 134] },
 	vipCarpet: { pos: [62, beachY + 26, 222], target: [74, beachY, 180] },

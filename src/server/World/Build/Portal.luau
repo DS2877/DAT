@@ -1,10 +1,13 @@
 --!strict
 -- The Frost Portal to the next world (Config/Worlds), on the beach where it
--- rises into view from the spawn: an ice ring on a frosted stone dais with
--- three rebirth seals on top, a glimpse of the snowy world inside it, ice
--- crystals and snow around it, a beam of light into the sky, a sign, and
--- the First Explorers board (filled in by WorldPortalService). Clients
--- light the seals and animate the glimpse (PortalController).
+-- rises into view from the spawn: a heavy stone ring rimmed with ice,
+-- snow-capped, hung with icicles and flanked by two stone pillars, on a
+-- frosted two-step dais in a field of snowdrifts. Inside it a glowing
+-- portal pulls sparkles in and blows snow out at you. A keystone on top
+-- holds three gems, one per rebirth, and until Rebirth 3 a sheet of ice
+-- seals the portal (PortalController lights the gems, and shatters the ice
+-- for players who have opened it). A beam of light rises from the top; a
+-- sign and the First Explorers board stand in front.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -21,115 +24,8 @@ local ICE_DEEP = hex("#5CC6F2")
 local FROST_STONE = hex("#8FA6B8")
 local SNOW = hex("#F4FBFF")
 local SEAL_OFF = hex("#3B4A5A")
-
--- The view through the portal: a snowy sky with aurora, white peaks and
--- snowy ground, clipped to a circle. Snowflakes and the swirl are added
--- and animated by the client.
-local function glimpse(face: BasePart, normal: Enum.NormalId)
-	local gui = Instance.new("SurfaceGui")
-	gui.Name = "Glimpse"
-	gui.Face = normal
-	gui.LightInfluence = 0
-	gui.Brightness = 1.4
-	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	gui.PixelsPerStud = 30
-	gui.Parent = face
-
-	local view = Instance.new("CanvasGroup")
-	view.Name = "View"
-	view.Size = UDim2.fromScale(1, 1)
-	view.BackgroundColor3 = hex("#BFEFFF")
-	view.BorderSizePixel = 0
-	view.Parent = gui
-	local round = Instance.new("UICorner")
-	round.CornerRadius = UDim.new(1, 0)
-	round.Parent = view
-	local sky = Instance.new("UIGradient")
-	sky.Rotation = 90
-	sky.Color = ColorSequence.new({
-		ColorSequenceKeypoint.new(0, hex("#4E7FD8")),
-		ColorSequenceKeypoint.new(0.55, hex("#9EDCFF")),
-		ColorSequenceKeypoint.new(1, hex("#E8F8FF")),
-	})
-	sky.Parent = view
-
-	local function frame(props: { [string]: any }): Frame
-		local f = Instance.new("Frame")
-		f.BorderSizePixel = 0
-		for key, value in props do
-			(f :: any)[key] = value
-		end
-		f.Parent = view
-		return f
-	end
-	-- Aurora.
-	local aurora = frame({
-		Name = "Aurora",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.22),
-		Size = UDim2.fromScale(1.2, 0.12),
-		Rotation = -8,
-		BackgroundColor3 = hex("#6CFFC4"),
-		BackgroundTransparency = 0.35,
-	})
-	local glow = Instance.new("UIGradient")
-	glow.Color = ColorSequence.new(hex("#6CFFC4"), hex("#B98CFF"))
-	glow.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 1),
-		NumberSequenceKeypoint.new(0.5, 0.2),
-		NumberSequenceKeypoint.new(1, 1),
-	})
-	glow.Parent = aurora
-	-- Peaks: rotated squares, back row paler.
-	for _, peak in
-		{
-			{ 0.15, 0.62, 0.42, "#C9DDF0" },
-			{ 0.85, 0.6, 0.46, "#C9DDF0" },
-			{ 0.5, 0.56, 0.5, "#E6F2FF" },
-			{ 0.3, 0.7, 0.36, "#FFFFFF" },
-			{ 0.72, 0.72, 0.34, "#FFFFFF" },
-		}
-	do
-		local p = frame({
-			Name = "Peak",
-			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.fromScale(peak[1], peak[2] - peak[3] * 0.35),
-			Size = UDim2.fromScale(peak[3] * 0.72, peak[3] * 0.72),
-			SizeConstraint = Enum.SizeConstraint.RelativeYY,
-			Rotation = 45,
-			BackgroundColor3 = hex(peak[4]),
-		})
-		local shade = Instance.new("UIGradient")
-		shade.Rotation = 45
-		shade.Color = ColorSequence.new(Color3.new(1, 1, 1), hex("#A9C8E6"))
-		shade.Parent = p
-	end
-	frame({
-		Name = "Ground",
-		Position = UDim2.fromScale(0, 0.8),
-		Size = UDim2.fromScale(1, 0.2),
-		BackgroundColor3 = SNOW,
-	})
-	-- The portal's swirl over the view (turned by the client).
-	local swirl = frame({
-		Name = "Swirl",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(1.5, 1.5),
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		BackgroundTransparency = 0,
-		ZIndex = 5,
-	})
-	local swirlGradient = Instance.new("UIGradient")
-	swirlGradient.Color = ColorSequence.new(hex("#CFF6FF"), hex("#7FDBFF"))
-	swirlGradient.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 0.35),
-		NumberSequenceKeypoint.new(0.3, 1),
-		NumberSequenceKeypoint.new(0.7, 1),
-		NumberSequenceKeypoint.new(1, 0.35),
-	})
-	swirlGradient.Parent = swirl
-end
+local STONE_LIGHT = hex("#A9BCCB")
+local STONE_DARK = hex("#6F8597")
 
 -- A cluster of ice crystals at `base`.
 local function crystals(parent: Instance, base: Vector3, rng: Random, scale: number)
@@ -172,126 +68,326 @@ function Portal.build(rng: Random): Built
 	local model = Instance.new("Model")
 	model.Name = "FrostPortal"
 
-	-- Frost on the sand, and the stone dais with a step.
+	local rot = CFrame.Angles(0, 0, math.rad(90)) -- cylinders stand on end
+
+	-- Snow on the sand, and a two-step stone dais.
+	for i, patch in { { 0, 0, 36, 32 }, { 6, -4, 26, 22 }, { -7, 5, 24, 26 } } do
+		Kit.ellipsoid(model, {
+			name = "SnowPatch",
+			size = Vector3.new(patch[3], 0.9, patch[4]),
+			cframe = CFrame.new(p.x + patch[1], groundY - 0.15 + i * 0.02, p.z + patch[2]),
+			color = SNOW,
+			material = Enum.Material.Snow,
+			canCollide = false,
+		})
+	end
 	part(model, {
-		name = "Frost",
+		name = "DaisLow",
 		shape = Enum.PartType.Cylinder,
-		size = Vector3.new(0.3, 46, 46),
-		cframe = CFrame.new(p.x, groundY + 0.05, p.z) * CFrame.Angles(0, 0, math.rad(90)),
+		size = Vector3.new(1.4, 30, 30),
+		cframe = CFrame.new(p.x, groundY + 0.5, p.z) * rot,
+		color = STONE_DARK,
+		material = Enum.Material.Slate,
+	})
+	part(model, {
+		name = "Dais",
+		shape = Enum.PartType.Cylinder,
+		size = Vector3.new(1.4, 24, 24),
+		cframe = CFrame.new(p.x, groundY + 1.5, p.z) * rot,
+		color = FROST_STONE,
+		material = Enum.Material.Slate,
+	})
+	local daisTop = groundY + 2.2
+	part(model, {
+		name = "DaisSnow",
+		shape = Enum.PartType.Cylinder,
+		size = Vector3.new(0.2, 21, 21),
+		cframe = CFrame.new(p.x, daisTop + 0.02, p.z) * rot,
 		color = SNOW,
 		material = Enum.Material.Snow,
 		canCollide = false,
 	})
-	local daisTop = groundY + 2
-	part(model, {
-		name = "Dais",
-		shape = Enum.PartType.Cylinder,
-		size = Vector3.new(3, 24, 24),
-		cframe = CFrame.new(p.x, daisTop - 1.5, p.z) * CFrame.Angles(0, 0, math.rad(90)),
-		color = FROST_STONE,
-		material = Enum.Material.Slate,
-	})
 	local origin = Vector3.new(p.x, daisTop, p.z)
-	part(model, {
-		name = "Step",
-		size = Vector3.new(10, 1, 4),
-		cframe = CFrame.fromMatrix(origin + n * 13 - Vector3.new(0, 1.5, 0), right, Vector3.yAxis),
-		color = FROST_STONE,
-		material = Enum.Material.Slate,
-	})
 
-	-- The ice ring, standing on the dais and facing the spawn.
-	local center = origin + Vector3.new(0, R + 0.6, 0)
-	local segments = 24
-	local segLength = 2 * math.pi * R / segments + 0.35
+	-- Snowdrifts around the back and sides (the front stays open).
+	for i = 1, 11 do
+		local a = i / 11 * math.pi * 2 + rng:NextNumber(-0.15, 0.15)
+		local out = right * math.cos(a) + n * math.sin(a)
+		if out:Dot(n) < 0.5 then
+			local d = rng:NextNumber(14, 18)
+			local size = Vector3.new(rng:NextNumber(6, 10), rng:NextNumber(2, 3.6), rng:NextNumber(4, 7))
+			Kit.ellipsoid(model, {
+				name = "Snowdrift",
+				size = size,
+				cframe = CFrame.fromMatrix(
+					Vector3.new(p.x, groundY + 0.2, p.z) + out * d,
+					Vector3.new(-out.Z, 0, out.X),
+					up
+				),
+				color = SNOW,
+				material = Enum.Material.Snow,
+			})
+		end
+	end
+
+	-- The stone ring with its ice rim, standing on a cradle.
+	local center = origin + up * (R + 1.4)
+	local segments = 30
+	local segLength = 2 * math.pi * R / segments + 0.45
+	local function onRing(a: number, radius: number): (Vector3, Vector3, Vector3)
+		local radial = right * math.cos(a) + up * math.sin(a)
+		local tangent = -right * math.sin(a) + up * math.cos(a)
+		return center + radial * radius, tangent, radial
+	end
 	for i = 0, segments - 1 do
 		local a = (i + 0.5) / segments * math.pi * 2
-		local radial = right * math.cos(a) + Vector3.yAxis * math.sin(a)
-		local tangent = -right * math.sin(a) + Vector3.yAxis * math.cos(a)
+		local at, tangent, radial = onRing(a, R)
 		part(model, {
 			name = "Ring",
-			size = Vector3.new(segLength, 2.4, 2.6),
-			cframe = CFrame.fromMatrix(center + radial * R, tangent, radial),
-			color = ICE,
-			material = Enum.Material.Ice,
-			reflectance = 0.1,
+			size = Vector3.new(segLength, 3, 3.6),
+			cframe = CFrame.fromMatrix(at, tangent, radial),
+			color = if i % 2 == 0 then FROST_STONE else STONE_LIGHT,
+			material = Enum.Material.Slate,
 		})
+		local rimAt = onRing(a, R - 1.9)
 		part(model, {
-			name = "RingGlow",
-			size = Vector3.new(segLength, 0.5, 2.8),
-			cframe = CFrame.fromMatrix(center + radial * (R - 1.3), tangent, radial),
+			name = "IceRim",
+			size = Vector3.new(segLength * 0.86, 1, 4),
+			cframe = CFrame.fromMatrix(rimAt, tangent, radial),
+			color = ICE,
+			material = Enum.Material.Glass,
+			transparency = 0.1,
+			reflectance = 0.25,
+		})
+		local glowAt = onRing(a, R - 2.5)
+		part(model, {
+			name = "RimGlow",
+			size = Vector3.new(segLength * 0.86, 0.3, 4.1),
+			cframe = CFrame.fromMatrix(glowAt, tangent, radial),
 			color = ICE_DEEP,
 			material = Enum.Material.Neon,
 			canCollide = false,
 			castShadow = false,
 		})
+		local degrees = math.deg(a)
+		if degrees > 22 and degrees < 158 then
+			-- Snow lies on the top of the ring.
+			local capAt = onRing(a, R + 1.9)
+			part(model, {
+				name = "SnowCap",
+				size = Vector3.new(segLength, 0.9, 3.9),
+				cframe = CFrame.fromMatrix(capAt, tangent, radial),
+				color = SNOW,
+				material = Enum.Material.Snow,
+				canCollide = false,
+			})
+		end
+		if degrees > 48 and degrees < 132 and i % 2 == 0 then
+			-- Icicles hang inside the top of the ring.
+			local length = rng:NextNumber(1.2, 3)
+			local hangAt = onRing(a, R - 2.6)
+			part(model, {
+				name = "Icicle",
+				size = Vector3.new(0.55, length, 0.55),
+				cframe = CFrame.new(hangAt - up * (length / 2)) * CFrame.Angles(0, math.rad(45), 0),
+				color = ICE,
+				material = Enum.Material.Glass,
+				transparency = 0.15,
+				canCollide = false,
+			})
+		end
 	end
-	-- Feet that hold the ring on the dais.
+	part(model, {
+		name = "Cradle",
+		size = Vector3.new(9, 2.4, 5),
+		cframe = CFrame.fromMatrix(origin + up * 1.2, right, up),
+		color = STONE_DARK,
+		material = Enum.Material.Slate,
+	})
+
+	-- Two pillars flanking the ring, crowned with ice.
 	for _, side in { -1, 1 } do
+		local height = R + 4.5
+		local base = origin + right * side * (R + 3.4)
 		part(model, {
-			name = "Foot",
-			size = Vector3.new(3, 3, 4),
-			cframe = CFrame.fromMatrix(
-				origin + right * side * (R * 0.55) + Vector3.new(0, 1.2, 0),
-				right,
-				Vector3.yAxis
-			),
+			name = "Pillar",
+			size = Vector3.new(3.4, height, 3.4),
+			cframe = CFrame.fromMatrix(base + up * (height / 2), right, up),
 			color = FROST_STONE,
+			material = Enum.Material.Slate,
+		})
+		part(model, {
+			name = "PillarCap",
+			size = Vector3.new(4.2, 1, 4.2),
+			cframe = CFrame.fromMatrix(base + up * (height + 0.5), right, up),
+			color = SNOW,
+			material = Enum.Material.Snow,
+		})
+		part(model, {
+			name = "PillarCrystal",
+			size = Vector3.new(1.8, 3.2, 1.8),
+			cframe = CFrame.new(base + up * (height + 2.4))
+				* CFrame.Angles(0, math.rad(45), math.rad(side * 8)),
+			color = ICE,
+			material = Enum.Material.Glass,
+			transparency = 0.1,
+			reflectance = 0.3,
+		})
+		-- A low wall joins each pillar to the ring.
+		part(model, {
+			name = "Brace",
+			size = Vector3.new(3.6, 2.2, 2.6),
+			cframe = CFrame.fromMatrix(center + right * side * (R + 1.4), right, up),
+			color = STONE_DARK,
 			material = Enum.Material.Slate,
 		})
 	end
 
-	-- The view through it (both sides) and its cold light.
-	local face = part(model, {
-		name = "PortalFace",
-		size = Vector3.new(2 * R - 1.8, 2 * R - 1.8, 0.2),
-		cframe = CFrame.fromMatrix(center, right, Vector3.yAxis),
-		color = ICE,
-		transparency = 1,
-		canCollide = false,
-		castShadow = false,
+	-- The keystone on top, with a gem for each rebirth on its front.
+	local keyAt = center + up * (R + 1)
+	local keystone = part(model, {
+		name = "Keystone",
+		size = Vector3.new(8, 4.4, 4.4),
+		cframe = CFrame.fromMatrix(keyAt, right, up),
+		color = STONE_LIGHT,
+		material = Enum.Material.Slate,
 	})
-	glimpse(face, Enum.NormalId.Front)
-	glimpse(face, Enum.NormalId.Back)
-	Kit.light(face, ICE_DEEP, 32, 2.5)
-
-	-- Three rebirth seals across the top of the ring.
-	for i, angle in { 55, 90, 125 } do
-		local a = math.rad(angle)
-		local radial = right * math.cos(a) + Vector3.yAxis * math.sin(a)
-		local seal = part(model, {
+	part(model, {
+		name = "KeystoneSnow",
+		size = Vector3.new(8.4, 0.8, 4.8),
+		cframe = CFrame.fromMatrix(keyAt + up * 2.5, right, up),
+		color = SNOW,
+		material = Enum.Material.Snow,
+		canCollide = false,
+	})
+	local need = Worlds.next.requiredRebirths
+	for i = 1, 3 do
+		local x = (i - 2) * 2.5
+		local gem = part(model, {
 			name = "Seal" .. i,
-			-- A diamond-shaped gem set into the ring.
-			size = Vector3.new(2.4, 2.4, 1.4),
+			size = Vector3.new(1.5, 1.5, 0.7),
 			cframe = CFrame.fromMatrix(
-				center + radial * (R + 1.9),
-				(right + Vector3.yAxis).Unit,
-				(Vector3.yAxis - right).Unit
+				keyAt + right * x + n * 2.25 - up * 0.2,
+				(right + up).Unit,
+				(up - right).Unit
 			),
 			color = SEAL_OFF,
 			material = Enum.Material.Slate,
 		})
-		seal:SetAttribute("Seal", i)
+		gem:SetAttribute("Seal", i)
+		gem:SetAttribute("Need", need)
 	end
+	local _ = keystone
 
-	-- A beam of light into the sky, seen from across the island.
-	part(model, {
-		name = "Beacon",
+	-- The portal: a glowing core with a shimmer on both sides, the sheet of
+	-- ice that seals it, and its particles (the client switches them).
+	local disc = R - 2.4
+	local facing = CFrame.fromMatrix(center, n, up) -- X = the way it faces
+	local core = part(model, {
+		name = "PortalCore",
 		shape = Enum.PartType.Cylinder,
-		size = Vector3.new(220, 5, 5),
-		cframe = CFrame.new(center + Vector3.new(0, R + 116, 0)) * CFrame.Angles(0, 0, math.rad(90)),
-		color = ICE,
+		size = Vector3.new(0.5, 2 * disc, 2 * disc),
+		cframe = facing,
+		color = ICE_DEEP,
 		material = Enum.Material.Neon,
-		transparency = 0.4,
+		transparency = 0.25,
 		canCollide = false,
 		castShadow = false,
 	})
+	for _, side in { -1, 1 } do
+		part(model, {
+			name = "PortalShimmer",
+			shape = Enum.PartType.Cylinder,
+			size = Vector3.new(0.2, 2 * disc - 0.4, 2 * disc - 0.4),
+			cframe = facing * CFrame.new(side * 0.4, 0, 0),
+			color = hex("#E8FBFF"),
+			material = Enum.Material.ForceField,
+			canCollide = false,
+			castShadow = false,
+		})
+	end
+	part(model, {
+		name = "IceSheet",
+		shape = Enum.PartType.Cylinder,
+		size = Vector3.new(1, 2 * disc + 0.6, 2 * disc + 0.6),
+		cframe = facing,
+		color = hex("#D6F5FF"),
+		material = Enum.Material.Ice,
+		transparency = 0.15,
+		reflectance = 0.2,
+		canCollide = false,
+		castShadow = false,
+	})
+	Kit.light(core, ICE_DEEP, 36, 3)
+	-- Sparkles pulled into the middle.
+	local swirlHost = part(model, {
+		name = "SwirlHost",
+		size = Vector3.new(1.2, 2 * disc, 2 * disc),
+		cframe = facing,
+		transparency = 1,
+		canCollide = false,
+		castShadow = false,
+	})
+	local swirl = Instance.new("ParticleEmitter")
+	swirl.Name = "Swirl"
+	swirl.Shape = Enum.ParticleEmitterShape.Sphere
+	swirl.ShapeInOut = Enum.ParticleEmitterShapeInOut.Inward
+	swirl.ShapeStyle = Enum.ParticleEmitterShapeStyle.Surface
+	swirl.Color = ColorSequence.new(Color3.new(1, 1, 1), ICE)
+	swirl.LightEmission = 1
+	swirl.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.45), NumberSequenceKeypoint.new(1, 0) })
+	swirl.Transparency = NumberSequence.new(0.1, 0.6)
+	swirl.Lifetime = NumberRange.new(2, 2.6)
+	swirl.Speed = NumberRange.new(3.5, 4.5)
+	swirl.RotSpeed = NumberRange.new(-120, 120)
+	swirl.Rate = 6
+	swirl.Parent = swirlHost
+	-- Snow blowing out of the other world, toward you.
+	local wind = Instance.new("ParticleEmitter")
+	wind.Name = "SnowWind"
+	wind.EmissionDirection = Enum.NormalId.Right -- the core's X axis = the way it faces
+	wind.Color = ColorSequence.new(Color3.new(1, 1, 1))
+	wind.LightEmission = 0.4
+	wind.Size = NumberSequence.new(0.3)
+	wind.Transparency = NumberSequence.new(0, 0.8)
+	wind.Lifetime = NumberRange.new(2.5, 3.5)
+	wind.Speed = NumberRange.new(6, 11)
+	wind.SpreadAngle = Vector2.new(22, 22)
+	wind.Acceleration = Vector3.new(0, -1.5, 0)
+	wind.Drag = 0.4
+	wind.Rate = 14
+	wind.Enabled = false
+	wind.Parent = core
+
+	-- A beam of light rising from the keystone, seen across the island.
+	local beamBase = Instance.new("Attachment")
+	beamBase.Name = "BeamBase"
+	beamBase.Parent = keystone
+	local beamTop = Instance.new("Attachment")
+	beamTop.Name = "BeamTop"
+	beamTop.Position = Vector3.new(0, 220, 0)
+	beamTop.Parent = keystone
+	local beam = Instance.new("Beam")
+	beam.Attachment0 = beamBase
+	beam.Attachment1 = beamTop
+	beam.Width0 = 6
+	beam.Width1 = 2
+	beam.FaceCamera = true
+	beam.LightEmission = 1
+	beam.LightInfluence = 0
+	beam.Color = ColorSequence.new(ICE, Color3.new(1, 1, 1))
+	beam.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.3),
+		NumberSequenceKeypoint.new(0.7, 0.75),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	beam.Parent = keystone
 
 	-- Ice crystals around the dais, and falling snow.
 	for i = 0, 7 do
 		local a = i / 8 * math.pi * 2 + 0.3
-		local at = Vector3.new(p.x + math.cos(a) * 17, groundY, p.z + math.sin(a) * 17)
-		if (at - (origin + n * 13)).Magnitude > 6 then
+		local at = Vector3.new(p.x + math.cos(a) * 16, groundY + 1.2, p.z + math.sin(a) * 16)
+		if (at - (origin + n * 16)).Magnitude > 8 then
 			crystals(model, at, rng, if i % 2 == 0 then 1.2 else 0.8)
 		end
 	end

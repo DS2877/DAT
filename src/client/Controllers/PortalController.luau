@@ -1,13 +1,14 @@
 --!strict
 -- The Frost Portal on this client (WorldPortalService on the server):
---   * the three seals on the ring light up with your rebirths
+--   * the three gems on the keystone light up with your rebirths
 --   * the sign shows your progress ("You: 1/3") or that it's open for you
---   * the glimpse of the snowy world: falling snow and a turning swirl
+--   * locked: a sheet of ice seals the portal and it barely stirs; open:
+--     the ice is gone, sparkles swirl in and snow blows out at you (the
+--     moment it opens, the ice shatters)
 --   * reactions: unlocked (fanfare), locked (a shake), the "being built"
 --     window with the launch sign-up, and the trip when the world exists
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 local Worlds = require(ReplicatedStorage.Shared.Config.Worlds)
@@ -26,7 +27,6 @@ local PortalController = {}
 
 local portal: Model? = nil
 local panel: Frame
-local flakes: { { frame: Frame, speed: number, drift: number } } = {}
 local shown = -1
 
 local function rebirths(): number
@@ -34,7 +34,69 @@ local function rebirths(): number
 	return if data then data.rebirths else 0
 end
 
--- Seals and sign for the current rebirth count.
+-- Frozen shut, or open and alive.
+local function setOpen(model: Model, open: boolean)
+	local sheet = model:FindFirstChild("IceSheet") :: BasePart?
+	if sheet then
+		sheet.Transparency = if open then 1 else 0.15
+	end
+	local core = model:FindFirstChild("PortalCore") :: BasePart?
+	if core then
+		core.Transparency = if open then 0.2 else 0.55
+		local wind = core:FindFirstChild("SnowWind") :: ParticleEmitter?
+		if wind then
+			wind.Enabled = open
+		end
+	end
+	local host = model:FindFirstChild("SwirlHost")
+	local swirl = host and host:FindFirstChild("Swirl") :: ParticleEmitter?
+	if swirl then
+		swirl.Rate = if open then 45 else 5
+	end
+end
+
+-- The ice sheet breaks apart: shards burst out and fall.
+local function shatter(model: Model)
+	local sheet = model:FindFirstChild("IceSheet") :: BasePart?
+	if not sheet or sheet.Transparency >= 1 then
+		return
+	end
+	local rng = Random.new()
+	local frame = sheet.CFrame -- X = the way the portal faces
+	local radius = sheet.Size.Y / 2
+	for _ = 1, 22 do
+		local a = rng:NextNumber(0, math.pi * 2)
+		local d = math.sqrt(rng:NextNumber()) * radius * 0.9
+		local start = frame * CFrame.new(0, math.sin(a) * d, math.cos(a) * d)
+		local size = rng:NextNumber(0.8, 2.2)
+		local shard = Instance.new("Part")
+		shard.Name = "IceShard"
+		shard.Anchored = true
+		shard.CanCollide = false
+		shard.CanQuery = false
+		shard.CanTouch = false
+		shard.CastShadow = false
+		shard.Material = Enum.Material.Glass
+		shard.Color = Color3.fromRGB(214, 245, 255)
+		shard.Transparency = 0.1
+		shard.Size = Vector3.new(size * 0.4, size, size * 0.7)
+		shard.CFrame = start * CFrame.Angles(rng:NextNumber(0, 6), rng:NextNumber(0, 6), 0)
+		shard.Parent = Effects.folder()
+		local out = frame.XVector * rng:NextNumber(4, 12) * (if rng:NextNumber() < 0.5 then 1 else -1)
+		local landing = start.Position + out + (start.Position - frame.Position) * 0.6 - Vector3.new(0, 8, 0)
+		TweenService:Create(shard, TweenInfo.new(1.1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+			CFrame = CFrame.new(landing) * CFrame.Angles(rng:NextNumber(0, 6), rng:NextNumber(0, 6), 0),
+			Transparency = 1,
+		}):Play()
+		task.delay(1.2, function()
+			shard:Destroy()
+		end)
+	end
+	Effects.sparkles(frame.Position, ICE, 80)
+	Sound.play("DigBurst", 1, 1.5)
+end
+
+-- Gems, sign and the ice for the current rebirth count.
 local function refresh()
 	local model = portal
 	if not model then
@@ -44,6 +106,10 @@ local function refresh()
 	local have = rebirths()
 	if have == shown then
 		return
+	end
+	-- Opening right now (not just loading in already open): break the ice.
+	if shown >= 0 and shown < need and have >= need then
+		shatter(model)
 	end
 	shown = have
 	for _, seal in model:GetChildren() do
@@ -64,64 +130,7 @@ local function refresh()
 			end
 		end
 	end
-end
-
--- Falling snow in both glimpses (added here so the server sends less).
-local function addSnow(model: Model)
-	local face = model:FindFirstChild("PortalFace")
-	if not face then
-		return
-	end
-	local rng = Random.new()
-	for _, gui in face:GetChildren() do
-		local view = gui:FindFirstChild("View")
-		if view then
-			for _ = 1, 22 do
-				local size = rng:NextInteger(4, 9)
-				local flake = Instance.new("Frame")
-				flake.Name = "Flake"
-				flake.Size = UDim2.fromOffset(size, size)
-				flake.Position = UDim2.fromScale(rng:NextNumber(), rng:NextNumber())
-				flake.BackgroundColor3 = Color3.new(1, 1, 1)
-				flake.BorderSizePixel = 0
-				flake.ZIndex = 4
-				local round = Instance.new("UICorner")
-				round.CornerRadius = UDim.new(1, 0)
-				round.Parent = flake
-				flake.Parent = view
-				table.insert(
-					flakes,
-					{ frame = flake, speed = rng:NextNumber(0.05, 0.12), drift = rng:NextNumber(-0.03, 0.03) }
-				)
-			end
-		end
-	end
-end
-
-local function animate(dt: number)
-	local model = portal
-	if not model then
-		return
-	end
-	for _, f in flakes do
-		local p = f.frame.Position
-		local y = p.Y.Scale + f.speed * dt
-		local x = p.X.Scale + f.drift * dt
-		if y > 1 then
-			y -= 1.05
-		end
-		f.frame.Position = UDim2.fromScale(x % 1, y)
-	end
-	local face = model:FindFirstChild("PortalFace")
-	if face then
-		for _, gui in face:GetChildren() do
-			local swirl = gui:FindFirstChild("Swirl", true)
-			local gradient = swirl and swirl:FindFirstChildOfClass("UIGradient")
-			if gradient then
-				gradient.Rotation = (gradient.Rotation + dt * 40) % 360
-			end
-		end
-	end
+	setOpen(model, have >= need)
 end
 
 ---------------------------------------------------------------------------
@@ -198,6 +207,9 @@ end
 local function onPortal(kind: string, info: { [string]: any }?)
 	local w = Worlds.next
 	if kind == "Attuned" then
+		if portal then
+			shatter(portal)
+		end
 		shown = -1
 		refresh()
 		Sound.play("AreaUnlocked")
@@ -250,18 +262,9 @@ function PortalController.init()
 			return
 		end
 		portal = model
-		addSnow(model)
 		refresh()
 	end)
 	ClientState.Changed:Connect(refresh)
-	local accumulator = 0
-	RunService.Heartbeat:Connect(function(dt)
-		accumulator += dt
-		if accumulator >= 1 / 20 then
-			animate(accumulator)
-			accumulator = 0
-		end
-	end)
 end
 
 return PortalController

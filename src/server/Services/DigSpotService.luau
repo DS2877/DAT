@@ -454,6 +454,12 @@ function DigSpotService.addSpecial(
 	return spot
 end
 
+-- Takes a special spot out of play but leaves its model to its owner (the
+-- Mega Dig site stays up for its finale).
+function DigSpotService.release(spotId: number)
+	active[spotId] = nil
+end
+
 -- Removes a special spot without a replacement.
 function DigSpotService.remove(spotId: number)
 	local spot = active[spotId]

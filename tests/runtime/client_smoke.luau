@@ -544,7 +544,7 @@ do
 	task.wait(0.5)
 	check(face.Dial.Title.Text == "DIG NOW!", "the clock says DIG NOW!")
 	check(
-		root.MegaDig.Text:find("MEGA DIG!") ~= nil,
+		root.MegaDig.Text:find("MEGA DIG NOW") ~= nil,
 		"the HUD shows the open site (" .. root.MegaDig.Text .. ")"
 	)
 	local sign = playerGui:FindFirstChild("MegaDigSign")
@@ -558,6 +558,16 @@ do
 		end
 	end
 	local id = site:GetAttribute("SpotId")
+	local megaPanel = root:FindFirstChild("MegaDigPanel")
+	check(megaPanel and megaPanel.Visible, "the Mega Dig panel shows at the top of the screen")
+	for _ = 1, 5 do
+		H.clockOffset += 1
+		H.fireServer(player, "DigHit", id)
+	end
+	task.wait(0.5)
+	local info = megaPanel.Info.Text
+	check(info:find("your hits: 5") ~= nil, "it shows your hits and win chance (" .. info .. ")")
+	check(megaPanel.Bar.Percent.Text ~= "0%", "and the progress (" .. megaPanel.Bar.Percent.Text .. ")")
 	for _ = 1, 2000 do
 		H.clockOffset += 1
 		H.fireServer(player, "DigHit", id)
@@ -566,6 +576,7 @@ do
 		end
 	end
 	task.wait(0.4)
+	check(not megaPanel.Visible, "the panel makes way for the draw")
 	local drawFrame = root:FindFirstChild("MegaDraw")
 	check(drawFrame ~= nil, "the winner draw spins on screen")
 	task.wait(H.require(Shared.Config.MegaDig).drawSeconds + 0.5)
@@ -632,15 +643,15 @@ do
 	local sign =
 		portalModel:FindFirstChild("SignBoardSmall", true):FindFirstChildOfClass("SurfaceGui").TextLabel
 	check(sign.Text:find("You: 1/3") ~= nil, "the sign shows your progress (" .. sign.Text .. ")")
-	local flakes = 0
-	for _, d in portalModel:GetDescendants() do
-		flakes += if d.Name == "Flake" then 1 else 0
-	end
-	check(flakes > 0, "snow falls in the glimpse of the next world")
+	check(portalModel.IceSheet.Transparency < 1, "a sheet of ice seals the portal until Rebirth 3")
 	data.rebirths = 3
 	H.fireServer(player, "RequestSync")
 	task.wait(0.6)
 	check(litSeals() == 3 and sign.Text:find("OPEN") ~= nil, "all three seals light at Rebirth 3")
+	check(
+		portalModel.IceSheet.Transparency == 1 and portalModel.PortalCore.SnowWind.Enabled,
+		"the ice is gone and snow blows out of the open portal"
+	)
 	H.clockOffset += 10
 	H.moveTo(player, portalModel:GetAttribute("Center"))
 	task.wait(0.6)

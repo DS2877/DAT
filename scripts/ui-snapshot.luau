@@ -329,14 +329,18 @@ snap("hud_owner")
 local MegaDigService = H.require(game:GetService("ServerScriptService").Server.Services.MegaDigService)
 local here = player.Character.HumanoidRootPart.Position
 MegaDigService.start(here + V3(10, 0, 0))
-task.wait(0.4)
-snap("megadig")
 local site
 for _, spot in H.workspace.DigSpots:GetChildren() do
 	if spot:GetAttribute("Mega") then
 		site = spot
 	end
 end
+for _ = 1, 40 do
+	H.clockOffset += 1
+	H.fireServer(player, "DigHit", site:GetAttribute("SpotId"))
+end
+task.wait(0.4)
+snap("megadig")
 for _ = 1, 2000 do
 	H.clockOffset += 1
 	H.fireServer(player, "DigHit", site:GetAttribute("SpotId"))

@@ -10,6 +10,10 @@
 --   MegaDigEnds      when it collapses if not dug out
 --   MegaDigProgress  0..1
 --   MegaDigPos       the site's position
+--   MegaDigDiggers   how many players have dug it
+--   MegaDigTotal     hits so far (each is a ticket in the draw)
+--   MegaDigDrawing   the dug-out site is drawing its winner
+-- and each helper's own hits as the "MegaDigHits" attribute on the player.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -30,6 +34,7 @@ local LootService = require(script.Parent.LootService)
 local Net = require(script.Parent.Parent.Net)
 local PlayerData = require(script.Parent.PlayerData)
 local World = require(script.Parent.Parent.World.World)
+local MegaDigSite = require(script.Parent.Parent.World.Build.MegaDigSite)
 
 local MegaDigService = {}
 
@@ -40,8 +45,8 @@ type Site = {
 	ends: number,
 	helpers: { [Player]: number },
 	lastHit: { [Player]: number },
-	mound: BasePart,
-	moundTop: CFrame,
+	look: MegaDigSite.Handle,
+	diggers: number,
 	done: boolean,
 }
 
@@ -56,85 +61,6 @@ end
 local function tell(text: string, color: string)
 	AnnouncementService.announce({ text = text, color = color, secret = false })
 	Net.fireAll("Notify", text, "Big")
-end
-
--- The big site: a wide mound with a dirt ring, flags, and a light beam
--- seen from across the island.
-local function buildSite(position: Vector3): (Model, BasePart)
-	local r = MegaDig.radius
-	local model = Instance.new("Model")
-	model.Name = "MegaDigSite"
-	local function piece(props: { [string]: any }): BasePart
-		local p = Instance.new("Part")
-		p.Anchored = true
-		p.CanCollide = false
-		p.CanTouch = false
-		p.TopSurface = Enum.SurfaceType.Smooth
-		p.BottomSurface = Enum.SurfaceType.Smooth
-		for key, value in props do
-			(p :: any)[key] = value
-		end
-		p.Parent = model
-		return p
-	end
-	local mound = piece({
-		Name = "Mound",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(2.4, r * 2, r * 2),
-		CFrame = CFrame.new(position + Vector3.new(0, 0.6, 0)) * CFrame.Angles(0, 0, math.rad(90)),
-		Color = Color3.fromRGB(140, 90, 48),
-		Material = Enum.Material.Ground,
-		CanQuery = true,
-	})
-	model.PrimaryPart = mound
-	piece({
-		Name = "Ring",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(0.4, r * 2 + 4, r * 2 + 4),
-		CFrame = CFrame.new(position + Vector3.new(0, 0.1, 0)) * CFrame.Angles(0, 0, math.rad(90)),
-		Color = Color3.fromRGB(255, 201, 51),
-		Material = Enum.Material.Neon,
-		Transparency = 0.5,
-		CanQuery = false,
-	})
-	for i = 0, 7 do
-		local a = i / 8 * math.pi * 2
-		local at = position + Vector3.new(math.cos(a) * (r + 1.5), 0, math.sin(a) * (r + 1.5))
-		piece({
-			Name = "Stake",
-			Size = Vector3.new(0.4, 4, 0.4),
-			CFrame = CFrame.new(at + Vector3.new(0, 2, 0)),
-			Color = Color3.fromRGB(120, 80, 40),
-			Material = Enum.Material.Wood,
-			CanQuery = false,
-		})
-		piece({
-			Name = "Flag",
-			Size = Vector3.new(0.1, 1, 1.6),
-			CFrame = CFrame.new(at + Vector3.new(0, 3.5, 0.8)),
-			Color = if i % 2 == 0 then Color3.fromRGB(255, 80, 80) else Color3.fromRGB(255, 201, 51),
-			CanQuery = false,
-		})
-	end
-	piece({
-		Name = "Beam",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(160, 3, 3),
-		CFrame = CFrame.new(position + Vector3.new(0, 80, 0)) * CFrame.Angles(0, 0, math.rad(90)),
-		Color = Color3.fromRGB(255, 220, 90),
-		Material = Enum.Material.Neon,
-		Transparency = 0.55,
-		CastShadow = false,
-		CanQuery = false,
-	})
-	local light = Instance.new("PointLight")
-	light.Color = Color3.fromRGB(255, 210, 120)
-	light.Range = 30
-	light.Brightness = 2
-	light.Parent = mound
-	model:SetAttribute("Mega", true)
-	model:SetAttribute("Range", MegaDig.digRange)
-	return model, mound
 end
 
 -- A random open point on the beach for the site.
@@ -152,6 +78,16 @@ local function setState()
 	workspace:SetAttribute("MegaDigProgress", if s then math.clamp(s.hits / s.required, 0, 1) else nil)
 	workspace:SetAttribute("MegaDigEnds", if s then s.ends else nil)
 	workspace:SetAttribute("MegaDigPos", if s then s.spot.position else nil)
+	workspace:SetAttribute("MegaDigDiggers", if s then s.diggers else nil)
+	workspace:SetAttribute("MegaDigTotal", if s then s.hits else nil)
+end
+
+local function clearHelpers(s: Site)
+	for player in s.helpers do
+		if player.Parent then
+			player:SetAttribute("MegaDigHits", nil)
+		end
+	end
 end
 
 -- Opens a Mega Dig site now (the schedule, or an admin). Returns false if
@@ -164,8 +100,9 @@ function MegaDigService.start(position: Vector3?): boolean
 	if not at then
 		return false
 	end
-	local model, mound = buildSite(at)
-	local spot = DigSpotService.addSpecial(model, at, MegaDig.area, { mega = true, range = MegaDig.digRange })
+	local areaId = Zones.areaAt(at.X, at.Z)
+	local look = MegaDigSite.build(at, areaId)
+	local spot = DigSpotService.addSpecial(look.model, at, areaId, { mega = true, range = MegaDig.digRange })
 	local players = #Players:GetPlayers()
 	site = {
 		spot = spot,
@@ -177,12 +114,11 @@ function MegaDigService.start(position: Vector3?): boolean
 		ends = now() + MegaDig.timeLimit,
 		helpers = {},
 		lastHit = {},
-		mound = mound,
-		moundTop = mound.CFrame,
+		look = look,
+		diggers = 0,
 		done = false,
 	}
 	setState()
-	local areaId = Zones.areaAt(at.X, at.Z)
 	local area = Areas.Defs[areaId]
 	tell(
 		string.format(
@@ -195,14 +131,22 @@ function MegaDigService.start(position: Vector3?): boolean
 	return true
 end
 
-local function close()
+-- Closes the site; `collapsed` (time ran out / an admin closed it) fades
+-- it away now, otherwise it stays up for the finale and the draw.
+local function close(collapsed: boolean)
 	local s = site
 	if not s then
 		return
 	end
 	site = nil
-	DigSpotService.remove(s.spot.id)
+	DigSpotService.release(s.spot.id)
+	-- Out of the dig spots (no more DIG button), still in the world.
+	s.look.model.Parent = workspace
+	clearHelpers(s)
 	setState()
+	if collapsed then
+		s.look.remove(true)
+	end
 end
 
 -- Picks the winner: one ticket per hit, among helpers with enough hits.
@@ -241,7 +185,13 @@ local function finish(s: Site)
 	s.done = true
 	local position = s.spot.position
 	local winner, entries = draw(s)
-	close()
+	close(false)
+	s.look.reveal()
+	workspace:SetAttribute("MegaDigDrawing", true)
+	task.delay(MegaDig.drawSeconds + 2, function()
+		workspace:SetAttribute("MegaDigDrawing", nil)
+		s.look.remove(false)
+	end)
 	if not winner then
 		tell("⛏️ The Mega Dig was dug out, but nobody dug enough to win.", "#FFC933")
 		return
@@ -309,11 +259,17 @@ function MegaDigService.onHit(player: Player, data: { [string]: any }): boolean
 		return false
 	end
 	s.lastHit[player] = clock
+	if not s.helpers[player] then
+		s.diggers += 1
+		workspace:SetAttribute("MegaDigDiggers", s.diggers)
+	end
 	s.helpers[player] = (s.helpers[player] or 0) + 1
 	s.hits += 1
-	-- The mound sinks as it's dug out.
+	player:SetAttribute("MegaDigHits", s.helpers[player])
+	workspace:SetAttribute("MegaDigTotal", s.hits)
+	-- The mound is dug away and the chest comes up.
 	local progress = math.clamp(s.hits / s.required, 0, 1)
-	s.mound.CFrame = s.moundTop - Vector3.new(0, progress * 1.8, 0)
+	s.look.update(progress)
 	workspace:SetAttribute("MegaDigProgress", progress)
 	if s.hits >= s.required then
 		finish(s)
@@ -326,7 +282,7 @@ function MegaDigService.cancel(): boolean
 	if not site then
 		return false
 	end
-	close()
+	close(true)
 	return true
 end
 
@@ -354,7 +310,7 @@ function MegaDigService.run()
 			workspace:SetAttribute("MegaDigNext", nextStart)
 			local s = site
 			if s and not s.done and t > s.ends then
-				close()
+				close(true)
 				tell("⛏️ The Mega Dig site collapsed! The next one comes in 15 minutes.", "#FF8A3D")
 			end
 			local previous = nextStart - MegaDig.interval

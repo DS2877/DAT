@@ -609,6 +609,10 @@ do
 	)
 	if site then
 		local id = site:GetAttribute("SpotId")
+		local chest = site:FindFirstChild("MegaChest")
+		local chestStart = chest:GetPivot().Position.Y
+		local heap = site:FindFirstChild("Heap")
+		local heapStart = heap.Size.Y
 		H.moveTo(player, site.PrimaryPart.Position + V3(10, 0, 0))
 		local bagBefore = #data.bagContents
 		local hits = 0
@@ -621,7 +625,16 @@ do
 			end
 		end
 		check(hits >= 250, "it takes a lot of digging (" .. hits .. " hits)")
-		check(not MegaDigService.isActive() and site.Parent == nil, "dug out")
+		check(
+			not MegaDigService.isActive() and H.require(Services.DigSpotService).get(id) == nil,
+			"dug out (no more digging)"
+		)
+		check(chest:GetPivot().Position.Y > chestStart + 5, "the chest rose out of the ground")
+		check(heap.Size.Y > heapStart + 2, "the spoil heaps grew")
+		check(
+			site.Parent ~= nil and workspace:GetAttribute("MegaDigDrawing") == true,
+			"the site stays up for the draw"
+		)
 		local draw = H.lastClientEvent("MegaDigDraw")
 		check(draw and draw[1].winnerUserId == player.UserId, "the only helper wins the draw")
 		local won = data.bagContents[#data.bagContents]

@@ -150,16 +150,24 @@ meaningful at every stage. Buying one that's running adds 5 minutes.
   or Secret is buried under a random normal-looking spot; everyone is told
   the area only, and everyone hears who found it.
 * **Mega Dig** (`Config/MegaDig.luau`): every 15 minutes (7.5 minutes
-  after each Treasure Rush) a huge dig site opens at a random spot on the
-  beach. Everyone digs it together (300 hits alone, more with more players)
-  within 5 minutes. A clock tower by the plaza and the HUD count down to the
-  next one. When it's dug out, one helper wins its Mythic+ treasure in an
-  on-screen draw (one ticket per hit, 3 hits to enter); the other helpers
-  get some cash.
-* **Frost Portal** (`Config/Worlds.luau`): an ice ring on the beach, in
-  view from the spawn, leading to the next world (Frostbite Peaks, not
-  built yet). Its three seals light up with your rebirths; until Rebirth 3
-  it pushes you back. At Rebirth 3 it opens for you for good (fanfare,
+  after each Treasure Rush) a big excavation opens at a random spot on the
+  beach: a mound of the area's ground with a giant treasure chest buried
+  inside, a rope fence with lanterns, and a golden beam of light. Everyone
+  digs it together (300 hits alone, more with more players) within 5
+  minutes: the mound is dug away layer by layer, the spoil heaps grow and
+  the chest rises out of the ground. A panel at the top of everyone's
+  screen shows the progress (25/50/75% milestones shake the ground), the
+  time left, how many are digging, your hits and your chance in the draw.
+  A clock tower by the plaza and the HUD count down to the next one. When
+  it's dug out the chest bursts free with fireworks and one helper wins its
+  Mythic+ treasure in an on-screen draw (one ticket per hit, 3 hits to
+  enter); the other helpers get some cash.
+* **Frost Portal** (`Config/Worlds.luau`): a snow-capped stone ring with
+  an ice rim on the beach, in view from the spawn, leading to the next
+  world (Frostbite Peaks, not built yet). The three gems on its keystone
+  light up with your rebirths; until Rebirth 3 a sheet of ice seals it and
+  it pushes you back. When it opens the ice shatters, sparkles swirl in and
+  snow blows out. At Rebirth 3 it opens for you for good (fanfare,
   server announcement, your name on the First Explorers board). Stepping in
   then shows a "being built" window whose GET NOTIFIED button opens the
   Island Guide's events, so create a launch event in the Roblox app. When
