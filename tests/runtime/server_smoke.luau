@@ -520,6 +520,15 @@ check(root.Position.Z > MapLayout.beachNorthZ, "sent back out of a locked area")
 data.shovelLevel = 3
 local jungleFind = digSpot(player, spotList("Jungle")[1])
 check(jungleFind ~= nil, "dug in the Jungle with the Iron Shovel")
+do
+	local DigConfig = H.require(Shared.Config.Dig)
+	local result = H.lastClientEvent("DigResult", player)[1]
+	local expected = Progression.getShovel(3).hits + DigConfig.areaExtraHits.Jungle
+	check(
+		result.required == expected or result.deep,
+		"Jungle spots take more hits (" .. tostring(result.required) .. " of " .. expected .. ")"
+	)
+end
 
 ---------------------------------------------------------------------------
 print("\n== Hidden treasure ==")

@@ -210,7 +210,10 @@ local function tryHit()
 	Sound.play(DIG_SOUND[spot:GetAttribute("AreaId") :: string? or "Beach"] or "DigHitSand")
 	local hole = holes[spot]
 	local current = hole and hole.spotId == id and hole
-	local required = if current then current.required else shovel.hits
+	local areaId = spot:GetAttribute("AreaId") :: string?
+	local required = if current
+		then current.required
+		else shovel.hits + (DigConfig.areaExtraHits[areaId or "Beach"] or 0)
 	local predicted = (if current then current.hits else 0) + 1
 	if not mega then
 		setHoleProgress(spot, math.min(predicted, required), required)

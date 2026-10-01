@@ -37,9 +37,9 @@ local Loot = {
 	-- area, the more often it happens and the bigger the prize.
 	deepDig = {
 		areas = {
-			Jungle = { chance = 1 / 30, extraHits = 15, minRarity = "Epic" },
-			Ruins = { chance = 1 / 20, extraHits = 20, minRarity = "Epic" },
-			Volcano = { chance = 1 / 12, extraHits = 28, minRarity = "Legendary" },
+			Jungle = { chance = 1 / 30, extraHits = 30, minRarity = "Epic" },
+			Ruins = { chance = 1 / 20, extraHits = 40, minRarity = "Epic" },
+			Volcano = { chance = 1 / 12, extraHits = 56, minRarity = "Legendary" },
 		},
 	},
 

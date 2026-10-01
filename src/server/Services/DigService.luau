@@ -150,7 +150,8 @@ local function onDigHit(player: Player, spotId: any)
 		return
 	end
 	if not state or state.spotId ~= spotId or now - state.lastHit > DigConfig.progressTimeout then
-		state = { spotId = spotId, hits = 0, required = shovel.hits, lastHit = now, deep = false }
+		local required = shovel.hits + (DigConfig.areaExtraHits[spot.areaId] or 0)
+		state = { spotId = spotId, hits = 0, required = required, lastHit = now, deep = false }
 		states[player] = state
 	end
 	local s = state :: DigState

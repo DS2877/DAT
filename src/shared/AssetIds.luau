@@ -78,6 +78,10 @@ local AssetIds = {
 		UiClick = { clips = { clip(15675059323, 0.40) }, jitter = 0.04 }, -- Roblox_UI_Bright_Click
 	} :: { [string]: SoundDef },
 
+	-- Mix: each sound group's level (Settings toggles mute them). Effects
+	-- sit a little under the music.
+	Mix = { Effects = 0.7, Ambience = 1, Music = 1 } :: { [string]: number },
+
 	-- Looping beds per area, crossfaded as the player moves.
 	Ambience = {
 		Beach = { clip(9120571708, 0.23), clip(9112870701, 3.41) }, -- Water Lap onto Rocks + distant Seagulls (PSE)

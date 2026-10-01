@@ -8,6 +8,9 @@ local Dig = {
 	serverRange = 16,
 	-- A hit is accepted when at least hitInterval * this has passed since the last.
 	hitTolerance = 0.75,
+	-- Extra hits a normal spot needs in each area (on top of the shovel's
+	-- hits): digging gets slower the further into the island you go.
+	areaExtraHits = { Beach = 0, Jungle = 2, Ruins = 4, Volcano = 6 } :: { [string]: number },
 	-- Progress on a spot is dropped if the player stops hitting it for this long.
 	progressTimeout = 8,
 	-- Respawn delay after a spot is dug out (seconds).

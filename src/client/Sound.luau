@@ -25,7 +25,7 @@ function Sound.group(name: string): SoundGroup
 	end
 	local group = Instance.new("SoundGroup")
 	group.Name = name
-	group.Volume = 1
+	group.Volume = AssetIds.Mix[name] or 1
 	group.Parent = SoundService
 	groups[name] = group
 	return group
@@ -34,7 +34,9 @@ end
 -- Mutes / unmutes a group (smoothly).
 function Sound.setGroupEnabled(name: string, enabled: boolean)
 	local group = Sound.group(name)
-	TweenService:Create(group, TweenInfo.new(0.4), { Volume = if enabled then 1 else 0 }):Play()
+	TweenService
+		:Create(group, TweenInfo.new(0.4), { Volume = if enabled then AssetIds.Mix[name] or 1 else 0 })
+		:Play()
 end
 
 -- Music ducking: callers (AudioController) register how to duck.
