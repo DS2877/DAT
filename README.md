@@ -169,7 +169,8 @@ meaningful at every stage. Buying one that's running adds 5 minutes.
 * **Admin panel** (🛠️, `Config/Admin.luau`): for the game's owner (and any
   listed user ids; everyone in Studio). Every action is checked on the
   server.
-  * PLAYER: RESET MY PROGRESS (keeps purchases) and BRAND NEW ME (a fresh
+  * PLAYER: RESET MY PROGRESS (a new player, keeping Robux purchases), RESET
+    PROGRESS for the selected player (same), and BRAND NEW ME (a fresh
     player; tap twice) to test the game from the start, the tutorial
     restarts at once; cash, levels, test passes, boosts, treasures, resets,
     teleports and kick for any player.

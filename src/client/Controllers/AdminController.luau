@@ -268,7 +268,7 @@ local function build()
 		Size = UDim2.new(1, 0, 0, 24),
 		TextScaled = false,
 		TextSize = 18,
-		Text = "Progress: keeps passes, skins and settings. Brand new: removes test passes too. Tap twice.",
+		Text = "Progress: a new player, keeping Robux purchases. Brand new: removes test passes too. Tap twice.",
 		TextColor3 = C.Ink,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Parent = playerPage,
@@ -318,9 +318,11 @@ local function build()
 		{ "Go to them", "GoTo", C.Blue },
 		{ "Bring them", "Bring", C.Blue },
 		{ "Reset tutorial", "ResetTutorial", C.Grey },
-		{ "RESET PROGRESS", "ResetProgress", C.Red },
 		{ "KICK", "Kick", C.Red },
 	})
+	section(playerPage, 7, "🔄 RESET THE SELECTED PLAYER (keeps what they bought with Robux)", {
+		{ "RESET PROGRESS", "ResetProgress", C.Red },
+	}, { cell = UDim2.fromOffset(280, 54) })
 
 	-- WORLD (you).
 	local worldPage = page("World")

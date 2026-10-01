@@ -736,6 +736,41 @@ do
 	H.filterFails = false
 	check(#H.published == published + 1, "nothing is sent if the text filter fails")
 
+	-- Reset another player: a new player, but Robux purchases stay.
+	local other = H.addPlayer("ResetMe", 5004)
+	H.waitFor(function()
+		return PlayerData.get(other) ~= nil
+	end, 5, "player to reset")
+	local otherData = PlayerData.get(other)
+	otherData.cash = 50000
+	otherData.rebirths = 2
+	otherData.shovelLevel = 5
+	otherData.discovered.Shell = { normal = true }
+	otherData.settings.music = false
+	otherData.passes.AutoSell = true
+	otherData.ownedCosmetics.Pirate = true
+	otherData.equippedSkin = "Pirate"
+	otherData.instantDeepDigs = 2
+	act("ResetProgress", 5004)
+	check(
+		otherData.cash == 0
+			and otherData.rebirths == 0
+			and otherData.shovelLevel == 1
+			and next(otherData.discovered) == nil
+			and otherData.settings.music == true,
+		"admin: reset another player's progress (a brand new player)"
+	)
+	check(
+		otherData.passes.AutoSell == true
+			and otherData.ownedCosmetics.Pirate == true
+			and otherData.equippedSkin == "Pirate"
+			and otherData.instantDeepDigs == 2,
+		"they keep what they bought with Robux"
+	)
+	local told = H.lastClientEvent("Notify", other)
+	check(told and told[1]:find("fresh start") ~= nil, "and they're told an admin reset them")
+	other:Kick("done")
+
 	-- Reset my progress (keeps purchases), then a brand new player.
 	adminData.rebirths = 2
 	adminData.shovelLevel = 4

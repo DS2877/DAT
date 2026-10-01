@@ -293,14 +293,29 @@ local PLAYER_ACTIONS: { [string]: Handler } = {
 		PlayerData.changed(target)
 		return "Tutorial reset"
 	end,
-	ResetProgress = function(_, target, data)
-		-- Fresh progress; purchases (passes, skins, receipts) are kept.
-		resetData(
-			target,
-			data,
-			{ "passes", "ownedCosmetics", "processedPurchaseIds", "settings", "robuxSpent" }
-		)
-		return "Progress reset (purchases kept). The tutorial starts over!"
+	ResetProgress = function(admin, target, data)
+		-- A brand new player, except for what they bought with Robux: game
+		-- passes, skins (and the one they wear), the Starter Pack flag and
+		-- unused Instant Deep Digs. Receipts are kept so nothing is ever
+		-- granted twice. (Cash bought with Robux was spent into progress.)
+		resetData(target, data, {
+			"passes",
+			"ownedCosmetics",
+			"equippedSkin",
+			"starterPackBought",
+			"instantDeepDigs",
+			"processedPurchaseIds",
+			"robuxSpent",
+		})
+		if target ~= admin then
+			Net.fire(
+				"Notify",
+				target,
+				"🛠️ An admin gave you a fresh start! Your Robux purchases are kept.",
+				"Big"
+			)
+		end
+		return "Progress reset (Robux purchases kept). The tutorial starts over!"
 	end,
 	ResetAll = function(_, target, data)
 		-- A brand new player: test passes and skins go too. Receipts are
