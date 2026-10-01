@@ -98,9 +98,28 @@ end
 -- The upbeat track plays while anything wants it (a Treasure Rush, being
 -- at a Mega Dig...).
 local upbeat: { [string]: boolean } = {}
+local special: string? = nil
+local function pick()
+	setMusic(special or (if next(upbeat) then "Rush" else "Main"))
+end
 function AudioController.setUpbeat(reason: string, on: boolean)
 	upbeat[reason] = if on then true else nil
-	setMusic(if next(upbeat) then "Rush" else "Main")
+	pick()
+end
+
+-- A track that plays over everything else while set (the Mega Dig's party
+-- music for the players digging it); nil goes back to the usual music.
+function AudioController.setSpecialMusic(name: string?)
+	if name == special then
+		return
+	end
+	special = name
+	pick()
+end
+
+-- The track playing now (tests).
+function AudioController.currentMusic(): string
+	return currentMusic
 end
 
 -- Treasure Rush switches to the upbeat track while it lasts.

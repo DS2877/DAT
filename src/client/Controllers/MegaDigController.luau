@@ -379,6 +379,15 @@ type SiteParty = {
 	confetti: ParticleEmitter,
 	lanterns: { BasePart },
 	nextFirework: number,
+	-- Lights up in the air: a disco ball with its rays, glowing orbs
+	-- circling the site, and sky lanterns floating up.
+	ball: Part,
+	ballLight: PointLight,
+	rays: { Part },
+	orbs: { Part },
+	nextSkyLantern: number,
+	parts: { BasePart }, -- everything to clean up
+	dug: boolean, -- this player dug it (keeps the music through the draw)
 }
 
 local PARTY_RANGE = 160
@@ -390,11 +399,11 @@ local function stopSiteParty()
 		return
 	end
 	siteParty = nil
-	for _, beam in p.beams do
-		beam:Destroy()
+	for _, part in p.parts do
+		part:Destroy()
 	end
-	p.host:Destroy()
 	AudioController.setUpbeat("MegaDig", false)
+	AudioController.setSpecialMusic(nil)
 end
 
 local function partyPart(name: string, size: Vector3, transparency: number): Part
@@ -426,6 +435,37 @@ local function startSiteParty(site: Model)
 			table.insert(lanterns, child)
 		end
 	end
+	local ball = partyPart("DiscoBall", Vector3.new(4.5, 4.5, 4.5), 0)
+	ball.Shape = Enum.PartType.Ball
+	ball.Material = Enum.Material.Glass
+	ball.Color = Color3.fromRGB(225, 230, 240)
+	ball.Reflectance = 0.6
+	local ballLight = Instance.new("PointLight")
+	ballLight.Range = 45
+	ballLight.Brightness = 3
+	ballLight.Parent = ball
+	local rays = {}
+	for _ = 1, 8 do
+		table.insert(rays, partyPart("DiscoRay", Vector3.new(0.35, 34, 0.35), 0.45))
+	end
+	local orbs = {}
+	for i = 1, 10 do
+		local orb = partyPart("SkyOrb", Vector3.new(1.4, 1.4, 1.4), 0.1)
+		orb.Shape = Enum.PartType.Ball
+		if i % 2 == 0 then
+			local light = Instance.new("PointLight")
+			light.Range = 14
+			light.Brightness = 1.6
+			light.Parent = orb
+		end
+		table.insert(orbs, orb)
+	end
+	local parts: { BasePart } = { host, ball }
+	for _, list in { beams, rays, orbs } do
+		for _, part in list do
+			table.insert(parts, part)
+		end
+	end
 	siteParty = {
 		site = site,
 		beams = beams,
@@ -433,6 +473,13 @@ local function startSiteParty(site: Model)
 		confetti = confetti,
 		lanterns = lanterns,
 		nextFirework = os.clock() + 1,
+		ball = ball,
+		ballLight = ballLight,
+		rays = rays,
+		orbs = orbs,
+		nextSkyLantern = os.clock(),
+		parts = parts,
+		dug = false,
 	}
 	AudioController.setUpbeat("MegaDig", true)
 end
@@ -452,6 +499,12 @@ local function updateSiteParty(t: number)
 		startSiteParty(site)
 	end
 	local p = siteParty :: SiteParty
+	-- The players digging it get the Mega Dig's own party music.
+	local digging = ((player:GetAttribute("MegaDigHits") :: number?) or 0) > 0
+	AudioController.setSpecialMusic(if digging or (drawing and p.dug) then "MegaDig" else nil)
+	if digging then
+		p.dug = true
+	end
 	local progress = if drawing then 1 else (attr("MegaDigProgress") :: number?) or 0
 	local energy = if drawing then 2.2 else 0.5 + progress
 	local position = center.Position
@@ -480,6 +533,47 @@ local function updateSiteParty(t: number)
 	if t >= p.nextFirework then
 		p.nextFirework = t + (if drawing then 0.5 else math.max(1.4, 7 - progress * 5.6))
 		PartyController.fireworks(position, 1)
+	end
+
+	-- The disco ball turns high above the pit, throwing colored rays.
+	local ballAt = position + Vector3.new(0, 30 + math.sin(t * 1.2) * 0.6, 0)
+	local spin = CFrame.Angles(0, t * (0.8 + energy * 0.4), 0)
+	p.ball.CFrame = CFrame.new(ballAt) * spin
+	p.ballLight.Color = Color3.fromHSV((t * 0.2) % 1, 0.6, 1)
+	for i, ray in p.rays do
+		local a = i / #p.rays * math.pi * 2
+		local tilt = math.rad(38 + 10 * math.sin(t * 1.5 + i))
+		ray.CFrame = CFrame.new(ballAt)
+			* spin
+			* CFrame.Angles(0, a, 0)
+			* CFrame.Angles(tilt, 0, 0)
+			* CFrame.new(0, -ray.Size.Y / 2, 0)
+		ray.Color = Color3.fromHSV((t * 0.15 + i / #p.rays) % 1, 0.75, 1)
+	end
+	-- Glowing orbs circle the site, bobbing.
+	for i, orb in p.orbs do
+		local a = t * (0.35 + energy * 0.15) + i / #p.orbs * math.pi * 2
+		local d = MegaDig.radius + 4 + (i % 3) * 2
+		orb.Position = position
+			+ Vector3.new(math.cos(a) * d, 13 + (i % 4) * 2 + math.sin(t * 2 + i) * 1.2, math.sin(a) * d)
+		orb.Color = Color3.fromHSV((i / #p.orbs + t * 0.1) % 1, 0.65, 1)
+	end
+	-- Sky lanterns float up from the fence.
+	if t >= p.nextSkyLantern then
+		p.nextSkyLantern = t + (if drawing then 0.25 else 1.4 - progress * 0.8)
+		local a = math.random() * math.pi * 2
+		local from = position + Vector3.new(math.cos(a) * ring, 6, math.sin(a) * ring)
+		local lantern = partyPart("SkyLantern", Vector3.new(1.2, 1.6, 1.2), 0.05)
+		lantern.Color = Color3.fromHSV(0.06 + math.random() * 0.06, 0.7, 1)
+		lantern.Position = from
+		local drift = Vector3.new(math.random() * 16 - 8, 70, math.random() * 16 - 8)
+		TweenService:Create(lantern, TweenInfo.new(9, Enum.EasingStyle.Sine, Enum.EasingDirection.In), {
+			Position = from + drift,
+			Transparency = 1,
+		}):Play()
+		task.delay(9.1, function()
+			lantern:Destroy()
+		end)
 	end
 end
 

@@ -100,6 +100,7 @@ local AssetIds = {
 	Music = {
 		Main = clip(9038762538, 0.21), -- "Easy Uke" (APM): light, positive ukulele
 		Rush = clip(9039987815, 0.23), -- "Feeling Fresh" (APM): energetic ukulele for Treasure Rush
+		MegaDig = clip(1847444965, 0.22), -- "Party Hype A" (APM): for the players digging a Mega Dig
 	},
 
 	Animations = {

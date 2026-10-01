@@ -588,6 +588,19 @@ do
 		searchlights += if d.Name == "Searchlight" then 1 else 0
 	end
 	check(searchlights == 4, "a party at the site: searchlights sweep the sky (" .. searchlights .. ")")
+	local inAir = {}
+	for _, d in H.workspace:GetDescendants() do
+		inAir[d.Name] = (inAir[d.Name] or 0) + 1
+	end
+	check(
+		inAir.DiscoBall == 1 and (inAir.DiscoRay or 0) == 8 and (inAir.SkyOrb or 0) == 10,
+		"lights up in the air: a disco ball with its rays, and glowing orbs"
+	)
+	local Audio = H.require(clientScript.Controllers.AudioController)
+	check(
+		Audio.currentMusic() == "MegaDig",
+		"the diggers get the Mega Dig party music (" .. Audio.currentMusic() .. ")"
+	)
 	local site0 = nil
 	for _, spot in spots:GetChildren() do
 		if spot:GetAttribute("Mega") then

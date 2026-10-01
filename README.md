@@ -158,9 +158,11 @@ meaningful at every stage. Buying one that's running adds 5 minutes.
   the chest rises out of the ground. A panel at the top of everyone's
   screen shows the progress (25/50/75% milestones shake the ground), the
   time left, how many are digging, your hits and your chance in the draw.
-  Near the site there's a party: searchlights sweeping the sky, bunting,
-  rainbow lanterns, confetti and fireworks that build up as it's dug out,
-  and the upbeat music. A clock tower by the plaza and the HUD count down to the next one. When
+  Near the site there's a party: searchlights sweeping the sky, a disco
+  ball throwing colored rays, glowing orbs circling overhead, sky lanterns
+  floating up, bunting, rainbow lanterns, confetti and fireworks that build
+  up as it's dug out. Players digging it get its own party music ("Party
+  Hype A", APM); everyone else nearby hears the upbeat track. A clock tower by the plaza and the HUD count down to the next one. When
   it's dug out the chest bursts free in a finale (a fireworks barrage,
   confetti cannons, a fountain of gold coins) and one helper wins its
   Mythic+ treasure in an on-screen draw (one ticket per hit, 3 hits to
