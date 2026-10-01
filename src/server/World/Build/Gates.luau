@@ -248,11 +248,18 @@ function Gates.build(): { [string]: GateInfo }
 	local vx, vz = L.gates.Volcano.x, L.volcanoSouthZ
 	invisibleWall(walls, Vector3.new(b.minX, 0, vz), Vector3.new(vx - halfGate, 0, vz), north)
 	invisibleWall(walls, Vector3.new(vx + halfGate, 0, vz), Vector3.new(b.maxX, 0, vz), north)
-	-- Canyon sides behind every gate.
+	-- Canyon sides behind every gate. One-way as well: from the tier above
+	-- (beside the canyon) you can jump down into it and run out through
+	-- the gate; from the ramp you can't climb out sideways.
 	for _, g in L.gates do
 		for _, side in { -1, 1 } do
 			local x = g.x + side * halfGate
-			invisibleWall(walls, Vector3.new(x, 0, g.z), Vector3.new(x, 0, g.z - L.rampLength - 4))
+			invisibleWall(
+				walls,
+				Vector3.new(x, 0, g.z),
+				Vector3.new(x, 0, g.z - L.rampLength - 4),
+				Vector3.new(side, 0, 0)
+			)
 		end
 	end
 	-- Jungle | Ruins ridge: the Ruins (east) need the better shovel, so the

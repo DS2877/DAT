@@ -371,6 +371,35 @@ if cliff then
 	task.wait(0.3)
 	check(cliff.CanCollide, "and closes again once you're out")
 end
+do
+	-- The canyon wall west of the Jungle gate's ramp.
+	local gate = MapLayout.gates.Jungle
+	local canyon = nil
+	for _, wall in H.workspace.Walls:GetChildren() do
+		if
+			wall:GetAttribute("OneWay")
+			and wall:GetAttribute("InsideX") == -1
+			and wall:GetAttribute("PlaneX") < gate.x
+		then
+			if math.abs(wall:GetAttribute("PlaneX") - gate.x) < 30 then
+				canyon = wall
+			end
+		end
+	end
+	check(canyon ~= nil, "the canyon walls beside the gate ramps are one-way too")
+	if canyon then
+		local px, pz = canyon:GetAttribute("PlaneX"), canyon:GetAttribute("PlaneZ")
+		H.moveTo(player, V3(px + 4, MapLayout.plateauHeight, pz))
+		task.wait(0.3)
+		check(canyon.CanCollide, "from the ramp you can't climb out sideways")
+		H.moveTo(player, V3(px - 10, MapLayout.plateauHeight + 3, pz))
+		task.wait(0.3)
+		check(not canyon.CanCollide, "from the Jungle beside it you can jump down onto the ramp")
+		H.moveTo(player, V3(px + 2, MapLayout.plateauHeight, pz))
+		task.wait(0.3)
+		check(not canyon.CanCollide, "and it stays open while you drop through")
+	end
+end
 check(H.workspace.Base:FindFirstChild("VipRunway") ~= nil, "a red carpet leads to the VIP dig site")
 
 print("\n== Island Guide ==")
