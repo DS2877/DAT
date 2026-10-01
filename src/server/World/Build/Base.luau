@@ -832,6 +832,118 @@ local function vipSite(base: Instance, top: number): Vector3
 	return Vector3.new(site.x, ground, site.z)
 end
 
+-- The Mega Dig clock tower: a stone and wood tower with a clock face on all
+-- four sides counting down to the next Mega Dig (MegaDigController turns
+-- the hands and writes the time).
+local function megaClock(base: Instance)
+	local mc = L.megaClock
+	local ground = Kit.highestGround(mc.x, mc.z, 4, L.beachHeight)
+	local model = Instance.new("Model")
+	model.Name = "MegaClock"
+	part(model, {
+		name = "Plinth",
+		size = Vector3.new(8, 4, 8),
+		cframe = CFrame.new(mc.x, ground - 1, mc.z),
+		color = STONE,
+		material = Enum.Material.Slate,
+	})
+	part(model, {
+		name = "Tower",
+		size = Vector3.new(4.6, 16, 4.6),
+		cframe = CFrame.new(mc.x, ground + 9, mc.z),
+		color = WOOD,
+		material = Enum.Material.WoodPlanks,
+	})
+	local box = part(model, {
+		name = "ClockBox",
+		size = Vector3.new(7, 7, 7),
+		cframe = CFrame.new(mc.x, ground + 20.5, mc.z),
+		color = WOOD_DARK,
+		material = Enum.Material.WoodPlanks,
+	})
+	for _, side in { -1, 1 } do
+		part(model, {
+			name = "Roof",
+			className = "WedgePart",
+			size = Vector3.new(8, 3.5, 4),
+			cframe = CFrame.new(mc.x, ground + 25.75, mc.z + side * 2)
+				* CFrame.Angles(0, if side > 0 then math.rad(180) else 0, 0),
+			color = hex("#B5482E"),
+			material = Enum.Material.Slate,
+		})
+	end
+	local bell = part(model, {
+		name = "Bell",
+		shape = Enum.PartType.Ball,
+		size = Vector3.new(1.6, 1.6, 1.6),
+		cframe = CFrame.new(mc.x, ground + 28.2, mc.z),
+		color = GOLD,
+		material = Enum.Material.Metal,
+	})
+	Kit.light(bell, GOLD, 14, 1)
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back, Enum.NormalId.Left, Enum.NormalId.Right } do
+		local gui = Instance.new("SurfaceGui")
+		gui.Name = "ClockFace"
+		gui.Face = face
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 50
+		gui.LightInfluence = 0
+		gui.Parent = box
+		local dial = Instance.new("Frame")
+		dial.Name = "Dial"
+		dial.AnchorPoint = Vector2.new(0.5, 0.5)
+		dial.Position = UDim2.fromScale(0.5, 0.5)
+		dial.Size = UDim2.fromScale(0.92, 0.92)
+		dial.BackgroundColor3 = Color3.fromRGB(255, 248, 230)
+		dial.Parent = gui
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(1, 0)
+		corner.Parent = dial
+		local ring = Instance.new("UIStroke")
+		ring.Thickness = 10
+		ring.Color = Color3.fromRGB(255, 201, 51)
+		ring.Parent = dial
+		for i = 0, 11 do
+			local a = math.rad(i * 30)
+			local tick = Instance.new("Frame")
+			tick.AnchorPoint = Vector2.new(0.5, 0.5)
+			tick.Position = UDim2.fromScale(0.5 + math.sin(a) * 0.42, 0.5 - math.cos(a) * 0.42)
+			tick.Size = UDim2.fromScale(0.025, 0.07)
+			tick.Rotation = i * 30
+			tick.BackgroundColor3 = Color3.fromRGB(45, 28, 12)
+			tick.BorderSizePixel = 0
+			tick.Parent = dial
+		end
+		local hand = Instance.new("Frame")
+		hand.Name = "Hand"
+		hand.AnchorPoint = Vector2.new(0.5, 1)
+		hand.Position = UDim2.fromScale(0.5, 0.5)
+		hand.Size = UDim2.fromScale(0.03, 0.38)
+		hand.BackgroundColor3 = Color3.fromRGB(220, 40, 40)
+		hand.BorderSizePixel = 0
+		hand.ZIndex = 3
+		hand.Parent = dial
+		local function text(name: string, y: number, h: number, content: string, color: Color3)
+			local l = Instance.new("TextLabel")
+			l.Name = name
+			l.AnchorPoint = Vector2.new(0.5, 0.5)
+			l.Position = UDim2.fromScale(0.5, y)
+			l.Size = UDim2.fromScale(0.62, h)
+			l.BackgroundTransparency = 1
+			l.Font = Enum.Font.LuckiestGuy
+			l.Text = content
+			l.TextScaled = true
+			l.TextColor3 = color
+			l.ZIndex = 4
+			l.Parent = dial
+		end
+		text("Title", 0.28, 0.12, "MEGA DIG", Color3.fromRGB(181, 72, 46))
+		text("Time", 0.7, 0.2, "--:--", Color3.fromRGB(45, 28, 12))
+	end
+	model.Parent = base
+	Kit.addObstacle(Vector3.new(mc.x, 0, mc.z), 7)
+end
+
 -- The Island Guide: a big wooden board on the plaza with a map of the
 -- island, how the game works, and upcoming events to sign up for (the
 -- events list and its buttons are added per player by InfoBoardController).
@@ -1244,6 +1356,7 @@ function Base.build(rng: Random): BaseInfo
 
 	local vipSpot = vipSite(base, top)
 	infoBoard(base, top)
+	megaClock(base)
 
 	return { folder = base, deckTop = top, pads = pads, vipSpot = vipSpot }
 end

@@ -71,6 +71,7 @@ Every number lives in `src/shared/Config/`:
 | `Drinks.luau` | Tiki Bar drinks: effect, duration, price |
 | `Jackpots.luau` | Hidden treasures: how often, which rarity, which area |
 | `Admin.luau` | Who gets the admin panel; ADMIN ABUSE settings |
+| `MegaDig.luau` | Mega Dig: schedule, size, hits needed, prize, draw, helper cash |
 | `Monetization.luau` | Passes, products, skins, perk numbers, offer limits |
 
 To add a treasure: append a row in `Treasures.luau` (tests check its value band
@@ -147,6 +148,13 @@ meaningful at every stage. Buying one that's running adds 5 minutes.
 * **Hidden treasures** (`Config/Jackpots.luau`): every 5-9 minutes a Mythic
   or Secret is buried under a random normal-looking spot; everyone is told
   the area only, and everyone hears who found it.
+* **Mega Dig** (`Config/MegaDig.luau`): every 15 minutes (7.5 minutes
+  after each Treasure Rush) a huge dig site opens at a random spot on the
+  beach. Everyone digs it together (300 hits alone, more with more players)
+  within 5 minutes. A clock tower by the plaza and the HUD count down to the
+  next one. When it's dug out, one helper wins its Mythic+ treasure in an
+  on-screen draw (one ticket per hit, 3 hits to enter); the other helpers
+  get some cash.
 * **Admin panel** (🛠️, `Config/Admin.luau`): for the game's owner (and any
   listed user ids; everyone in Studio). Cash, levels, test passes, boosts,
   treasures, resets, teleports, kick; Treasure Rush, server 2x Cash, ADMIN

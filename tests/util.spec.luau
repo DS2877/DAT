@@ -60,3 +60,15 @@ test("spot regions sit inside their own area", function()
 		end
 	end
 end)
+
+test("mega dig clock", function()
+	local MegaDigClock = requireShared("Logic/MegaDigClock")
+	local MegaDig = requireShared("Config/MegaDig")
+	expect.eq(MegaDigClock.nextStart(0), MegaDig.offset)
+	expect.eq(MegaDigClock.nextStart(MegaDig.offset), MegaDig.offset + MegaDig.interval)
+	expect.eq(MegaDigClock.nextStart(MegaDig.offset + 1), MegaDig.offset + MegaDig.interval)
+	expect.eq(MegaDigClock.nextStart(MegaDig.offset - 1), MegaDig.offset)
+	expect.eq(MegaDigClock.format(0), "0:00")
+	expect.eq(MegaDigClock.format(65.7), "1:05")
+	expect.eq(MegaDigClock.format(-5), "0:00")
+end)

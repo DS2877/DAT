@@ -130,7 +130,7 @@ local function findNearest(): Model?
 	if not root then
 		return nil
 	end
-	local best, bestDistance = nil, DigConfig.promptRange
+	local best, bestDistance = nil, math.huge
 	local pos = root.Position
 	local all = spotsFolder:GetChildren()
 	for _, spot in localSpots:GetChildren() do
@@ -140,8 +140,12 @@ local function findNearest(): Model?
 		if spot:IsA("Model") and spot.PrimaryPart then
 			local p = spotPosition(spot)
 			local d = Zones.flatDistance(pos.X, pos.Z, p.X, p.Z)
-			if d < bestDistance and math.abs(pos.Y - p.Y) < 10 and isUnlocked(spot) then
-				best, bestDistance = spot, d
+			-- Big spots (the Mega Dig) can be dug from further away; they
+			-- count as nearer so their edge works like a normal spot.
+			local range = (spot:GetAttribute("Range") :: number?) or DigConfig.promptRange
+			local score = d - (range - DigConfig.promptRange)
+			if d < range and score < bestDistance and math.abs(pos.Y - p.Y) < 10 and isUnlocked(spot) then
+				best, bestDistance = spot, score
 			end
 		end
 	end
@@ -154,7 +158,7 @@ local function refreshButton()
 	if not visible then
 		return
 	end
-	if ClientState.isBagFull() then
+	if ClientState.isBagFull() and not (target :: Model):GetAttribute("Mega") then
 		button.BackgroundColor3 = C.Grey
 		button.Text = "FULL"
 	else
@@ -178,7 +182,8 @@ local function tryHit()
 	if now < nextHitAt then
 		return
 	end
-	if ClientState.isBagFull() then
+	local mega = spot:GetAttribute("Mega") == true
+	if ClientState.isBagFull() and not mega then
 		holding = false
 		queued = false
 		HudController.flashBagFull()
@@ -207,7 +212,9 @@ local function tryHit()
 	local current = hole and hole.spotId == id and hole
 	local required = if current then current.required else shovel.hits
 	local predicted = (if current then current.hits else 0) + 1
-	setHoleProgress(spot, math.min(predicted, required), required)
+	if not mega then
+		setHoleProgress(spot, math.min(predicted, required), required)
+	end
 
 	-- Face the spot so the swing lands on it.
 	local root = rootPart()

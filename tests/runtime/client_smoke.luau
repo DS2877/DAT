@@ -467,6 +467,50 @@ H.signal(root.ShopButton, "Activated"):Fire({})
 task.wait(0.1)
 check(not shop.Visible, "SHOP button closes the shop")
 
+print("\n== Mega Dig ==")
+do
+	local MegaDigService = H.require(game:GetService("ServerScriptService").Server.Services.MegaDigService)
+	local face = H.workspace.Base.MegaClock.ClockBox:FindFirstChildOfClass("SurfaceGui")
+	local timeText = face and face.Dial.Time.Text
+	check(
+		timeText and timeText:match("^%d+:%d%d$") ~= nil,
+		"the clock tower counts down (" .. tostring(timeText) .. ")"
+	)
+	check(
+		root.MegaDig.Text:find("Mega Dig in") ~= nil,
+		"the HUD shows the next Mega Dig (" .. root.MegaDig.Text .. ")"
+	)
+	local here = player.Character.HumanoidRootPart.Position
+	check(MegaDigService.start(here + V3(12, 0, 0)), "an admin can open a site anywhere")
+	task.wait(0.5)
+	check(face.Dial.Title.Text == "DIG NOW!", "the clock says DIG NOW!")
+	check(
+		root.MegaDig.Text:find("MEGA DIG!") ~= nil,
+		"the HUD shows the open site (" .. root.MegaDig.Text .. ")"
+	)
+	check(playerGui:FindFirstChild("MegaDigSign") ~= nil, "a big progress sign floats over the site")
+	check(digButton.Visible, "DIG works from the edge of the big site")
+	local site
+	for _, spot in spots:GetChildren() do
+		if spot:GetAttribute("Mega") then
+			site = spot
+		end
+	end
+	local id = site:GetAttribute("SpotId")
+	for _ = 1, 2000 do
+		H.clockOffset += 1
+		H.fireServer(player, "DigHit", id)
+		if not MegaDigService.isActive() then
+			break
+		end
+	end
+	task.wait(0.4)
+	local drawFrame = root:FindFirstChild("MegaDraw")
+	check(drawFrame ~= nil, "the winner draw spins on screen")
+	task.wait(H.require(Shared.Config.MegaDig).drawSeconds + 0.5)
+	check(drawFrame and drawFrame:FindFirstChild("Window") and true, "the draw finished without errors")
+end
+
 running = false
 task.wait(0.2)
 

@@ -555,6 +555,55 @@ do
 	end
 end
 
+print("\n== Mega Dig ==")
+do
+	local MegaDigService = H.require(Services.MegaDigService)
+	local Treasures = H.require(Shared.Config.Treasures)
+	local Rarities = H.require(Shared.Config.Rarities)
+	check(workspace.Base:FindFirstChild("MegaClock") ~= nil, "the Mega Dig clock tower stands at the base")
+	check(
+		type(workspace:GetAttribute("MegaDigNext")) == "number",
+		"the clock knows when the next Mega Dig starts"
+	)
+	check(MegaDigService.start(), "a Mega Dig site opens")
+	check(not MegaDigService.start(), "only one at a time")
+	local site = nil
+	for _, spot in spots:GetChildren() do
+		if spot:GetAttribute("Mega") then
+			site = spot
+		end
+	end
+	check(
+		site ~= nil and workspace:GetAttribute("MegaDigActive") == true,
+		"the site is in the world and announced"
+	)
+	if site then
+		local id = site:GetAttribute("SpotId")
+		H.moveTo(player, site.PrimaryPart.Position + V3(10, 0, 0))
+		local bagBefore = #data.bagContents
+		local hits = 0
+		for _ = 1, 2000 do
+			H.clockOffset += 1
+			H.fireServer(player, "DigHit", id)
+			hits += 1
+			if not MegaDigService.isActive() then
+				break
+			end
+		end
+		check(hits >= 250, "it takes a lot of digging (" .. hits .. " hits)")
+		check(not MegaDigService.isActive() and site.Parent == nil, "dug out")
+		local draw = H.lastClientEvent("MegaDigDraw")
+		check(draw and draw[1].winnerUserId == player.UserId, "the only helper wins the draw")
+		local won = data.bagContents[#data.bagContents]
+		local rarity = won and Treasures.ById[won.id].rarity
+		check(
+			#data.bagContents == bagBefore + 1 and rarity and Rarities.rank(rarity) >= Rarities.rank("Mythic"),
+			"the prize is Mythic or better (" .. tostring(rarity) .. ")"
+		)
+		table.remove(data.bagContents)
+	end
+end
+
 print("\n== Golden X ==")
 H.fireServer(player, "RequestSync")
 task.wait(0.1)

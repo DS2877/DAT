@@ -26,6 +26,7 @@ local EconomyService = require(script.Parent.EconomyService)
 local FriendsService = require(script.Parent.FriendsService)
 local LeaderboardService = require(script.Parent.LeaderboardService)
 local LootService = require(script.Parent.LootService)
+local MegaDigService = require(script.Parent.MegaDigService)
 local Net = require(script.Parent.Parent.Net)
 local PlayerData = require(script.Parent.PlayerData)
 local RewardService = require(script.Parent.RewardService)
@@ -97,6 +98,20 @@ local function onDigHit(player: Player, spotId: any)
 	end
 	if not spot then
 		reject(player, spotId, "Gone")
+		return
+	end
+	-- The Mega Dig site: dug by everyone together.
+	if spot.mega then
+		local p = root.Position
+		if
+			Zones.flatDistance(p.X, p.Z, spot.position.X, spot.position.Z)
+				> (spot.range or DigConfig.serverRange)
+			or math.abs(p.Y - spot.position.Y) > 14
+		then
+			reject(player, spotId, "TooFar")
+		elseif MegaDigService.onHit(player, data) then
+			character:SetAttribute("DigHits", ((character:GetAttribute("DigHits") :: number?) or 0) + 1)
+		end
 		return
 	end
 	if spot.vip then
@@ -230,7 +245,7 @@ function finish(
 		clue = spot.clue,
 		luck = if DigService.luckAllowed(player) then Perks.luckMultipliers(data) else nil,
 		serverBoost = ServerBoostService.isActive(),
-		jackpot = spot.jackpot,
+		jackpot = spot.jackpot or spot.forceRarity,
 		streak = Streak.onDig(streak, os.clock()),
 		deep = wasDeep,
 		goldenX = isGoldenX,

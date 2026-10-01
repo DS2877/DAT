@@ -27,6 +27,12 @@ export type Spot = {
 	vip: boolean?,
 	-- A hidden treasure's rarity (server only; the spot looks normal).
 	jackpot: string?,
+	-- The Mega Dig site (dug by everyone together, see MegaDigService).
+	mega: boolean?,
+	-- How far from the center it can be dug (default Dig.serverRange).
+	range: number?,
+	-- An admin-spawned spot with a guaranteed rarity.
+	forceRarity: string?,
 }
 
 local DigSpotService = {}
@@ -374,7 +380,14 @@ end
 function DigSpotService.pickHidden(areaId: string): Spot?
 	local options = {}
 	for _, spot in active do
-		if spot.areaId == areaId and not spot.vip and not spot.jackpot and not spot.reservedBy then
+		if
+			spot.areaId == areaId
+			and not spot.vip
+			and not spot.mega
+			and not spot.jackpot
+			and not spot.forceRarity
+			and not spot.reservedBy
+		then
 			table.insert(options, spot)
 		end
 	end
@@ -382,6 +395,71 @@ function DigSpotService.pickHidden(areaId: string): Spot?
 		return nil
 	end
 	return options[rng:NextInteger(1, #options)]
+end
+
+-- A normal-looking dig spot at a position (admin spawns). `fields` sets
+-- extras such as forceRarity / clue.
+function DigSpotService.spawnAt(position: Vector3, areaId: string, fields: { [string]: any }?): Spot
+	nextId += 1
+	local clue = fields and fields.clue
+	local model = newModel()
+	placeModel(model, position, clue)
+	model:SetAttribute("SpotId", nextId)
+	model:SetAttribute("AreaId", areaId)
+	model:SetAttribute("Clue", clue)
+	local spot: Spot = {
+		id = nextId,
+		areaId = areaId,
+		position = position,
+		candidateIndex = 0,
+		model = model,
+		clue = clue,
+		reservedBy = nil,
+		reservedUntil = 0,
+	}
+	for key, value in fields or {} do
+		(spot :: any)[key] = value
+	end
+	active[nextId] = spot
+	model.Parent = spotsFolder
+	return spot
+end
+
+-- Registers a custom-built spot model (the Mega Dig site).
+function DigSpotService.addSpecial(
+	model: Model,
+	position: Vector3,
+	areaId: string,
+	fields: { [string]: any }
+): Spot
+	nextId += 1
+	model:SetAttribute("SpotId", nextId)
+	model:SetAttribute("AreaId", areaId)
+	local spot: Spot = {
+		id = nextId,
+		areaId = areaId,
+		position = position,
+		candidateIndex = 0,
+		model = model,
+		clue = nil,
+		reservedBy = nil,
+		reservedUntil = 0,
+	}
+	for key, value in fields do
+		(spot :: any)[key] = value
+	end
+	active[nextId] = spot
+	model.Parent = spotsFolder
+	return spot
+end
+
+-- Removes a special spot without a replacement.
+function DigSpotService.remove(spotId: number)
+	local spot = active[spotId]
+	if spot then
+		active[spotId] = nil
+		spot.model:Destroy()
+	end
 end
 
 function DigSpotService.get(spotId: number): Spot?
@@ -395,6 +473,11 @@ function DigSpotService.consume(spotId: number)
 		return
 	end
 	active[spotId] = nil
+	if spot.mega or spot.forceRarity then
+		-- One-off spots: gone for good.
+		spot.model:Destroy()
+		return
+	end
 	spot.model.Parent = nil
 	spot.model:SetAttribute("Vip", nil)
 	table.insert(pool, spot.model)

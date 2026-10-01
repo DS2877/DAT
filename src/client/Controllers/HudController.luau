@@ -36,6 +36,7 @@ local streakCount: TextLabel
 local streakBonus: TextLabel
 local streakToken = 0
 local topButtons: Frame
+local megaLabel: TextLabel
 local rushLabel: TextLabel
 local chipRow: Frame
 
@@ -232,6 +233,15 @@ local function build()
 	rushLabel = Ui.label({
 		Name = "Rush",
 		Position = UDim2.fromOffset(16, 164),
+		Size = UDim2.fromOffset(196, 20),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Parent = root,
+	})
+
+	-- Mega Dig countdown under the rush timer.
+	megaLabel = Ui.label({
+		Name = "MegaDig",
+		Position = UDim2.fromOffset(16, 186),
 		Size = UDim2.fromOffset(196, 20),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Parent = root,
@@ -437,6 +447,12 @@ function Hud.setBadge(button: GuiObject, on: boolean)
 	elseif not on and badge then
 		badge:Destroy()
 	end
+end
+
+function Hud.setMegaText(text: string, active: boolean)
+	megaLabel.Text = text
+	megaLabel.TextColor3 = if active then C.Gold else C.White
+	megaLabel.Font = if active then Ui.TitleFont else Ui.Font
 end
 
 function Hud.setRushText(text: string, active: boolean)
