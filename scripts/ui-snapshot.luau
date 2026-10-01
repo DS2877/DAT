@@ -195,7 +195,7 @@ snap("hud")
 local nearest, best = nil, math.huge
 local spawnPos = player.Character.HumanoidRootPart.Position
 for _, spot in H.workspace.DigSpots:GetChildren() do
-	if spot:GetAttribute("AreaId") == "Beach" then
+	if spot:GetAttribute("AreaId") == "Beach" and not spot:GetAttribute("Vip") then
 		local d = (spot.PrimaryPart.Position - spawnPos).Magnitude
 		if d < best then
 			nearest, best = spot, d
@@ -233,7 +233,6 @@ snap("settings")
 H.signal(root.TopButtons:FindFirstChild("SettingsButton"), "Activated"):Fire({})
 
 -- The Auto Dig offer: a player without the pass holds DIG.
-H.require(Shared.Config.Monetization).Passes.AutoDig.id = 4242
 data.onboarding.guideDone = true
 H.fireServer(player, "RequestSync")
 H.moveTo(player, nearest.PrimaryPart.Position + V3(2, 0, 0))
@@ -242,6 +241,26 @@ local finger = { UserInputType = roblox.Enum.UserInputType.Touch, KeyCode = robl
 H.signal(root.DigButton, "InputBegan"):Fire(finger)
 task.wait(1)
 snap("autodig")
+local UserInputService = H.wrap(H.unwrap(game:GetService("UserInputService")))
+H.signal(UserInputService, "InputEnded"):Fire(finger)
+
+-- The shop, on each tab (as a player who owns Auto Dig and Auto Sell).
+data.passes.AutoDig = true
+data.passes.AutoSell = true
+data.ownedCosmetics.Pirate = true
+data.equippedSkin = "Pirate"
+H.fireServer(player, "RequestSync")
+task.wait(0.3)
+H.signal(root.ShopButton, "Activated"):Fire({})
+snap("shop_passes")
+for _, tab in { "Boosts", "Cash", "Skins" } do
+	H.signal(root.Shop:FindFirstChild(tab, true), "Activated"):Fire({})
+	snap("shop_" .. string.lower(tab))
+end
+H.signal(root.ShopButton, "Activated"):Fire({})
+table.insert(data.bagContents, { id = "Shell", v = 12 })
+H.fireServer(player, "RequestSync")
+snap("hud_owner")
 
 running = false
 fs.writeFile(process.args[2] or "ui.json", serde.encode("json", scenes))

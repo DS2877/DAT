@@ -40,6 +40,7 @@ export type BuiltWorld = {
 	candidates: { [string]: { Vector3 } },
 	baseFront: Vector3,
 	shelfSlots: { CFrame },
+	vipSpot: Vector3,
 }
 
 local function shelfSlots(deckTop: number): { CFrame }
@@ -139,6 +140,7 @@ function MapBuilder.build(): BuiltWorld
 		candidates = candidates,
 		shelfSlots = shelfSlots(deckTop),
 		baseFront = Vector3.new((L.base.minX + L.base.maxX) / 2, deckTop, L.base.minZ),
+		vipSpot = base.vipSpot,
 	}
 end
 

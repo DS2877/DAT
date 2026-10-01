@@ -70,13 +70,13 @@ end)
 test("bag fills up to capacity and totals values", function()
 	local contents = {}
 	for i = 1, 10 do
-		expect.eq(Bag.add(contents, { id = "Shell", v = i }, 1), true)
+		expect.eq(Bag.add(contents, { id = "Shell", v = i }, Progression.bagCapacity(1)), true)
 	end
-	expect.eq(Bag.isFull(contents, 1), true)
-	expect.eq(Bag.add(contents, { id = "Shell", v = 100 }, 1), false)
+	expect.eq(Bag.isFull(contents, Progression.bagCapacity(1)), true)
+	expect.eq(Bag.add(contents, { id = "Shell", v = 100 }, Progression.bagCapacity(1)), false)
 	expect.eq(Bag.count(contents), 10)
 	expect.eq(Bag.totalValue(contents), 55)
-	expect.eq(Bag.isFull(contents, 2), false) -- bigger bag has room
+	expect.eq(Bag.isFull(contents, Progression.bagCapacity(2)), false) -- bigger bag has room
 end)
 
 test("the shared goal is the next shovel, then the rebirth (never a bag)", function()

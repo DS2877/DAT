@@ -34,10 +34,16 @@ function DataSchema.template(): { [string]: any }
 		digCharges = { Rare = 0, Epic = 0 }, -- guaranteed-rarity digs from rewards
 		groupRewardClaimed = false,
 		weekly = { week = 0, cashEarned = 0, rebirths = 0, bestScore = 0 },
-		processedPurchaseIds = {}, -- Phase 5
-		ownedCosmetics = {}, -- Phase 5
+		processedPurchaseIds = {}, -- recent developer product PurchaseIds (oldest first)
+		ownedCosmetics = {}, -- [skinId] = true for bought shovel skins
+		equippedSkin = "", -- "" = the shovel's own look
+		passes = {}, -- [passKey] = true for owned game passes (cached from Roblox)
+		starterPackBought = false,
+		instantDeepDigs = 0, -- Instant Deep Digs bought while none was running
+		robuxSpent = 0,
 		activeBoosts = {}, -- [boostId] = expiry unix time
-		settings = { music = true, sounds = true }, -- player's audio settings
+		-- Audio settings, and on/off switches for perks the player owns.
+		settings = { music = true, sounds = true, autoDig = true, autoSell = true, radar = true },
 		onboarding = {
 			funnelStep = 0, -- highest analytics onboarding step logged
 			guideDone = false, -- the new-player arrow has finished

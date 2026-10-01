@@ -50,6 +50,8 @@ export type DigContext = {
 	deep: boolean,
 	goldenX: boolean,
 	friends: number, -- friends in the server (cash bonus)
+	luck: { [string]: number }?, -- 2x Luck pass odds multipliers (off by default)
+	serverBoost: boolean?, -- a bought server-wide 2x Cash is running
 }
 
 local function atLeast(current: string?, minimum: string): string
@@ -94,8 +96,11 @@ function LootService.rollFor(data: { [string]: any }, context: DigContext): Find
 	local roll = LootRoller.roll(context.areaId, rng, {
 		minRarity = minRarity,
 		oddsMultipliers = combineMultipliers(
-			if context.clue then Loot.clueOddsMultipliers else nil,
-			if rushActive then Retention.rush.oddsMultipliers else nil
+			combineMultipliers(
+				if context.clue then Loot.clueOddsMultipliers else nil,
+				if rushActive then Retention.rush.oddsMultipliers else nil
+			),
+			context.luck
 		),
 		rebirths = data.rebirths,
 	})
@@ -108,7 +113,7 @@ function LootService.rollFor(data: { [string]: any }, context: DigContext): Find
 	local firstFind = if isNew then Loot.firstFindMultiplier else 1
 	-- Bonuses are taken before recording this find, so the find that
 	-- completes a set isn't boosted by its own set bonus.
-	local cashMultiplier = Bonuses.cashMultiplier(data, context.friends, now)
+	local cashMultiplier = Bonuses.cashMultiplier(data, context.friends, now, context.serverBoost)
 	local value = math.max(
 		1,
 		math.floor(roll.value * multiplier * firstFind * (1 + streakBonus) * cashMultiplier + 0.5)

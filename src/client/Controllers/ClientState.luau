@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Bag = require(ReplicatedStorage.Shared.Logic.Bag)
 local Bonuses = require(ReplicatedStorage.Shared.Logic.Bonuses)
+local Perks = require(ReplicatedStorage.Shared.Logic.Perks)
 local Progression = require(ReplicatedStorage.Shared.Logic.Progression)
 local Signal = require(ReplicatedStorage.Shared.Util.Signal)
 
@@ -30,7 +31,14 @@ export type Snapshot = {
 	groupRewardClaimed: boolean,
 	digCharges: { Rare: number, Epic: number },
 	activeBoosts: { [string]: number },
-	settings: { music: boolean, sounds: boolean }?,
+	settings: { [string]: boolean }?, -- music, sounds, autoDig, autoSell, radar
+	-- Purchases (from PurchaseService)
+	passes: { [string]: boolean }?,
+	ownedCosmetics: { [string]: boolean }?,
+	equippedSkin: string?,
+	starterPackBought: boolean?,
+	instantDeepDigs: number?,
+	paidRandomRestricted: boolean?,
 }
 
 local ClientState = {}
@@ -51,12 +59,24 @@ end
 
 function ClientState.bagCapacity(): number
 	local data = ClientState.data
-	return if data then Progression.bagCapacity(data.bagLevel) else 0
+	return if data then Perks.bagCapacity(data :: any) else 0
 end
 
 function ClientState.isBagFull(): boolean
 	local data = ClientState.data
-	return data ~= nil and Bag.isFull(data.bag, data.bagLevel)
+	return data ~= nil and Bag.isFull(data.bag, ClientState.bagCapacity())
+end
+
+-- True if the player owns the pass (directly or through VIP).
+function ClientState.hasPass(key: string): boolean
+	local data = ClientState.data
+	return data ~= nil and Perks.has(data :: any, key)
+end
+
+-- True if the player owns the pass and has the perk switched on.
+function ClientState.perkOn(key: string): boolean
+	local data = ClientState.data
+	return data ~= nil and Perks.enabled(data :: any, key)
 end
 
 function ClientState.bagValue(): number

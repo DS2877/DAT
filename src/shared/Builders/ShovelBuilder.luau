@@ -7,6 +7,9 @@ local Progression = require(script.Parent.Parent.Logic.Progression)
 
 local ShovelBuilder = {}
 
+-- A cosmetic skin (Config/Monetization.Skins): replaces the level's colors.
+export type Skin = { blade: string, handle: string, material: string, glow: boolean }
+
 -- Where the hand grips the handle (in Handle space), and how the shovel sits
 -- in the hand (in hand space). Tweak these two if the grip looks off.
 ShovelBuilder.GripOffset = CFrame.new(0, 1.0, 0)
@@ -40,19 +43,22 @@ local function makePart(
 	return part
 end
 
--- `tint` (hex) recolors the blade toward a rebirth color.
-function ShovelBuilder.build(level: number, tint: string?): Model
+-- `tint` (hex) recolors the blade toward a rebirth color; a `skin`
+-- replaces the colors entirely.
+function ShovelBuilder.build(level: number, tint: string?, skin: Skin?): Model
 	local def = Progression.getShovel(level)
 	local model = Instance.new("Model")
 	model.Name = "Shovel"
 	model:SetAttribute("ShovelLevel", def.level)
 
-	local bladeColor = Color3.fromHex(def.bladeColor)
-	if tint then
+	local bladeColor = Color3.fromHex(if skin then skin.blade else def.bladeColor)
+	if tint and not skin then
 		bladeColor = bladeColor:Lerp(Color3.fromHex(tint), 0.55)
 	end
-	local handleColor = Color3.fromHex(def.handleColor)
-	local bladeMaterial = (Enum.Material :: any)[def.bladeMaterial] or Enum.Material.SmoothPlastic
+	local handleColor = Color3.fromHex(if skin then skin.handle else def.handleColor)
+	local bladeMaterial = (Enum.Material :: any)[if skin then skin.material else def.bladeMaterial]
+		or Enum.Material.SmoothPlastic
+	local glow = if skin then skin.glow else def.glow
 
 	-- Handle: an unrotated block so the model frame equals the handle frame.
 	local handle = makePart(
@@ -106,7 +112,7 @@ function ShovelBuilder.build(level: number, tint: string?): Model
 		bladeMaterial
 	)
 
-	if def.glow then
+	if glow then
 		local light = Instance.new("PointLight")
 		light.Color = bladeColor
 		light.Range = 6
@@ -128,7 +134,7 @@ end
 
 -- Attaches a shovel model to a character's right hand. Returns the model, or
 -- nil if the character has no recognizable right hand.
-function ShovelBuilder.attach(character: Model, level: number, tint: string?): Model?
+function ShovelBuilder.attach(character: Model, level: number, tint: string?, skin: Skin?): Model?
 	local hand = character:FindFirstChild("RightHand") :: BasePart?
 	local offset = ShovelBuilder.HandOffsetR15
 	if not hand then
@@ -142,7 +148,7 @@ function ShovelBuilder.attach(character: Model, level: number, tint: string?): M
 	if existing then
 		existing:Destroy()
 	end
-	local model = ShovelBuilder.build(level, tint)
+	local model = ShovelBuilder.build(level, tint, skin)
 	local handle = model.PrimaryPart :: BasePart
 	model:PivotTo(hand.CFrame * offset * ShovelBuilder.GripOffset:Inverse())
 	local weld = Instance.new("Weld")

@@ -97,6 +97,16 @@ function PlayerData.changed(player: Player)
 	end)
 end
 
+-- Saves a profile right away (purchases call this before confirming a
+-- receipt). True when the save went through.
+function PlayerData.saveNow(player: Player): boolean
+	local session = sessions[player]
+	if not session then
+		return false
+	end
+	return store:save(session, false)
+end
+
 local function onPlayerAdded(player: Player)
 	local key = keyFor(player.UserId)
 	-- Same-server rejoin: wait for the previous session's release to finish.

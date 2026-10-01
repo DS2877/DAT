@@ -93,7 +93,7 @@ print("\n== Dig ==")
 local function spotList(area: string)
 	local list = {}
 	for _, spot in spots:GetChildren() do
-		if spot:GetAttribute("AreaId") == area then
+		if spot:GetAttribute("AreaId") == area and not spot:GetAttribute("Vip") then
 			table.insert(list, spot)
 		end
 	end
@@ -206,48 +206,160 @@ task.wait(0.05)
 check(data.settings.cash == nil and data.settings.sounds == true, "malformed settings ignored")
 H.fireServer(player, "SetSetting", "music", true)
 
-print("\n== Game passes ==")
-do
-	local Monetization = H.require(game:GetService("ReplicatedStorage").Shared.Config.Monetization)
-	local MonetizationService =
-		H.require(game:GetService("ServerScriptService").Server.Services.MonetizationService)
-	local AutoDig = Monetization.Passes.AutoDig
-	check(
-		MonetizationService.hasPass(player, "AutoDig"),
-		"Auto Dig is free while the pass isn't set up (id 0)"
-	)
-	AutoDig.id = 4242
-	check(not MonetizationService.hasPass(player, "AutoDig"), "with a pass id, Auto Dig needs the pass")
-	H.ownedPasses["8801:4242"] = true
-	local owner = H.addPlayer("PassOwner", 8801)
-	local buyer = H.addPlayer("PassBuyer", 8802)
-	H.waitFor(function()
-		return owner:GetAttribute("Pass_AutoDig") == true
-	end, 3, "pass owner detected")
-	check(MonetizationService.hasPass(owner, "AutoDig"), "owned pass detected on join")
-	check(not MonetizationService.hasPass(buyer, "AutoDig"), "non-owner has no pass")
-	local MarketplaceService = game:GetService("MarketplaceService")
-	H.signal(MarketplaceService, "PromptGamePassPurchaseFinished"):Fire(buyer, 4242, false)
-	task.wait(0.05)
-	check(not MonetizationService.hasPass(buyer, "AutoDig"), "a declined purchase grants nothing")
-	H.signal(MarketplaceService, "PromptGamePassPurchaseFinished"):Fire(buyer, 999, true)
-	task.wait(0.05)
-	check(not MonetizationService.hasPass(buyer, "AutoDig"), "an unknown pass id grants nothing")
-	H.signal(MarketplaceService, "PromptGamePassPurchaseFinished"):Fire(buyer, 4242, true)
-	H.signal(MarketplaceService, "PromptGamePassPurchaseFinished"):Fire(buyer, 4242, true)
-	task.wait(0.05)
-	check(MonetizationService.hasPass(buyer, "AutoDig"), "buying the pass grants it at once")
-	local unlocks = 0
-	for _, event in H.clientEvents("Notify", buyer) do
-		if tostring(event[1]):find("AUTO DIG") then
-			unlocks += 1
-		end
+print("\n== Shop: passes ==")
+local Monetization = H.require(Shared.Config.Monetization)
+local Perks = H.require(Shared.Logic.Perks)
+local Bonuses = H.require(Shared.Logic.Bonuses)
+local MarketplaceService = game:GetService("MarketplaceService")
+local Passes, Products = Monetization.Passes, Monetization.Products
+H.ownedPasses["8801:" .. Passes.AutoDig.id] = true
+local owner = H.addPlayer("PassOwner", 8801)
+local buyer = H.addPlayer("PassBuyer", 8802)
+H.waitFor(function()
+	return owner:GetAttribute("Pass_AutoDig") == true
+		and PlayerData.get(buyer) ~= nil
+		and buyer.Character ~= nil
+end, 5, "pass owner detected")
+local ownerData, buyerData = PlayerData.get(owner), PlayerData.get(buyer)
+check(ownerData.passes.AutoDig == true, "a pass owned on Roblox is detected on join")
+check(not Perks.has(buyerData, "AutoDig"), "a player without the pass doesn't have it")
+H.signal(MarketplaceService, "PromptGamePassPurchaseFinished"):Fire(buyer, Passes.VIP.id, false)
+H.signal(MarketplaceService, "PromptGamePassPurchaseFinished"):Fire(buyer, 999, true)
+task.wait(0.05)
+check(not Perks.has(buyerData, "VIP"), "a declined or unknown purchase grants nothing")
+H.signal(MarketplaceService, "PromptGamePassPurchaseFinished"):Fire(buyer, Passes.VIP.id, true)
+H.signal(MarketplaceService, "PromptGamePassPurchaseFinished"):Fire(buyer, Passes.VIP.id, true)
+task.wait(0.1)
+check(Perks.has(buyerData, "VIP") and buyer:GetAttribute("VIP") == true, "buying VIP grants it at once")
+check(
+	Perks.has(buyerData, "AutoDig") and Perks.has(buyerData, "AutoSell"),
+	"VIP includes Auto Dig and Auto Sell"
+)
+check(buyerData.equippedSkin == "VIPGold", "VIP puts on the VIP Gold shovel")
+local title = buyer.Character.Head:FindFirstChild("RankTitle")
+check(
+	title ~= nil and title:FindFirstChildOfClass("TextLabel").Text:find("PassBuyer") ~= nil,
+	"VIP shows a gold name"
+)
+local unlocks = 0
+for _, event in H.clientEvents("Notify", buyer) do
+	if tostring(event[1]):find("VIP UNLOCKED") then
+		unlocks += 1
 	end
-	check(unlocks == 1, "one unlock message for a repeated purchase event (" .. unlocks .. ")")
-	H.removePlayer(owner)
-	H.removePlayer(buyer)
-	AutoDig.id = 0
 end
+check(unlocks == 1, "one unlock message for a repeated purchase event (" .. unlocks .. ")")
+H.fireServer(buyer, "SetSetting", "autoSell", false)
+task.wait(0.05)
+check(
+	Perks.has(buyerData, "AutoSell") and not Perks.enabled(buyerData, "AutoSell"),
+	"Auto Sell can be switched off"
+)
+H.fireServer(buyer, "SetSetting", "autoSell", true)
+task.wait(0.05)
+check(Perks.enabled(buyerData, "AutoSell"), "and back on")
+ownerData.passes.BigBag = true
+check(Perks.bagCapacity(ownerData) == 15, "+50% Bag: 10 becomes 15")
+ownerData.passes.BigBag = nil
+
+print("\n== Shop: developer products ==")
+local cashBefore = buyerData.cash
+local expected = Bonuses.rewardCash(Products.CashSmall.grant, buyerData)
+check(
+	H.processReceipt(8802, Products.CashSmall.id, "receipt-1") == "PurchaseGranted",
+	"cash pack receipt granted"
+)
+check(buyerData.cash == cashBefore + expected, "cash pack added " .. expected)
+check(
+	H.processReceipt(8802, Products.CashSmall.id, "receipt-1") == "PurchaseGranted",
+	"a retried receipt is acknowledged"
+)
+check(buyerData.cash == cashBefore + expected, "a retried receipt is never granted twice")
+check(
+	table.find(buyerData.processedPurchaseIds, "receipt-1") ~= nil,
+	"the purchase id is recorded in the profile"
+)
+table.insert(H.allowedWarnings, "receipt for an unknown product")
+check(H.processReceipt(8802, 123, "receipt-x") == "NotProcessedYet", "an unknown product is not granted")
+check(
+	H.processReceipt(99999, Products.CashSmall.id, "receipt-y") == "NotProcessedYet",
+	"a player not in the server is retried later"
+)
+H.processReceipt(8802, Products.BoostCash.id)
+check((buyerData.activeBoosts.Cash2x or 0) > os.time() + 800, "2x Cash boost: 15 minutes")
+H.processReceipt(8802, Products.StarterPack.id)
+check(
+	buyerData.starterPackBought and buyerData.ownedCosmetics.Explorer and buyerData.equippedSkin == "Explorer",
+	"Starter Pack: one-time flag, Explorer skin owned and worn"
+)
+H.processReceipt(8802, Products.SkinPirate.id)
+check(buyerData.ownedCosmetics.Pirate == true, "skin bought")
+H.fireServer(buyer, "EquipSkin", "Lava")
+task.wait(0.05)
+check(buyerData.equippedSkin == "Pirate", "can't equip a skin you don't own")
+H.fireServer(buyer, "EquipSkin", "")
+task.wait(0.05)
+check(buyerData.equippedSkin == "", "skin taken off")
+H.processReceipt(8802, Products.ServerBoost.id)
+task.wait(0.05)
+check(
+	(workspace:GetAttribute("ServerBoostUntil") or 0) > workspace:GetServerTimeNow() + 500
+		and workspace:GetAttribute("ServerBoostBy") == "PassBuyer",
+	"server boost runs for everyone, credited to the buyer"
+)
+local thanked = false
+for _, event in H.clientEvents("Notify", player) do
+	thanked = thanked or tostring(event[1]):find("BOOSTED THE SERVER") ~= nil
+end
+check(thanked, "everyone sees who boosted the server")
+H.processReceipt(8802, Products.InstantDeepDig.id)
+task.wait(0.1)
+check(buyerData.instantDeepDigs == 1, "Instant Deep Dig with no Deep Dig running is saved for later")
+
+print("\n== Shop: perks in play ==")
+-- Auto Sell: the bag sells itself the moment it fills.
+local capacity = Perks.bagCapacity(buyerData)
+buyerData.bagContents = {}
+for _ = 1, capacity - 1 do
+	table.insert(buyerData.bagContents, { id = "Shell", v = 5 })
+end
+local salesBefore = buyerData.stats.sales
+local autoFind = digSpot(buyer, spotList("Beach")[1])
+check(autoFind ~= nil, "dug the last treasure that fills the bag")
+H.waitFor(function()
+	return #buyerData.bagContents == 0
+end, 3, "auto sell")
+check(#buyerData.bagContents == 0 and buyerData.stats.sales == salesBefore + 1, "Auto Sell sold the full bag")
+local sold = H.lastClientEvent("Sold", buyer)
+check(sold and sold[1].source == "AutoSell", "the sale is marked as an auto sale")
+-- SELL button anywhere (Auto Sell owners only).
+table.insert(buyerData.bagContents, { id = "Shell", v = 5 })
+table.insert(ownerData.bagContents, { id = "Shell", v = 5 })
+H.fireServer(buyer, "SellAnywhere")
+H.fireServer(owner, "SellAnywhere")
+task.wait(0.05)
+check(#buyerData.bagContents == 0, "SELL anywhere works with Auto Sell")
+check(#ownerData.bagContents == 1, "SELL anywhere is refused without Auto Sell")
+-- The VIP dig spot.
+local vipSpot = nil
+for _, spot in spots:GetChildren() do
+	if spot:GetAttribute("Vip") then
+		vipSpot = spot
+	end
+end
+check(vipSpot ~= nil, "the VIP dig spot exists")
+if vipSpot then
+	check(
+		math.abs(vipSpot.PrimaryPart.Position.X - MapLayout.vipSite.x) < 1,
+		"the VIP spot is at the VIP site"
+	)
+	local _, reason = digSpot(owner, vipSpot)
+	check(reason == "VipOnly", "the VIP spot refuses non-VIPs (" .. tostring(reason) .. ")")
+	local vipFind = digSpot(buyer, vipSpot)
+	check(vipFind ~= nil, "a VIP digs the VIP spot")
+end
+H.removePlayer(owner)
+H.removePlayer(buyer)
+workspace:SetAttribute("ServerBoostUntil", nil)
 
 print("\n== Bad client input ==")
 local errorsBefore = #H.errors

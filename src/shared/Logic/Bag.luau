@@ -2,8 +2,6 @@
 -- Pure bag helpers. Bag contents are saved, so items are tiny records:
 -- { id = treasureId, v = value, m = mutation id or nil }.
 
-local Progression = require(script.Parent.Progression)
-
 export type BagItem = { id: string, v: number, m: string? }
 
 local Bag = {}
@@ -20,13 +18,14 @@ function Bag.totalValue(contents: { BagItem }): number
 	return total
 end
 
-function Bag.isFull(contents: { BagItem }, bagLevel: number): boolean
-	return #contents >= Progression.bagCapacity(bagLevel)
+-- `capacity` comes from Perks.bagCapacity (bag level + the +50% Bag pass).
+function Bag.isFull(contents: { BagItem }, capacity: number): boolean
+	return #contents >= capacity
 end
 
 -- Adds an item if there is room. Returns true when added.
-function Bag.add(contents: { BagItem }, item: BagItem, bagLevel: number): boolean
-	if Bag.isFull(contents, bagLevel) then
+function Bag.add(contents: { BagItem }, item: BagItem, capacity: number): boolean
+	if Bag.isFull(contents, capacity) then
 		return false
 	end
 	table.insert(contents, { id = item.id, v = item.v, m = item.m })

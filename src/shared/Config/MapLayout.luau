@@ -58,8 +58,12 @@ local MapLayout = {
 	-- Trophy shelf in front of the boards (slots spread along x).
 	trophyShelf = { z = 224, minX = -24.5, maxX = 24.5 },
 
-	-- Dig spots never spawn inside this rectangle (the base, altar and margin).
-	spotExclusion = { minX = -104, maxX = 64, minZ = 146, maxZ = 262 },
+	-- The VIP dig site on the sand, front-right of the plaza (mirrors the altar).
+	vipSite = { x = 84, z = 176, radius = 8 },
+
+	-- Dig spots never spawn inside this rectangle (the base, altar, VIP site
+	-- and margin).
+	spotExclusion = { minX = -104, maxX = 104, minZ = 146, maxZ = 262 },
 
 	-- Candidate rectangles per area (points are further clipped to land/area).
 	spotRegions = {

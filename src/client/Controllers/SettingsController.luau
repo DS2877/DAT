@@ -1,9 +1,13 @@
 --!strict
--- The ⚙️ Settings panel: music and sound effects on/off. Saved in the
--- player's profile (SetSetting), applied right away by AudioController.
+-- The ⚙️ Settings panel: music and sound effects on/off, plus an on/off
+-- switch for each owned perk that has one (Auto Dig, Auto Sell, Treasure
+-- Radar). Saved in the player's profile (SetSetting); audio applies at once.
+-- The Shop's pass cards use the same switches (SettingsController.set).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Monetization = require(ReplicatedStorage.Shared.Config.Monetization)
+local Signal = require(ReplicatedStorage.Shared.Util.Signal)
 local Sound = require(script.Parent.Parent.Sound)
 local Ui = require(script.Parent.Parent.Ui)
 local ClientState = require(script.Parent.ClientState)
@@ -13,13 +17,33 @@ local C = Ui.Colors
 
 local SettingsController = {}
 
-type Toggle = { key: string, button: TextButton }
+-- Fired (key, on) when a setting is switched on this client.
+SettingsController.Changed = Signal.new()
+
+type Row = { key: string, pass: string?, frame: Frame, button: TextButton }
+
+local ROWS: { { key: string, label: string, pass: string?, order: number } } = {
+	{ key = "music", label = "🎵  Music", order = -2 },
+	{ key = "sounds", label = "🔊  Sounds", order = -1 },
+}
+for passKey, pass in Monetization.Passes do
+	if pass.toggle and pass.enabled ~= false then
+		table.insert(
+			ROWS,
+			{ key = pass.toggle, label = pass.emoji .. "  " .. pass.name, pass = passKey, order = pass.order }
+		)
+	end
+end
+table.sort(ROWS, function(a, b)
+	return a.order < b.order
+end)
 
 local panel: Frame
-local toggles: { Toggle } = {}
+local rows: { Row } = {}
 local pending: { [string]: boolean } = {}
 
-local function current(key: string): boolean
+-- The current value of a setting (a switch not yet saved counts at once).
+function SettingsController.current(key: string): boolean
 	if pending[key] ~= nil then
 		return pending[key]
 	end
@@ -29,11 +53,28 @@ local function current(key: string): boolean
 end
 
 local function refresh()
-	for _, t in toggles do
-		local on = current(t.key)
-		t.button.Text = if on then "ON" else "OFF"
-		Ui.setButtonColor(t.button, if on then C.Green else C.Grey)
+	for _, row in rows do
+		row.frame.Visible = not row.pass or ClientState.hasPass(row.pass)
+		local on = SettingsController.current(row.key)
+		row.button.Text = if on then "ON" else "OFF"
+		Ui.setButtonColor(row.button, if on then C.Green else C.Grey)
 	end
+end
+
+-- Switches a setting: applies it on this client right away and saves it.
+function SettingsController.set(key: string, on: boolean)
+	pending[key] = on
+	if key == "music" then
+		Sound.setGroupEnabled("Music", on)
+	elseif key == "sounds" then
+		Sound.setGroupEnabled("Effects", on)
+		Sound.setGroupEnabled("Ambience", on)
+	end
+	Sound.play("UiClick")
+	refresh()
+	SettingsController.Changed:Fire(key, on)
+	local remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("SetSetting") :: RemoteEvent
+	remote:FireServer(key, on)
 end
 
 local function build()
@@ -43,21 +84,26 @@ local function build()
 		icon = "⚙️",
 		accent = C.Blue,
 		width = 480,
-		height = 262,
+		height = 262 + 84 * (#ROWS - 2),
 		parent = HudController.root(),
 		dim = true,
 	})
 	panel = p.root
 	HudController.registerModal(panel)
-	local list = Ui.new("Frame", {
+	local list = Ui.new("ScrollingFrame", {
 		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ScrollBarThickness = 6,
+		CanvasSize = UDim2.new(),
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		Parent = p.body,
 	}, { Ui.new("UIListLayout", { Padding = UDim.new(0, 12), SortOrder = Enum.SortOrder.LayoutOrder }) })
-	for i, entry in { { "music", "🎵  Music" }, { "sounds", "🔊  Sounds" } } do
-		local row = Ui.new("Frame", {
+	for i, entry in ROWS do
+		local frame = Ui.new("Frame", {
+			Name = entry.key,
 			LayoutOrder = i,
-			Size = UDim2.new(1, 0, 0, 72),
+			Size = UDim2.new(1, -10, 0, 72),
 			BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 			BackgroundTransparency = 0.3,
 			Parent = list,
@@ -66,35 +112,24 @@ local function build()
 			Position = UDim2.fromOffset(18, 14),
 			Size = UDim2.new(1, -180, 1, -28),
 			Font = Ui.TitleFont,
-			Text = entry[2],
+			Text = entry.label,
 			TextColor3 = C.Ink,
 			TextXAlignment = Enum.TextXAlignment.Left,
-			Parent = row,
+			Parent = frame,
 		})
 		local button = Ui.button({
+			Name = "Toggle",
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = UDim2.new(1, -12, 0.5, 0),
 			Size = UDim2.fromOffset(130, 52),
 			Text = "ON",
-			Parent = row,
+			Parent = frame,
 		}, C.Green)
-		local key = entry[1]
+		local key = entry.key
 		button.Activated:Connect(function()
-			local on = not current(key)
-			pending[key] = on
-			-- Apply at once; the server saves it.
-			if key == "music" then
-				Sound.setGroupEnabled("Music", on)
-			else
-				Sound.setGroupEnabled("Effects", on)
-				Sound.setGroupEnabled("Ambience", on)
-			end
-			Sound.play("UiClick")
-			refresh()
-			local remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("SetSetting") :: RemoteEvent
-			remote:FireServer(key, on)
+			SettingsController.set(key, not SettingsController.current(key))
 		end)
-		table.insert(toggles, { key = key, button = button })
+		table.insert(rows, { key = key, pass = entry.pass, frame = frame, button = button })
 	end
 	refresh()
 end

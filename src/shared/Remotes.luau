@@ -11,7 +11,10 @@ return table.freeze({
 	ClaimDaily = "ClaimDaily", -- ()
 	ClaimGroupReward = "ClaimGroupReward", -- ()
 	Rebirth = "Rebirth", -- ()
-	SetSetting = "SetSetting", -- (key: "music" | "sounds", on: boolean)
+	SetSetting = "SetSetting", -- (key: settings key, on: boolean)
+	EquipSkin = "EquipSkin", -- (skinId: string, "" = none)
+	SellAnywhere = "SellAnywhere", -- () Auto Sell's SELL button
+	ShopEvent = "ShopEvent", -- (event: "ShopOpened" | "OfferShown" | "PurchasePrompted", key: string?)
 
 	-- Server -> Client
 	DataSync = "DataSync", -- (snapshot)

@@ -2,6 +2,9 @@
 -- Validates dig hits and completes digs. The client only says "I hit spot N";
 -- the server checks the spot, range, area unlock, bag space and hit timing,
 -- then rolls loot when the required number of hits is reached.
+--
+-- Pass perks handled here: the VIP dig spot (VIP only), Auto Sell (sells
+-- the bag the moment it fills), and Instant Deep Dig (finishes a Deep Dig).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -10,6 +13,7 @@ local Bag = require(ReplicatedStorage.Shared.Logic.Bag)
 local Bonuses = require(ReplicatedStorage.Shared.Logic.Bonuses)
 local DigConfig = require(ReplicatedStorage.Shared.Config.Dig)
 local Loot = require(ReplicatedStorage.Shared.Config.Loot)
+local Perks = require(ReplicatedStorage.Shared.Logic.Perks)
 local Progression = require(ReplicatedStorage.Shared.Logic.Progression)
 local Rush = require(ReplicatedStorage.Shared.Logic.Rush)
 local Streak = require(ReplicatedStorage.Shared.Logic.Streak)
@@ -18,12 +22,14 @@ local Analytics = require(script.Parent.Analytics)
 local AnnouncementService = require(script.Parent.AnnouncementService)
 local CollectionService = require(script.Parent.CollectionService)
 local DigSpotService = require(script.Parent.DigSpotService)
+local EconomyService = require(script.Parent.EconomyService)
 local FriendsService = require(script.Parent.FriendsService)
 local LeaderboardService = require(script.Parent.LeaderboardService)
 local LootService = require(script.Parent.LootService)
 local Net = require(script.Parent.Parent.Net)
 local PlayerData = require(script.Parent.PlayerData)
 local RewardService = require(script.Parent.RewardService)
+local ServerBoostService = require(script.Parent.ServerBoostService)
 
 local DigService = {}
 
@@ -36,9 +42,17 @@ type DigState = {
 }
 
 local states: { [Player]: DigState } = {}
+local finish: (Player, { [string]: any }, DigSpotService.Spot, DigState, boolean) -> ()
 local streaks: { [Player]: Streak.State } = {}
 local random = Random.new()
 local lastRushLogged: { [Player]: number } = {}
+local autoSellQueued: { [Player]: boolean } = {}
+
+-- Set by PurchaseService: whether paid luck may apply to this player
+-- (PolicyService's paid-random-items restriction).
+DigService.luckAllowed = function(_player: Player): boolean
+	return true
+end
 
 -- The id the client uses for its personal daily Golden X spot.
 local GOLDEN_X_ID = -1
@@ -82,7 +96,12 @@ local function onDigHit(player: Player, spotId: any)
 		reject(player, spotId, "Gone")
 		return
 	end
-	if not Progression.isAreaUnlocked(spot.areaId, data.shovelLevel) then
+	if spot.vip then
+		if not Perks.has(data, "VIP") then
+			reject(player, spotId, "VipOnly")
+			return
+		end
+	elseif not Progression.isAreaUnlocked(spot.areaId, data.shovelLevel) then
 		reject(player, spotId, "Locked")
 		return
 	end
@@ -94,7 +113,7 @@ local function onDigHit(player: Player, spotId: any)
 		reject(player, spotId, "TooFar")
 		return
 	end
-	if Bag.isFull(data.bagContents, data.bagLevel) then
+	if Bag.isFull(data.bagContents, Perks.bagCapacity(data)) then
 		reject(player, spotId, "BagFull")
 		return
 	end
@@ -148,6 +167,15 @@ local function onDigHit(player: Player, spotId: any)
 			player,
 			{ spotId = spotId, hits = s.hits, required = s.required, deepDig = true }
 		)
+		-- A saved Instant Deep Dig finishes it right away.
+		if data.instantDeepDigs > 0 then
+			task.delay(0.8, function()
+				if data.instantDeepDigs > 0 and DigService.instantDeepDig(player) then
+					data.instantDeepDigs -= 1
+					PlayerData.changed(player)
+				end
+			end)
+		end
 		return
 	end
 
@@ -160,7 +188,18 @@ local function onDigHit(player: Player, spotId: any)
 		return
 	end
 
-	-- Dig complete.
+	finish(player, data, spot, s, isGoldenX)
+end
+
+-- Completes a dig: rolls the find, bags it, and tells everyone.
+function finish(
+	player: Player,
+	data: { [string]: any },
+	spot: DigSpotService.Spot,
+	s: DigState,
+	isGoldenX: boolean
+)
+	local spotId = spot.id
 	local wasDeep = s.deep
 	s.spotId = -1
 	s.hits = 0
@@ -177,16 +216,22 @@ local function onDigHit(player: Player, spotId: any)
 	end
 	local streak = streaks[player] or Streak.new()
 	streaks[player] = streak
+	-- The VIP spot rolls like a clue spot in the player's best area.
+	local unlocked = Progression.unlockedAreas(data.shovelLevel)
+	local lootArea = if spot.vip then unlocked[#unlocked] or spot.areaId else spot.areaId
 	local find = LootService.rollFor(data, {
-		areaId = spot.areaId,
+		areaId = lootArea,
 		clue = spot.clue,
+		luck = if DigService.luckAllowed(player) then Perks.luckMultipliers(data) else nil,
+		serverBoost = ServerBoostService.isActive(),
 		streak = Streak.onDig(streak, os.clock()),
 		deep = wasDeep,
 		goldenX = isGoldenX,
 		friends = FriendsService.count(player),
 	})
 	LeaderboardService.onFind(data, find)
-	Bag.add(data.bagContents, { id = find.id, v = find.value, m = find.mutation }, data.bagLevel)
+	local capacity = Perks.bagCapacity(data)
+	Bag.add(data.bagContents, { id = find.id, v = find.value, m = find.mutation }, capacity)
 	data.stats.digs += 1
 	data.stats.finds += 1
 	if data.stats.finds == 1 then
@@ -205,6 +250,44 @@ local function onDigHit(player: Player, spotId: any)
 	CollectionService.onFind(player, data, find)
 	AnnouncementService.onFind(player, find, spot.position)
 	PlayerData.changed(player)
+
+	-- Auto Sell: a full bag sells itself (after the find's reveal).
+	if
+		Bag.isFull(data.bagContents, capacity)
+		and Perks.enabled(data, "AutoSell")
+		and not autoSellQueued[player]
+	then
+		autoSellQueued[player] = true
+		task.delay(1.6, function()
+			autoSellQueued[player] = nil
+			if player.Parent and Perks.enabled(data, "AutoSell") then
+				EconomyService.sellAll(player, "AutoSell")
+			end
+		end)
+	end
+end
+
+-- Finishes the player's running Deep Dig at once (Instant Deep Dig).
+-- Returns false if no Deep Dig is running.
+function DigService.instantDeepDig(player: Player): boolean
+	local data = PlayerData.get(player)
+	local state = states[player]
+	if not data or not state or not state.deep or state.spotId <= 0 then
+		return false
+	end
+	local spot = DigSpotService.get(state.spotId)
+	if not spot or spot.reservedBy ~= player then
+		return false
+	end
+	state.hits = state.required
+	finish(player, data, spot, state, false)
+	return true
+end
+
+-- True while the player has a Deep Dig running.
+function DigService.hasDeepDig(player: Player): boolean
+	local state = states[player]
+	return state ~= nil and state.deep and state.spotId > 0
 end
 
 function DigService.init()
@@ -213,6 +296,7 @@ function DigService.init()
 		states[player] = nil
 		streaks[player] = nil
 		lastRushLogged[player] = nil
+		autoSellQueued[player] = nil
 	end)
 end
 

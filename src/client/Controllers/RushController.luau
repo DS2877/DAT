@@ -6,12 +6,15 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Boosts = require(ReplicatedStorage.Shared.Logic.Boosts)
 local Retention = require(ReplicatedStorage.Shared.Config.Retention)
 local Rush = require(ReplicatedStorage.Shared.Logic.Rush)
 local Sound = require(script.Parent.Parent.Sound)
 local AudioController = require(script.Parent.AudioController)
 local Ui = require(script.Parent.Parent.Ui)
+local ClientState = require(script.Parent.ClientState)
 local HudController = require(script.Parent.HudController)
+local ShopController = require(script.Parent.ShopController)
 
 local RushController = {}
 
@@ -66,6 +69,13 @@ local function update()
 				Ui.Colors.Gold,
 				4
 			)
+			-- A 2x Cash boost pairs well with a Rush (a hint, never a prompt).
+			local data = ClientState.data
+			if data and not Boosts.isActive(data.activeBoosts, "Cash2x", os.time()) then
+				task.delay(3, function()
+					ShopController.offer("BoostCash", "left")
+				end)
+			end
 		end
 		wasActive = active
 		for _, spot in spotsFolder:GetChildren() do

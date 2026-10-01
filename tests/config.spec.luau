@@ -106,7 +106,7 @@ test("game passes are well formed", function()
 		expect.truthy(pass.price >= 1 and pass.price % 1 == 0, name .. " price must be whole Robux")
 		expect.truthy(#pass.name > 0 and #pass.description > 0, name .. " needs a name and description")
 	end
-	local offer = Monetization.AutoDigOffer
-	expect.truthy(offer.cooldown >= 60, "the Auto Dig offer must not nag (cooldown >= 60 s)")
-	expect.truthy(offer.maxPerSession >= 1 and offer.visibleSeconds > 0, "offer limits")
+	local offers = Monetization.Offers
+	expect.truthy(offers.offerCooldown >= 60, "offers must not nag (cooldown >= 60 s)")
+	expect.truthy(offers.maxPerSession >= 1 and offers.visibleSeconds > 0, "offer limits")
 end)

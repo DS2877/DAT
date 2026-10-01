@@ -251,6 +251,7 @@ fs.writeFile(
 			spawn = MapLayout.spawn,
 			gates = MapLayout.gates,
 			volcano = MapLayout.volcano,
+			vipSite = MapLayout.vipSite,
 		},
 	})
 )

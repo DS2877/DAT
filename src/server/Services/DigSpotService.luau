@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Areas = require(ReplicatedStorage.Shared.Config.Areas)
 local DigConfig = require(ReplicatedStorage.Shared.Config.Dig)
 local Loot = require(ReplicatedStorage.Shared.Config.Loot)
+local Monetization = require(ReplicatedStorage.Shared.Config.Monetization)
 local Zones = require(ReplicatedStorage.Shared.Logic.Zones)
 local World = require(script.Parent.Parent.World.World)
 
@@ -22,6 +23,8 @@ export type Spot = {
 	-- Set during a Deep Dig: only this player may dig the spot until then.
 	reservedBy: Player?,
 	reservedUntil: number,
+	-- The VIP dig spot at the base (VIP only; never moves).
+	vip: boolean?,
 }
 
 local DigSpotService = {}
@@ -340,6 +343,30 @@ local function scheduleRespawn(areaId: string)
 	end)
 end
 
+-- The VIP dig spot: always at the VIP site, back soon after it's dug.
+local function spawnVipSpot()
+	local position = World.get().vipSpot
+	nextId += 1
+	local model = table.remove(pool) or newModel()
+	placeModel(model, position, "Sparkle")
+	model:SetAttribute("SpotId", nextId)
+	model:SetAttribute("AreaId", "Beach")
+	model:SetAttribute("Clue", "Sparkle")
+	model:SetAttribute("Vip", true)
+	active[nextId] = {
+		id = nextId,
+		areaId = "Beach",
+		position = position,
+		candidateIndex = 0,
+		model = model,
+		clue = "Sparkle",
+		reservedBy = nil,
+		reservedUntil = 0,
+		vip = true,
+	}
+	model.Parent = spotsFolder
+end
+
 function DigSpotService.get(spotId: number): Spot?
 	return active[spotId]
 end
@@ -351,9 +378,14 @@ function DigSpotService.consume(spotId: number)
 		return
 	end
 	active[spotId] = nil
-	occupied[spot.areaId][spot.candidateIndex] = nil
 	spot.model.Parent = nil
+	spot.model:SetAttribute("Vip", nil)
 	table.insert(pool, spot.model)
+	if spot.vip then
+		task.delay(Monetization.VipSpot.respawnSeconds, spawnVipSpot)
+		return
+	end
+	occupied[spot.areaId][spot.candidateIndex] = nil
 	scheduleRespawn(spot.areaId)
 end
 
@@ -382,6 +414,7 @@ function DigSpotService.start()
 			end
 		end
 	end
+	spawnVipSpot()
 end
 
 return DigSpotService

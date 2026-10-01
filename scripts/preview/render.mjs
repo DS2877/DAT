@@ -49,6 +49,10 @@ const VIEWS = {
 		pos: [L.gates.Volcano.x, highY + 14, L.gates.Volcano.z - 40],
 		target: [L.volcano.x, highY + 40, L.volcano.z],
 	},
+	vipSite: {
+		pos: [L.vipSite.x - 10, beachY + 22, L.vipSite.z - 34],
+		target: [L.vipSite.x, beachY + 2, L.vipSite.z],
+	},
 	top: { pos: [0, 900, (map.bounds.minZ + map.bounds.maxZ) / 2 + 1], target: [0, 0, (map.bounds.minZ + map.bounds.maxZ) / 2], fov: 50 },
 };
 const views = viewArgs.length > 0 ? viewArgs : ["spawn", "baseEast", "baseAir", "beach", "jungle", "ruins", "volcano", "island"];

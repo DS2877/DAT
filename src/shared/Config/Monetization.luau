@@ -44,7 +44,7 @@ local Monetization = {
 	-- Permanent perks. A price ladder from cheap convenience to VIP.
 	Passes = {
 		AutoDig = {
-			id = 0,
+			id = 2001530846,
 			name = "Auto Dig",
 			description = "Hold the DIG button to keep digging, instead of tapping for every hit. Turn it on or off any time in the Shop or Settings.",
 			blurb = "Hold DIG to keep digging. On/off any time.",
@@ -55,7 +55,7 @@ local Monetization = {
 			toggle = "autoDig",
 		},
 		TreasureRadar = {
-			id = 0,
+			id = 2002178830,
 			name = "Treasure Radar",
 			description = "An arrow points to the nearest clue spot (clue spots have better odds). Turn it on or off any time.",
 			blurb = "An arrow points to the nearest clue spot.",
@@ -66,7 +66,7 @@ local Monetization = {
 			toggle = "radar",
 		},
 		BigBag = {
-			id = 0,
+			id = 2001482860,
 			name = "+50% Bag",
 			description = "Your bag holds 50% more treasure, at every bag level (10 becomes 15, 100 becomes 150).",
 			blurb = "Your bag holds 50% more (10 → 15).",
@@ -76,7 +76,7 @@ local Monetization = {
 			order = 3,
 		},
 		AutoSell = {
-			id = 0,
+			id = 2002844650,
 			name = "Auto Sell",
 			description = "Sell from anywhere: your bag sells itself the moment it's full, and you can tap SELL on your bag any time. No more walking back. Turn auto-selling on or off any time.",
 			blurb = "Sells your bag the moment it's full, anywhere. Plus a SELL button on your bag.",
@@ -87,7 +87,7 @@ local Monetization = {
 			toggle = "autoSell",
 		},
 		FastDig = {
-			id = 0,
+			id = 1998795889,
 			name = "2x Dig Speed",
 			description = "Dig twice as fast, forever. Adds up with Dig Speed boosts (3x together).",
 			blurb = "Dig 2x faster, forever.",
@@ -97,7 +97,7 @@ local Monetization = {
 			order = 5,
 		},
 		CashX2 = {
-			id = 0,
+			id = 1998771960,
 			name = "2x Cash",
 			description = "Every treasure sells for 2x cash, forever. Stacks with boosts, rebirths and set bonuses.",
 			blurb = "Every treasure sells for 2x, forever.",
@@ -107,7 +107,7 @@ local Monetization = {
 			order = 6,
 		},
 		VIP = {
-			id = 0,
+			id = 2002010877,
 			name = "VIP",
 			description = "Includes Auto Dig and Auto Sell, +10% cash on every sale, a gold name and [VIP] chat tag, the VIP Gold shovel skin, and the VIP dig spot at the base.",
 			blurb = "Auto Dig + Auto Sell, +10% cash, gold name, [VIP] tag, VIP shovel, VIP dig spot.",
@@ -145,7 +145,7 @@ local Monetization = {
 	-- Repeatable purchases (plus a one-time starter pack and skins).
 	Products = {
 		StarterPack = {
-			id = 0,
+			id = 3715770294,
 			name = "Starter Pack",
 			description = "One time only: cash for your next shovel, 30 minutes of 2x Cash, and the Explorer shovel skin.",
 			blurb = "Cash for your next shovel + 30 min 2x Cash + Explorer shovel skin.",
@@ -165,7 +165,7 @@ local Monetization = {
 			},
 		},
 		CashSmall = {
-			id = 0,
+			id = 3715770245,
 			name = "Pouch of Cash",
 			description = "Cash worth 30% of your next shovel (at least $300).",
 			blurb = "30% of your next shovel.",
@@ -177,7 +177,7 @@ local Monetization = {
 			grant = { kind = "Cash", goalPercent = 0.3, min = 300 },
 		},
 		CashMedium = {
-			id = 0,
+			id = 3715770238,
 			name = "Sack of Cash",
 			description = "Cash worth your whole next shovel (at least $1,000).",
 			blurb = "Enough for your next shovel.",
@@ -189,7 +189,7 @@ local Monetization = {
 			grant = { kind = "Cash", goalPercent = 1.0, min = 1000 },
 		},
 		CashLarge = {
-			id = 0,
+			id = 3715770233,
 			name = "Chest of Cash",
 			description = "Cash worth 3x your next shovel (at least $3,000).",
 			blurb = "3x your next shovel.",
@@ -201,7 +201,7 @@ local Monetization = {
 			grant = { kind = "Cash", goalPercent = 3.0, min = 3000 },
 		},
 		BoostCash = {
-			id = 0,
+			id = 3715770226,
 			name = "2x Cash Boost (15 min)",
 			description = "Everything you sell is worth 2x for 15 minutes. Buying more adds time.",
 			blurb = "2x cash for 15 minutes.",
@@ -213,7 +213,7 @@ local Monetization = {
 			grant = { kind = "Boost", boost = "Cash2x", seconds = 900 },
 		},
 		BoostDig = {
-			id = 0,
+			id = 3715770229,
 			name = "2x Dig Speed Boost (15 min)",
 			description = "Dig twice as fast for 15 minutes. Buying more adds time.",
 			blurb = "Dig 2x faster for 15 minutes.",
@@ -225,7 +225,7 @@ local Monetization = {
 			grant = { kind = "Boost", boost = "DigSpeed2x", seconds = 900 },
 		},
 		ServerBoost = {
-			id = 0,
+			id = 3715770261,
 			name = "Server 2x Cash (10 min)",
 			description = "2x cash for EVERYONE in your server for 10 minutes, with a thank-you shout-out to you.",
 			blurb = "2x cash for everyone in the server for 10 min. Everyone sees who boosted!",
@@ -237,7 +237,7 @@ local Monetization = {
 			grant = { kind = "ServerBoost", seconds = 600 },
 		},
 		InstantDeepDig = {
-			id = 0,
+			id = 3715770253,
 			name = "Instant Deep Dig",
 			description = "Finish a Deep Dig in one tap. If your Deep Dig is already done, it's saved for your next one.",
 			blurb = "Finish a Deep Dig in one tap (saved for later if none is active).",
@@ -249,7 +249,7 @@ local Monetization = {
 			grant = { kind = "InstantDeepDig" },
 		},
 		SkinPirate = {
-			id = 0,
+			id = 3715770283,
 			name = "Pirate Shovel",
 			description = "A cosmetic shovel skin: dark wood and gold. Looks only, works at every shovel level.",
 			blurb = "Dark wood and gold. Looks only.",
@@ -262,7 +262,7 @@ local Monetization = {
 			grant = { kind = "Skin", skin = "Pirate" },
 		},
 		SkinIce = {
-			id = 0,
+			id = 3715770265,
 			name = "Ice Shovel",
 			description = "A cosmetic shovel skin: glowing ice. Looks only, works at every shovel level.",
 			blurb = "Glowing ice. Looks only.",
@@ -275,7 +275,7 @@ local Monetization = {
 			grant = { kind = "Skin", skin = "Ice" },
 		},
 		SkinLava = {
-			id = 0,
+			id = 3715770273,
 			name = "Lava Shovel",
 			description = "A cosmetic shovel skin: molten lava with a glow. Looks only, works at every shovel level.",
 			blurb = "Molten lava with a glow. Looks only.",
@@ -347,9 +347,6 @@ local Monetization = {
 	-- The VIP dig spot at the base: rolls like a clue spot in the player's
 	-- best unlocked area, and comes back quickly.
 	VipSpot = { respawnSeconds = 8 },
-
-	-- TODO(shop): replaced by Offers once the Shop lands.
-	AutoDigOffer = { holdSeconds = 0.7, cooldown = 180, maxPerSession = 3, visibleSeconds = 7 },
 
 	-- Ownership lookups on join are retried this many times.
 	ownershipRetries = 3,

@@ -54,7 +54,7 @@ local function nearestSpot(from: Vector3): BasePart?
 	local best, bestDistance = nil, math.huge
 	for _, spot in folder:GetChildren() do
 		local mound = spot:IsA("Model") and spot.PrimaryPart
-		if mound and spot:GetAttribute("AreaId") == "Beach" then
+		if mound and spot:GetAttribute("AreaId") == "Beach" and not spot:GetAttribute("Vip") then
 			local d = (mound.Position - from).Magnitude
 			if d < bestDistance then
 				best, bestDistance = mound, d

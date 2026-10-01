@@ -5,6 +5,7 @@
 local Boosts = require(script.Parent.Boosts)
 local Collection = require(script.Parent.Collection)
 local Goals = require(script.Parent.Goals)
+local Perks = require(script.Parent.Perks)
 local Progression = require(script.Parent.Progression)
 local Retention = require(script.Parent.Parent.Config.Retention)
 
@@ -15,6 +16,7 @@ export type Parts = {
 	rebirths: number,
 	friends: number,
 	boost: number,
+	passes: number,
 }
 
 function Bonuses.friendsBonus(friendCount: number): number
@@ -22,18 +24,35 @@ function Bonuses.friendsBonus(friendCount: number): number
 	return math.min(f.maxBonus, friendCount * f.bonusPerFriend)
 end
 
-function Bonuses.parts(data: { [string]: any }, friendCount: number, now: number): Parts
+-- `serverBoost`: a bought server-wide 2x Cash is running. It doesn't stack
+-- with a personal 2x Cash boost (the bigger of the two counts).
+function Bonuses.parts(
+	data: { [string]: any },
+	friendCount: number,
+	now: number,
+	serverBoost: boolean?
+): Parts
+	local boost = Boosts.multiplier(data.activeBoosts, "Cash2x", now)
+	if serverBoost then
+		boost = math.max(boost, Retention.boosts.Cash2x.multiplier)
+	end
 	return {
 		sets = Collection.cashMultiplier(data.discovered),
 		rebirths = 1 + data.rebirths * Retention.rebirth.cashBonusPerRebirth,
 		friends = 1 + Bonuses.friendsBonus(friendCount),
-		boost = Boosts.multiplier(data.activeBoosts, "Cash2x", now),
+		boost = boost,
+		passes = Perks.cashMultiplier(data),
 	}
 end
 
-function Bonuses.cashMultiplier(data: { [string]: any }, friendCount: number, now: number): number
-	local p = Bonuses.parts(data, friendCount, now)
-	return p.sets * p.rebirths * p.friends * p.boost
+function Bonuses.cashMultiplier(
+	data: { [string]: any },
+	friendCount: number,
+	now: number,
+	serverBoost: boolean?
+): number
+	local p = Bonuses.parts(data, friendCount, now, serverBoost)
+	return p.sets * p.rebirths * p.friends * p.boost * p.passes
 end
 
 -- Cash for a { kind = "Cash" } reward: a share of the player's next goal.
@@ -42,10 +61,10 @@ function Bonuses.rewardCash(reward: { [string]: any }, data: { [string]: any }):
 	return math.max(reward.min or 0, math.floor(goalCost * (reward.goalPercent or 0) + 0.5))
 end
 
--- Seconds between dig hits for a shovel, with the dig speed boost.
+-- Seconds between dig hits for a shovel, with the dig speed pass / boost.
 function Bonuses.hitInterval(data: { [string]: any }, now: number): number
 	local shovel = Progression.getShovel(data.shovelLevel)
-	return shovel.hitInterval / Boosts.multiplier(data.activeBoosts, "DigSpeed2x", now)
+	return shovel.hitInterval / Perks.digSpeed(data, now)
 end
 
 return Bonuses

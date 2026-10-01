@@ -63,7 +63,9 @@ function EconomyService.spendCash(
 	return true
 end
 
-function EconomyService.sellAll(player: Player): boolean
+-- `source`: "Pad" (the sell zone, default), "AutoSell" (bag filled with
+-- Auto Sell on) or "Anywhere" (Auto Sell's SELL button).
+function EconomyService.sellAll(player: Player, source: string?): boolean
 	local data = PlayerData.get(player)
 	if not data or #data.bagContents == 0 then
 		return false
@@ -82,6 +84,7 @@ function EconomyService.sellAll(player: Player): boolean
 		cash = data.cash,
 		goal = goal,
 		nearGoal = Goals.isNear(goal),
+		source = source or "Pad",
 	})
 	return true
 end

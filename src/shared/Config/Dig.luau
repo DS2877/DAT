@@ -31,7 +31,8 @@ local Dig = {
 	-- Keep at least this many active spots on those near-base points.
 	minNearBaseSpots = 3,
 	-- Max hits per second accepted from one client before rate limiting.
-	maxHitsPerSecond = 8,
+	-- (Room for the fastest shovel with 2x Dig Speed pass + boost.)
+	maxHitsPerSecond = 20,
 }
 
 return table.freeze(Dig)

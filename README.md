@@ -8,6 +8,10 @@ Every push to `main` is checked and published to the Roblox place automatically.
 
 ## Status
 
+**Phase 5 — Monetization** done: a Shop with 7 game passes, 11 developer
+products and shovel skins, contextual offers, and an idempotent receipt
+handler (see Monetization below).
+
 **Phase 4 — Retention** done: rebirth (ranks, +25% cash each, shovel tints,
 rebirth-only Secrets), playtime gifts, 7-day daily reward, daily Golden X,
 Treasure Rush every 15 minutes, leaderboards (all-time and weekly), friends
@@ -28,8 +32,8 @@ src/
     Data/            SessionStore: session-locked DataStore profiles
     Services/        PlayerData, DigSpotService, DigService, LootService,
                      EconomyService, UpgradeService, AreaService,
-                     CharacterService, SettingsService, MonetizationService,
-                     Analytics
+                     CharacterService, SettingsService, PurchaseService,
+                     ServerBoostService, Analytics
     World/           MapBuilder (assembles the island), World (built-world holder)
       Build/         Terrain, Base, Gates, Beach, Jungle, Ruins, Volcano, Candidates, Kit
     Net.luau         Remotes + per-player rate limiting
@@ -64,7 +68,7 @@ Every number lives in `src/shared/Config/`:
 | `Dig.luau` | Dig ranges, respawn timers, anti-cheat tolerances |
 | `MapLayout.luau` | Island geography, base, stations, gates, paths, landmarks |
 | `Movement.luau` | Walk speed, spawn camera zoom |
-| `Monetization.luau` | Game pass ids and prices, the Auto Dig offer's limits |
+| `Monetization.luau` | Passes, products, skins, perk numbers, offer limits |
 
 To add a treasure: append a row in `Treasures.luau` (tests check its value band
 and model archetype).
@@ -136,21 +140,51 @@ crater have 3D loops. Players can turn Music and Sounds off in ⚙️ Settings
 
 ## Monetization
 
-**Auto Dig** (game pass): every tap on DIG digs once (a tap during the swing
-is remembered, so fast tapping keeps full speed); with Auto Dig, holding DIG
-keeps digging. It is a convenience only: the dig speed is the same.
+Everything sold for Robux is listed in `src/shared/Config/Monetization.luau`
+(name, description, price, icon, what it grants). The **Sync store** workflow
+(Actions tab, manual) creates or updates every pass and product on Roblox from
+that file through Open Cloud (`scripts/store-sync.luau`) and prints their ids
+to paste back into the config. Icons live in `store/icons` (rendered by
+`scripts/preview/render-icons.mjs`).
 
-* A player without the pass who keeps holding DIG sees a small bubble beside
-  the button (closeable, hides by itself, at most every 3 minutes and 3 times
-  per session, never during the tutorial). The Roblox purchase prompt opens
-  only when they tap GET.
-* Ownership is checked on join (`UserOwnsGamePassAsync`) and granted at once
-  on a purchase in the server (`PromptGamePassPurchaseFinished`), exposed as
-  the player attribute `Pass_AutoDig`.
-* **Setup:** create the pass in Creator Hub (Creations → the game →
-  Monetization → Passes, price 80) and put its id in
-  `Config/Monetization.luau`. While the id is 0 the perk is free for
-  everyone and nothing is offered.
+| Game pass | Robux | What it does |
+|---|---|---|
+| Auto Dig | 80 | Hold DIG to keep digging (on/off switch) |
+| Treasure Radar | 99 | Arrow to the nearest clue spot (on/off switch) |
+| +50% Bag | 149 | Bag holds 50% more |
+| Auto Sell | 199 | Bag sells itself when full, anywhere, plus a SELL button (on/off switch) |
+| 2x Dig Speed | 249 | Dig twice as fast (3x with a boost, max) |
+| 2x Cash | 299 | Every sale x2 |
+| VIP | 399 | Auto Dig + Auto Sell, +10% cash, gold name, [VIP] chat tag, VIP Gold shovel, VIP dig spot at the base |
+| 2x Luck | 349 | **Off** (`enabled = false`); not created on Roblox until the developer decides |
+
+Developer products: Starter Pack (49, one time), cash packs sized to the next
+shovel (29 / 79 / 199), 15-minute 2x Cash and 2x Dig Speed boosts (49), a
+server-wide 2x Cash for 10 minutes that thanks the buyer (199), Instant Deep
+Dig (25), and shovel skins (99 / 149 / 199).
+
+How purchases work:
+
+* **One `ProcessReceipt` handler** (`PurchaseService`), idempotent: the grant
+  and the receipt's `PurchaseId` are written to the profile together, the
+  profile is saved, and only then is `PurchaseGranted` returned. A retried
+  receipt is never granted twice; a player who isn't in the server, an
+  unknown product or a failed save returns `NotProcessedYet`.
+* **Passes** are checked on join (`UserOwnsGamePassAsync`) and granted at
+  once on `PromptGamePassPurchaseFinished`; they're cached in the profile.
+* **PolicyService** is read per player; 2x Luck (if ever enabled) never
+  applies where paid random items are restricted.
+* **Prompts open only on a tap** of a buy button. Contextual offers (holding
+  DIG without Auto Dig, bag full far from base, Treasure Rush, a Deep Dig,
+  the VIP spot) are small closeable bubbles, at most one every 3 minutes and
+  never during the tutorial.
+* The Shop shows the price Roblox reports for the player (price
+  optimization), falling back to the config price.
+* Analytics: `ShopOpened`, `OfferShown_<item>`, `PurchasePrompted_<item>`,
+  `PurchaseCompleted_<item>` (custom events), cash packs as IAP economy events.
+
+Not built yet: rewarded video ads (`ads.enabled = false`), the Treasure Club
+subscription, and private servers (a Creator Hub setting).
 
 ## Data
 

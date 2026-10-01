@@ -680,6 +680,89 @@ local function rebirthTemple(base: Instance, rng: Random): BasePart
 	return altar
 end
 
+-- The VIP dig site: a patch of sand inside golden posts and a red rope, with
+-- a crown sign. Returns the ground point where the VIP dig spot sits.
+local function vipSite(base: Instance): Vector3
+	local site = L.vipSite
+	local ground = Kit.medianGround({
+		Vector2.new(site.x - 6, site.z),
+		Vector2.new(site.x + 6, site.z),
+		Vector2.new(site.x, site.z - 6),
+		Vector2.new(site.x, site.z + 6),
+	}, L.beachHeight)
+	local posts = {}
+	for i = 0, 7 do
+		local a = i / 8 * math.pi * 2
+		local p = Vector3.new(site.x + math.cos(a) * site.radius, ground, site.z + math.sin(a) * site.radius)
+		local post = part(base, {
+			name = "VipPost",
+			shape = Enum.PartType.Cylinder,
+			size = Vector3.new(4, 0.7, 0.7),
+			cframe = CFrame.new(p + Vector3.new(0, 2, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+			color = GOLD,
+			material = Enum.Material.Metal,
+		})
+		part(base, {
+			name = "VipPostTop",
+			shape = Enum.PartType.Ball,
+			size = Vector3.new(1.1, 1.1, 1.1),
+			cframe = CFrame.new(p + Vector3.new(0, 4.2, 0)),
+			color = GOLD,
+			material = Enum.Material.Metal,
+			canCollide = false,
+		})
+		table.insert(posts, post)
+	end
+	-- Velvet rope between the posts (left open at the front, facing the island).
+	for i = 1, #posts do
+		local a, b = posts[i].Position, posts[i % #posts + 1].Position
+		local mid = (a + b) / 2
+		if mid.Z < site.z - site.radius * 0.6 then
+			continue
+		end
+		local length = (b - a).Magnitude
+		part(base, {
+			name = "VipRope",
+			size = Vector3.new(0.35, 0.35, length),
+			cframe = CFrame.lookAt(mid + Vector3.new(0, 1.2, 0), b + Vector3.new(0, 1.2, 0)),
+			color = hex("#C0182F"),
+			material = Enum.Material.Fabric,
+			canCollide = false,
+		})
+	end
+	part(base, {
+		name = "VipCarpet",
+		shape = Enum.PartType.Cylinder,
+		size = Vector3.new(0.2, site.radius * 2 + 1, site.radius * 2 + 1),
+		cframe = CFrame.new(site.x, ground + 0.1, site.z) * CFrame.Angles(0, 0, math.rad(90)),
+		color = hex("#9E1B32"),
+		material = Enum.Material.Fabric,
+		canCollide = false,
+		castShadow = false,
+	})
+	local sign = part(base, {
+		name = "VipSign",
+		size = Vector3.new(0.4, 0.4, 0.4),
+		cframe = CFrame.new(site.x, ground + 7, site.z + site.radius),
+		transparency = 1,
+		canCollide = false,
+	})
+	Kit.billboard(sign, "👑 VIP DIG SITE", "Best-area treasure, right at the base", GOLD, 2, 20)
+	local sparkle =
+		Kit.volume(base, "VipSparkles", CFrame.new(site.x, ground + 2, site.z), Vector3.new(12, 4, 12))
+	Kit.emitter(sparkle, {
+		color = GOLD,
+		rate = 5,
+		lifetime = NumberRange.new(1.2, 2),
+		size = NumberSequence.new(0.35, 0),
+		speed = NumberRange.new(0.5, 1.5),
+		lightEmission = 1,
+		direction = Enum.NormalId.Top,
+	})
+	Kit.addObstacle(Vector3.new(site.x, 0, site.z), site.radius + 5)
+	return Vector3.new(site.x, ground, site.z)
+end
+
 -- A leaderboard board with a wooden frame, roof and lanterns.
 local function leaderboard(base: Instance, top: number, board: string, title: string, x: number, z: number)
 	local w, h = 17, 15
@@ -771,6 +854,7 @@ export type BaseInfo = {
 	folder: Folder,
 	deckTop: number,
 	pads: { [string]: BasePart },
+	vipSpot: Vector3,
 }
 
 function Base.build(rng: Random): BaseInfo
@@ -952,7 +1036,9 @@ function Base.build(rng: Random): BaseInfo
 		end
 	end
 
-	return { folder = base, deckTop = top, pads = pads }
+	local vipSpot = vipSite(base)
+
+	return { folder = base, deckTop = top, pads = pads, vipSpot = vipSpot }
 end
 
 return Base

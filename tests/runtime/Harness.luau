@@ -25,7 +25,7 @@ H.clientLog = {} :: { { remote: string, player: any, args: { any } } }
 H.clockOffset = 0
 H.kicked = {} :: { [number]: string }
 H.analytics = {} :: { { string } }
-H.allowedWarnings = {} :: { string }
+H.allowedWarnings = {} :: { string } -- plain substrings of warnings a test expects
 
 local function recordError(context: string, err: any)
 	local message = string.format("[%s] %s", context, tostring(err))
@@ -401,6 +401,15 @@ for _, name in { "AssemblyLinearVelocity", "AssemblyAngularVelocity" } do
 	getters[name] = function(_proxy, inst)
 		return true, stateOf(inst).extra[name] or R.Vector3.zero
 	end
+	setters[name] = function(_proxy, inst, value)
+		stateOf(inst).extra[name] = value
+		return true
+	end
+end
+
+-- Engine callbacks assigned as properties (MarketplaceService.ProcessReceipt,
+-- TextChatService.OnIncomingMessage): kept so tests can call them.
+for _, name in { "ProcessReceipt", "OnIncomingMessage" } do
 	setters[name] = function(_proxy, inst, value)
 		stateOf(inst).extra[name] = value
 		return true
@@ -975,6 +984,15 @@ methods.GetPlayers = function(_proxy, inst)
 	return list
 end
 
+methods.GetPlayerByUserId = function(_proxy, inst, userId)
+	for _, child in inst:GetChildren() do
+		if child:IsA("Player") and child.UserId == userId then
+			return wrap(child)
+		end
+	end
+	return nil
+end
+
 methods.IsFriendsWith = function(_proxy, inst, userId)
 	return H.friends ~= nil and H.friends[inst.UserId .. ":" .. userId] == true
 end
@@ -1071,7 +1089,46 @@ methods.PromptGamePassPurchase = function(proxy, inst, player, passId)
 	end)
 end
 methods.GetProductInfo = function(_proxy, _inst, id)
-	return { Name = "Product " .. tostring(id), PriceInRobux = 80 }
+	return { Name = "Product " .. tostring(id), PriceInRobux = H.productPrices[id] }
+end
+H.productPrices = {} :: { [number]: number }
+
+-- Developer products: a prompt is recorded and, if H.buyPrompts, bought:
+-- ProcessReceipt is called like Roblox does (H.receipts logs decisions).
+H.productPrompts = {} :: { { userId: number, productId: number } }
+H.receipts = {} :: { { purchaseId: string, productId: number, decision: string } }
+local purchaseCounter = 0
+function H.processReceipt(userId: number, productId: number, purchaseId: string?): string
+	local marketplace = unwrap(H.game:GetService("MarketplaceService"))
+	local callback = stateOf(marketplace).extra.ProcessReceipt
+	assert(callback, "no ProcessReceipt handler")
+	purchaseCounter += 1
+	local id = purchaseId or ("purchase-" .. purchaseCounter)
+	local decision = callback({
+		PurchaseId = id,
+		PlayerId = userId,
+		ProductId = productId,
+		CurrencySpent = 10,
+		CurrencyType = R.Enum.CurrencyType.Robux,
+		PlaceIdWherePurchased = 0,
+	})
+	local name = if typeof(decision) == "EnumItem" then decision.Name else tostring(decision)
+	table.insert(H.receipts, { purchaseId = id, productId = productId, decision = name })
+	return name
+end
+methods.PromptProductPurchase = function(_proxy, _inst, player, productId)
+	assert(type(productId) == "number", "PromptProductPurchase expects a product id")
+	local userId = unwrap(player).UserId
+	table.insert(H.productPrompts, { userId = userId, productId = productId })
+	if H.buyPrompts then
+		realTask.spawn(H.processReceipt, userId, productId)
+	end
+end
+
+-- PolicyService: H.policy is returned for everyone.
+H.policy = { ArePaidRandomItemsRestricted = false, AreAdsAllowed = true }
+methods.GetPolicyInfoForPlayerAsync = function()
+	return table.clone(H.policy)
 end
 
 methods.PromptGameInvite = function() end
@@ -1187,6 +1244,12 @@ local function makeEnv(scriptProxy: any)
 				parts[i] = tostring(select(i, ...))
 			end
 			local message = table.concat(parts, " ")
+			for _, pattern in H.allowedWarnings do
+				if string.find(message, pattern, 1, true) then
+					print("WARN  (expected) " .. message)
+					return
+				end
+			end
 			table.insert(H.warnings, message)
 			print("WARN  " .. message)
 		end,

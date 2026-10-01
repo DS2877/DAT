@@ -22,8 +22,8 @@ local Sound = require(script.Parent.Parent.Sound)
 local Ui = require(script.Parent.Parent.Ui)
 local ClientState = require(script.Parent.ClientState)
 local HudController = require(script.Parent.HudController)
-local PassController = require(script.Parent.PassController)
 local RevealController = require(script.Parent.RevealController)
+local ShopController = require(script.Parent.ShopController)
 
 local C = Ui.Colors
 local player = Players.LocalPlayer
@@ -184,6 +184,15 @@ local function tryHit()
 		HudController.flashBagFull()
 		return
 	end
+	-- The VIP dig spot: say so (and mention VIP) instead of digging.
+	if spot:GetAttribute("Vip") and not ClientState.hasPass("VIP") then
+		holding = false
+		queued = false
+		nextHitAt = now + 1
+		HudController.toast("👑 VIP dig spot - VIPs only", Ui.Colors.Gold)
+		ShopController.offer("VIP", "dig", true)
+		return
+	end
 	local shovel = ClientState.shovel()
 	local interval = ClientState.hitInterval()
 	nextHitAt = now + interval
@@ -239,6 +248,9 @@ local function onDigResult(result: { [string]: any })
 				local hole = holes[spot]
 				setHoleProgress(spot, math.max(0, hole.hits - 1), hole.required)
 			end
+		elseif reason == "VipOnly" then
+			holding = false
+			HudController.toast("👑 VIP dig spot - VIPs only", Ui.Colors.Gold)
 		elseif reason == "Taken" then
 			holding = false
 			HudController.toast("Someone is Deep Digging here!", Ui.Colors.Orange)
@@ -252,7 +264,13 @@ local function onDigResult(result: { [string]: any })
 		-- The ground rumbles: this spot needs extra hits, and the reward is big.
 		Sound.play("DeepDig")
 		HudController.bigText("SOMETHING IS BURIED DEEP...", Ui.Colors.Orange, 2.6)
-		HudController.toast("Keep digging!", Ui.Colors.Gold, 2.6)
+		local data = ClientState.data
+		if data and (data.instantDeepDigs or 0) > 0 then
+			HudController.toast("Using your saved Instant Deep Dig!", Ui.Colors.Gold, 2.6)
+		else
+			HudController.toast("Keep digging!", Ui.Colors.Gold, 2.6)
+			ShopController.offer("InstantDeepDig", "dig")
+		end
 		for i = 0, 4 do
 			task.delay(i * 0.18, function()
 				Effects.cameraNudge(0.3)
@@ -440,12 +458,14 @@ function DigController.init()
 		if queued and now >= nextHitAt then
 			queued = false
 			tryHit()
-		elseif holding and PassController.owns("AutoDig") then
+		elseif holding and ClientState.perkOn("AutoDig") then
 			tryHit()
-		elseif holding and not offerChecked and now - pressedAt >= Monetization.AutoDigOffer.holdSeconds then
+		elseif holding and not offerChecked and now - pressedAt >= Monetization.Offers.autoDigHoldSeconds then
 			-- Holding without the pass digs once; mention Auto Dig (rate-limited).
 			offerChecked = true
-			PassController.offerAutoDig()
+			if not ClientState.hasPass("AutoDig") then
+				ShopController.offer("AutoDig", "dig")
+			end
 		end
 	end)
 end

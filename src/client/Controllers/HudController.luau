@@ -588,9 +588,19 @@ function Hud.showStreak(count: number, bonus: number)
 end
 
 -- Coin burst + counting "+$X" for a sale, then the next-goal nudge.
-function Hud.showSale(info: { total: number, count: number, cash: number, goal: any, nearGoal: boolean })
+function Hud.showSale(info: {
+	total: number,
+	count: number,
+	cash: number,
+	goal: any,
+	nearGoal: boolean,
+	source: string?,
+})
 	Sound.play("Sell")
 	Sound.play("SellCoins")
+	if info.source == "AutoSell" then
+		Hud.toast("💰 AUTO SOLD!", C.Green, 2)
+	end
 	local label = Ui.label({
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.42),

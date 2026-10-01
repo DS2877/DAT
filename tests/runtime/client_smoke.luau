@@ -109,7 +109,7 @@ local spots = H.workspace.DigSpots
 local nearest, best = nil, math.huge
 local spawnPos = player.Character.HumanoidRootPart.Position
 for _, spot in spots:GetChildren() do
-	if spot:GetAttribute("AreaId") == "Beach" then
+	if spot:GetAttribute("AreaId") == "Beach" and not spot:GetAttribute("Vip") then
 		local d = (spot.PrimaryPart.Position - spawnPos).Magnitude
 		if d < best then
 			nearest, best = spot, d
@@ -123,14 +123,21 @@ task.wait(0.3)
 local digButton = root.DigButton
 check(digButton.Visible, "DIG button appears next to a spot")
 local finger = { UserInputType = roblox.Enum.UserInputType.Touch, KeyCode = roblox.Enum.KeyCode.Unknown }
-H.signal(digButton, "InputBegan"):Fire(finger)
-H.waitFor(function()
-	return data.stats.finds >= 1
-end, 6, "first find via the DIG button")
-check(data.stats.finds >= 1, "holding DIG dug the spot out")
-task.wait(2.5) -- reveal + fly to bag
 local UserInputService = H.wrap(H.unwrap(game:GetService("UserInputService")))
-H.signal(UserInputService, "InputEnded"):Fire(finger)
+-- Each tap digs once.
+local function tap()
+	H.signal(digButton, "InputBegan"):Fire(finger)
+	H.signal(UserInputService, "InputEnded"):Fire(finger)
+end
+for _ = 1, 8 do
+	if data.stats.finds >= 1 then
+		break
+	end
+	tap()
+	task.wait(0.6)
+end
+check(data.stats.finds >= 1, "tapping DIG dug the spot out")
+task.wait(2.5) -- reveal + fly to bag
 check(root.Bag.Value.Text:find("1/10") ~= nil, "bag counter ticked to 1 (" .. root.Bag.Value.Text .. ")")
 
 print("\n== Shops, panels ==")
@@ -184,7 +191,7 @@ check(#data.bagContents == 0, "sold at the pad")
 
 print("\n== Auto Dig pass ==")
 local Monetization = H.require(Shared.Config.Monetization)
-Monetization.Passes.AutoDig.id = 4242 -- as if the pass were set up
+local autoDigId = Monetization.Passes.AutoDig.id
 H.buyPrompts = true
 local hits = 0
 local forward = H.onFireServer
@@ -198,7 +205,7 @@ local function goToSpot()
 	local here = player.Character.HumanoidRootPart.Position
 	local pick, distance = nil, math.huge
 	for _, spot in spots:GetChildren() do
-		if spot:GetAttribute("AreaId") == "Beach" then
+		if spot:GetAttribute("AreaId") == "Beach" and not spot:GetAttribute("Vip") then
 			local d = (spot.PrimaryPart.Position - here).Magnitude
 			if d < distance then
 				pick, distance = spot, d
@@ -214,8 +221,8 @@ hits = 0
 H.signal(digButton, "InputBegan"):Fire(finger)
 task.wait(1.5)
 check(hits == 1, "without Auto Dig, holding DIG digs once (" .. hits .. " hits)")
-local offer = root:FindFirstChild("AutoDigOffer")
-check(offer and offer.Visible, "holding DIG shows the Auto Dig offer")
+local offer = root:FindFirstChild("Offer")
+check(offer and offer:GetAttribute("Key") == "AutoDig", "holding DIG shows the Auto Dig offer")
 check(#H.passPrompts == 0, "no purchase prompt without a tap")
 H.signal(UserInputService, "InputEnded"):Fire(finger)
 hits = 0
@@ -226,14 +233,14 @@ for _ = 1, 2 do
 end
 task.wait(0.8)
 check(hits == 2, "a tap during the swing still lands (" .. hits .. " hits)")
-check(offer.Visible, "the offer stays up while tapping")
+check(offer.Parent ~= nil, "the offer stays up while tapping")
 H.signal(offer.Get, "Activated"):Fire({ UserInputType = roblox.Enum.UserInputType.Touch })
 H.waitFor(function()
 	return player:GetAttribute("Pass_AutoDig") == true
 end, 2, "Auto Dig purchase")
-check(#H.passPrompts == 1 and H.passPrompts[1].passId == 4242, "GET opens the Roblox purchase prompt")
+check(#H.passPrompts == 1 and H.passPrompts[1].passId == autoDigId, "GET opens the Roblox purchase prompt")
 check(player:GetAttribute("Pass_AutoDig") == true, "buying Auto Dig unlocks it right away")
-check(not offer.Visible, "the offer closes")
+check(offer.Parent == nil, "the offer closes")
 task.wait(2.5) -- let the last find's reveal finish
 goToSpot()
 local findsBefore = data.stats.finds
@@ -244,6 +251,81 @@ H.waitFor(function()
 end, 6, "Auto Dig find")
 check(data.stats.finds > findsBefore and hits >= 3, "with Auto Dig, holding DIG digs the spot out")
 H.signal(UserInputService, "InputEnded"):Fire(finger)
+
+print("\n== Settings: perk switches ==")
+local settingsPanel = root:FindFirstChild("Settings")
+H.signal(root.TopButtons.SettingsButton, "Activated"):Fire({})
+task.wait(0.1)
+local autoDigRow = settingsPanel:FindFirstChild("autoDig", true)
+check(autoDigRow and autoDigRow.Visible, "Settings shows the Auto Dig switch once owned")
+check(not settingsPanel:FindFirstChild("autoSell", true).Visible, "no switch for perks you don't own")
+H.signal(autoDigRow.Toggle, "Activated"):Fire({})
+task.wait(0.2)
+check(data.settings.autoDig == false, "Auto Dig switched off (saved)")
+H.signal(root.TopButtons.SettingsButton, "Activated"):Fire({})
+task.wait(2.5)
+goToSpot()
+hits = 0
+H.signal(digButton, "InputBegan"):Fire(finger)
+task.wait(1.2)
+H.signal(UserInputService, "InputEnded"):Fire(finger)
+check(hits == 1, "with Auto Dig off, holding digs once (" .. hits .. " hits)")
+check(root:FindFirstChild("Offer") == nil, "no offer for a pass you already own")
+
+print("\n== Shop ==")
+local shop = root:FindFirstChild("Shop")
+H.signal(root.ShopButton, "Activated"):Fire({})
+task.wait(0.2)
+check(shop and shop.Visible, "SHOP button opens the shop")
+local shopGrid = shop:FindFirstChild("Grid", true)
+local function cards(): { [string]: any }
+	local list = {}
+	for _, child in shopGrid:GetChildren() do
+		if child:IsA("Frame") then
+			list[child.Name] = child
+		end
+	end
+	return list
+end
+local passCards = cards()
+check(passCards.VIP and passCards.AutoSell and passCards.AutoDig, "Passes tab lists the passes")
+check(passCards.Luck2x == nil, "2x Luck stays hidden (off by default)")
+check(
+	passCards.AutoDig.Buy.Text == "OFF",
+	"owned Auto Dig shows its switch (" .. passCards.AutoDig.Buy.Text .. ")"
+)
+check(passCards.VIP.Buy.Text:find("R%$") ~= nil, "VIP shows its price (" .. passCards.VIP.Buy.Text .. ")")
+H.signal(passCards.AutoDig.Buy, "Activated"):Fire({})
+task.wait(0.2)
+check(data.settings.autoDig == true, "the shop card switches Auto Dig back on")
+H.signal(shop:FindFirstChild("Cash", true), "Activated"):Fire({})
+task.wait(0.1)
+local cashCards = cards()
+check(cashCards.StarterPack and cashCards.CashMedium, "Cash tab lists the Starter Pack and cash packs")
+check(
+	cashCards.CashMedium.Amount and cashCards.CashMedium.Amount.Text:find("%$") ~= nil,
+	"cash packs show the amount"
+)
+local cashBefore = data.cash
+local promptsBefore = #H.productPrompts
+H.signal(cashCards.CashSmall.Buy, "Activated"):Fire({})
+H.waitFor(function()
+	return data.cash > cashBefore
+end, 3, "cash pack purchase")
+check(#H.productPrompts == promptsBefore + 1, "BUY opens the Roblox purchase prompt")
+check(
+	data.cash > cashBefore and H.receipts[#H.receipts].decision == "PurchaseGranted",
+	"the cash pack was granted"
+)
+H.signal(shop:FindFirstChild("Skins", true), "Activated"):Fire({})
+task.wait(0.1)
+check(cards().VIPGold ~= nil and cards().SkinPirate ~= nil, "Skins tab lists the skins")
+H.signal(shop:FindFirstChild("Boosts", true), "Activated"):Fire({})
+task.wait(0.1)
+check(cards().ServerBoost ~= nil and cards().InstantDeepDig ~= nil, "Boosts tab lists the boosts")
+H.signal(root.ShopButton, "Activated"):Fire({})
+task.wait(0.1)
+check(not shop.Visible, "SHOP button closes the shop")
 
 running = false
 task.wait(0.2)

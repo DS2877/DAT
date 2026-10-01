@@ -290,6 +290,21 @@ local function refreshChips()
 			table.insert(chips, { text = def.displayName .. " " .. clock(left), color = C.Gold })
 		end
 	end
+	-- A bought server-wide 2x Cash (everyone sees who boosted).
+	local serverUntil = workspace:GetAttribute("ServerBoostUntil")
+	if type(serverUntil) == "number" then
+		local left = math.floor(serverUntil - workspace:GetServerTimeNow())
+		if left > 0 then
+			local by = (workspace:GetAttribute("ServerBoostBy") :: string?) or "Someone"
+			table.insert(
+				chips,
+				{ text = "📣 Server 2x Cash by " .. by .. " " .. clock(left), color = C.Gold }
+			)
+		end
+	end
+	if (data.instantDeepDigs or 0) > 0 then
+		table.insert(chips, { text = data.instantDeepDigs .. "x Instant Deep Dig saved", color = C.Orange })
+	end
 	local friends = (player:GetAttribute("FriendsInServer") :: number?) or 0
 	if friends > 0 then
 		local bonus = math.floor(Bonuses.friendsBonus(friends) * 100 + 0.5)

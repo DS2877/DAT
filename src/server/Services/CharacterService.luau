@@ -1,13 +1,16 @@
 --!strict
 -- Spawns characters once the profile is loaded (CharacterAutoLoads is off so
 -- nobody plays before their save is ready), respawns them, keeps the current
--- shovel (with its rebirth tint) in their hand, and shows the rebirth rank
--- title above their head for everyone.
+-- shovel (with its rebirth tint or equipped skin) in their hand, and shows
+-- the rebirth rank title above their head for everyone (VIPs get a gold
+-- name with a crown above it).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Monetization = require(ReplicatedStorage.Shared.Config.Monetization)
 local Movement = require(ReplicatedStorage.Shared.Config.Movement)
+local Perks = require(ReplicatedStorage.Shared.Logic.Perks)
 local Rebirth = require(ReplicatedStorage.Shared.Logic.Rebirth)
 local ShovelBuilder = require(ReplicatedStorage.Shared.Builders.ShovelBuilder)
 local PlayerData = require(script.Parent.PlayerData)
@@ -20,7 +23,9 @@ function CharacterService.refreshShovel(player: Player)
 	local data = PlayerData.get(player)
 	local character = player.Character
 	if data and character then
-		ShovelBuilder.attach(character, data.shovelLevel, Rebirth.tint(data.rebirths))
+		local skinId = Perks.equippedSkin(data)
+		local skin = if skinId then (Monetization.Skins :: any)[skinId] else nil
+		ShovelBuilder.attach(character, data.shovelLevel, Rebirth.tint(data.rebirths), skin)
 	end
 end
 
@@ -36,28 +41,46 @@ function CharacterService.refreshTitle(player: Player)
 		existing:Destroy()
 	end
 	local title = Rebirth.title(data.rebirths)
-	if title == "" then
+	local vip = Perks.has(data, "VIP")
+	-- VIPs show their name in gold (instead of Roblox's own name tag).
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid.DisplayDistanceType = if vip
+			then Enum.HumanoidDisplayDistanceType.None
+			else Enum.HumanoidDisplayDistanceType.Viewer
+	end
+	if title == "" and not vip then
 		return
 	end
+	local rows = (if title ~= "" then 1 else 0) + (if vip then 1 else 0)
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "RankTitle"
-	gui.Size = UDim2.fromOffset(220, 30)
-	gui.StudsOffsetWorldSpace = Vector3.new(0, 2.6, 0)
+	gui.Size = UDim2.fromOffset(220, 30 * rows)
+	gui.StudsOffsetWorldSpace = Vector3.new(0, 2.6 + (rows - 1) * 0.9, 0)
 	gui.MaxDistance = 120
 	gui.LightInfluence = 0
 	gui.Adornee = head
-	local label = Instance.new("TextLabel")
-	label.BackgroundTransparency = 1
-	label.Size = UDim2.fromScale(1, 1)
-	label.Font = Enum.Font.LuckiestGuy
-	label.Text = title
-	label.TextScaled = true
-	label.TextColor3 = Color3.fromHex(Rebirth.tint(data.rebirths) or "#FFFFFF")
-	label.Parent = gui
-	local stroke = Instance.new("UIStroke")
-	stroke.Thickness = 2
-	stroke.Color = Color3.fromRGB(40, 25, 10)
-	stroke.Parent = label
+	local function line(text: string, color: Color3, row: number)
+		local label = Instance.new("TextLabel")
+		label.BackgroundTransparency = 1
+		label.Position = UDim2.fromScale(0, (row - 1) / rows)
+		label.Size = UDim2.fromScale(1, 1 / rows)
+		label.Font = Enum.Font.LuckiestGuy
+		label.Text = text
+		label.TextScaled = true
+		label.TextColor3 = color
+		label.Parent = gui
+		local stroke = Instance.new("UIStroke")
+		stroke.Thickness = 2
+		stroke.Color = Color3.fromRGB(40, 25, 10)
+		stroke.Parent = label
+	end
+	if vip then
+		line("👑 " .. player.DisplayName, Color3.fromRGB(255, 210, 74), 1)
+	end
+	if title ~= "" then
+		line(title, Color3.fromHex(Rebirth.tint(data.rebirths) or "#FFFFFF"), rows)
+	end
 	gui.Parent = head
 end
 
