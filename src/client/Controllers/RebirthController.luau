@@ -34,10 +34,14 @@ local function refresh()
 	local bonus = math.floor(next * Retention.rebirth.cashBonusPerRebirth * 100 + 0.5)
 	local cost = Rebirth.cost(data.rebirths)
 	infoLabel.Text = string.format(
-		"Become a %s: +%d%% cash forever, a new title and shovel color.\n"
+		"Become a %s: +%d%% cash forever, +%d%% walk speed, a new title and shovel color.\n"
 			.. "Resets: cash, shovel, bag and bag contents.\nKeeps: collection, trophies, rank and purchases.",
 		Rebirth.title(next),
-		bonus
+		bonus,
+		math.floor(
+			math.min(Retention.rebirth.maxWalkSpeedBonus, next * Retention.rebirth.walkSpeedPerRebirth) * 100
+				+ 0.5
+		)
 	)
 	local ok, reason, missing = Rebirth.canRebirth(data :: any)
 	if ok then

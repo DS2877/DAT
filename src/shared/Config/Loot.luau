@@ -32,11 +32,15 @@ local Loot = {
 
 	-- Deep Dig: a rare event when finishing a dig outside the Beach. The spot
 	-- needs extra hits, then yields a guaranteed Epic-or-better, shown huge.
+	-- Per area: the chance a finished dig turns into a Deep Dig, how many
+	-- extra hits it takes, and the rarity it guarantees. The deeper the
+	-- area, the more often it happens and the bigger the prize.
 	deepDig = {
-		chance = 1 / 150,
-		extraHits = 6,
-		minRarity = "Epic",
-		areas = { Jungle = true, Ruins = true, Volcano = true },
+		areas = {
+			Jungle = { chance = 1 / 30, extraHits = 15, minRarity = "Epic" },
+			Ruins = { chance = 1 / 20, extraHits = 20, minRarity = "Epic" },
+			Volcano = { chance = 1 / 12, extraHits = 28, minRarity = "Legendary" },
+		},
 	},
 
 	-- The first time a player ever finds a treasure, it's worth this much more.

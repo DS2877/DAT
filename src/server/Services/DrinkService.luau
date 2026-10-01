@@ -2,7 +2,7 @@
 -- The Tiki Bar: drinks bought with Cash at the bar's pad (Config/Drinks).
 -- Each adds a timed boost; this service also applies the movement ones
 -- (Speed Soda: walk speed, Jump Juice: jump height) to characters while
--- they run. The cash and luck drinks are read by Bonuses / LootService.
+-- they run, plus the walk speed every rebirth adds. The cash and luck drinks are read by Bonuses / LootService.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,7 +12,9 @@ local Boosts = require(ReplicatedStorage.Shared.Logic.Boosts)
 local DrinkPrice = require(ReplicatedStorage.Shared.Logic.DrinkPrice)
 local Drinks = require(ReplicatedStorage.Shared.Config.Drinks)
 local Format = require(ReplicatedStorage.Shared.Util.Format)
+local Tutorial = require(ReplicatedStorage.Shared.Logic.Tutorial)
 local Movement = require(ReplicatedStorage.Shared.Config.Movement)
+local Retention = require(ReplicatedStorage.Shared.Config.Retention)
 local Analytics = require(script.Parent.Analytics)
 local EconomyService = require(script.Parent.EconomyService)
 local Net = require(script.Parent.Parent.Net)
@@ -33,7 +35,11 @@ local function applyMovement(player: Player)
 		return
 	end
 	local now = os.time()
-	local speed = Movement.walkSpeed * Boosts.multiplier(data.activeBoosts, "SpeedSoda", now)
+	local r = Retention.rebirth
+	local rebirthBonus = math.min(r.maxWalkSpeedBonus, data.rebirths * r.walkSpeedPerRebirth)
+	local speed = Movement.walkSpeed
+		* (1 + rebirthBonus)
+		* Boosts.multiplier(data.activeBoosts, "SpeedSoda", now)
 	local jump = Boosts.multiplier(data.activeBoosts, "JumpJuice", now)
 	if math.abs(humanoid.WalkSpeed - speed) > 0.01 then
 		humanoid.WalkSpeed = speed
@@ -63,8 +69,12 @@ local function onBuyDrink(player: Player, drinkId: any)
 		Net.fire("Notify", player, "Step onto the Tiki Bar pad to order!", "Denied")
 		return
 	end
+	local free = DrinkPrice.isFree(data)
 	local price = DrinkPrice.of(drink, data)
-	if not EconomyService.spendCash(player, data, price, "Shop", "Drink_" .. drinkId) then
+	if free then
+		data.onboarding.freeDrinkUsed = true
+		Tutorial.update(data)
+	elseif not EconomyService.spendCash(player, data, price, "Shop", "Drink_" .. drinkId) then
 		Net.fire("Notify", player, "You need " .. Format.cash(price - data.cash) .. " more!", "Denied")
 		return
 	end

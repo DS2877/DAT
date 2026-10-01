@@ -59,7 +59,9 @@ local MapLayout = {
 	trophyShelf = { z = 224, minX = -24.5, maxX = 24.5 },
 
 	-- The VIP dig site on the sand, front-right of the plaza (mirrors the altar).
-	vipSite = { x = 84, z = 176, radius = 8 },
+	-- carpetZ: where its red carpet meets the deck's east edge (an open
+	-- stretch between the corner planter and the bag shop).
+	vipSite = { x = 84, z = 176, radius = 8, carpetZ = 175 },
 
 	-- Dig spots never spawn inside this rectangle (the base, altar, VIP site
 	-- and margin).

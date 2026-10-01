@@ -46,7 +46,8 @@ function DataSchema.template(): { [string]: any }
 		settings = { music = true, sounds = true, autoDig = true, autoSell = true, radar = true },
 		onboarding = {
 			funnelStep = 0, -- highest analytics onboarding step logged
-			guideDone = false, -- the new-player arrow has finished
+			guideDone = false, -- the new-player tutorial has finished
+			freeDrinkUsed = false, -- the tutorial's free drink at the Tiki Bar
 			-- Guaranteed early finds (see Logic/Guarantees).
 			firstRareFound = false,
 			rareGuaranteeDig = 0, -- 0 = not picked yet

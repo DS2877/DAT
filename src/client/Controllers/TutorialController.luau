@@ -1,16 +1,19 @@
 --!strict
--- The new-player tutorial: five short steps shown in a banner at the top,
+-- The new-player tutorial: short steps shown in a banner at the bottom,
 -- with a golden beam and a bobbing marker to where to go next.
 --
 --   1 FIND     walk to a dig spot            (arrow to the nearest spot)
 --   2 DIG      tap DIG! until it pops out    (pulsing ring on the button)
 --   3 FILL     dig more treasure             (arrow to the nearest spot)
 --   4 SELL     walk onto the SELL pad        (arrow to the sell pad)
---   5 UPGRADE  buy the Stone Shovel          (arrow to the shovel shop)
+--   5 BAG      buy the Satchel               (arrow to the bag shop)
+--   6 UPGRADE  buy the Stone Shovel          (arrow to the shovel shop)
+--   7 TIKI     grab a free drink             (arrow to the Tiki Bar)
 --
 -- Steps follow the player's real state (finds, bag, cash), so it never gets
--- stuck and loops FILL -> SELL until the shovel is affordable. It ends for
--- good after the first shovel upgrade (the server saves that).
+-- stuck and loops FILL -> SELL until the next buy is affordable. The server
+-- marks it done once the bag, the shovel and the drink are bought
+-- (Logic/Tutorial).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -32,7 +35,7 @@ local player = Players.LocalPlayer
 
 local TutorialController = {}
 
-local STEPS = { "FIND", "DIG", "FILL", "SELL", "UPGRADE" }
+local STEPS = { "FIND", "DIG", "FILL", "SELL", "BAG", "UPGRADE", "TIKI" }
 
 local anchor: Part
 local ring: Part
@@ -75,12 +78,16 @@ local function evaluate(root: BasePart): (string?, Vector3?, string, string, str
 	if not data then
 		return nil, nil, "", "", ""
 	end
-	if data.guideDone or data.shovelLevel > 1 or data.rebirths > 0 then
+	if data.guideDone or data.rebirths > 0 then
 		return "DONE", nil, "", "", ""
 	end
-	local nextShovel = Progression.nextUpgrade("Shovel", data.shovelLevel)
-	local cost = if nextShovel then nextShovel.cost else 0
-	local name = if nextShovel then nextShovel.name else "next shovel"
+	-- What to buy next: the bag first (cheap), then the shovel.
+	local buyKind = if data.bagLevel <= 1 then "Bag" elseif data.shovelLevel <= 1 then "Shovel" else nil
+	local nextItem: any = if buyKind
+		then Progression.nextUpgrade(buyKind, if buyKind == "Bag" then data.bagLevel else data.shovelLevel)
+		else nil
+	local cost = if nextItem then nextItem.cost else 0
+	local name = if nextItem then nextItem.name else ""
 	local bagValue = ClientState.bagValue()
 	local tapWord = if UserInputService.TouchEnabled then "Tap" else "Click"
 
@@ -95,8 +102,25 @@ local function evaluate(root: BasePart): (string?, Vector3?, string, string, str
 			"Find treasure!",
 			"Follow the golden arrow to a dig spot"
 	end
+	if not buyKind then
+		-- Bag and shovel bought: the free drink at the Tiki Bar.
+		local base = workspace:FindFirstChild("Decor")
+		local pad = base and base:FindFirstChild("TikiPad", true) :: BasePart?
+		return "TIKI",
+			pad and pad.Position,
+			"FREE DRINK!",
+			"Visit the Tiki Bar!",
+			"Grab a free drink at the Tiki Bar: drinks give 5-minute boosts"
+	end
 	if data.cash >= cost then
-		local pad = StationController.padFor("Shovel")
+		local pad = StationController.padFor(buyKind)
+		if buyKind == "Bag" then
+			return "BAG",
+				pad and pad.Position,
+				"BUY HERE!",
+				"Buy the " .. name .. "!",
+				string.format("Buy the %s at the BAGS shop: room for %d treasures", name, nextItem.capacity)
+		end
 		return "UPGRADE",
 			pad and pad.Position,
 			"BUY HERE!",
@@ -281,7 +305,7 @@ end
 
 local function sheetOpen(): boolean
 	local root = HudController.root()
-	for _, name in { "UpgradePanel", "RebirthPanel" } do
+	for _, name in { "UpgradePanel", "RebirthPanel", "TikiBar" } do
 		local sheet = root:FindFirstChild(name)
 		if sheet and (sheet :: GuiObject).Visible then
 			return true

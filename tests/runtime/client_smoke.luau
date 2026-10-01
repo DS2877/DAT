@@ -146,9 +146,17 @@ H.fireServer(player, "RequestSync")
 task.wait(0.2)
 local deck = H.workspace.Base:FindFirstChild("Deck")
 local deckTop = deck.Position.Y + deck.Size.Y / 2
+local upgradePanel = root:FindFirstChild("UpgradePanel")
+check(tutorialText():find("BAGS shop") ~= nil, "tutorial asks for the bag first (" .. tutorialText() .. ")")
+H.moveTo(player, V3(MapLayout.bagStation.x, deckTop, MapLayout.bagStation.z))
+task.wait(0.5)
+check(upgradePanel and upgradePanel.Visible, "bag shop panel opens on the pad")
+H.signal(upgradePanel:FindFirstChild("Buy", true), "Activated")
+	:Fire({ UserInputType = roblox.Enum.UserInputType.Touch })
+task.wait(0.4)
+check(data.bagLevel == 2, "BUY button bought the Satchel")
 H.moveTo(player, V3(MapLayout.shovelStation.x, deckTop, MapLayout.shovelStation.z))
 task.wait(0.5)
-local upgradePanel = root:FindFirstChild("UpgradePanel")
 check(upgradePanel and upgradePanel.Visible, "shovel shop panel opens on the pad")
 check(
 	tutorialText():find("SHOVELS shop") ~= nil,
@@ -159,7 +167,33 @@ H.signal(upgradePanel:FindFirstChild("Buy", true), "Activated")
 task.wait(0.3)
 check(data.shovelLevel == 2, "BUY button bought the Stone Shovel")
 task.wait(0.4)
-check(not tutorial.Visible, "tutorial finishes after the first upgrade")
+check(
+	tutorialText():find("Tiki Bar") ~= nil,
+	"then the tutorial sends you to the Tiki Bar (" .. tutorialText() .. ")"
+)
+check(not data.onboarding.guideDone, "the tutorial isn't over before the drink")
+local tikiPadEarly = H.workspace.Decor:FindFirstChild("TikiPad", true)
+H.moveTo(player, tikiPadEarly.Position + V3(0, 0.5, 0))
+task.wait(0.6)
+local tikiPanel = root:FindFirstChild("TikiBar")
+check(tikiPanel and tikiPanel.Visible, "the Tiki Bar opens during the tutorial")
+local soda = tikiPanel:FindFirstChild("SpeedSoda", true)
+check(
+	soda and soda.Buy.Text == "FREE!",
+	"the first drink is free (" .. tostring(soda and soda.Buy.Text) .. ")"
+)
+local cashBeforeDrink = data.cash
+H.signal(soda.Buy, "Activated"):Fire({})
+task.wait(0.5)
+check(
+	data.cash == cashBeforeDrink and (data.activeBoosts.SpeedSoda or 0) > os.time(),
+	"free Speed Soda served"
+)
+check(data.onboarding.guideDone, "the drink completes the tutorial")
+task.wait(0.4)
+check(not tutorial.Visible, "tutorial banner gone")
+H.moveTo(player, V3(MapLayout.spawn.x, deckTop, MapLayout.spawn.z))
+task.wait(0.4)
 
 for _, name in { "CollectionButton", "DailyButton", "TopButton" } do
 	local button = root.TopButtons:FindFirstChild(name)

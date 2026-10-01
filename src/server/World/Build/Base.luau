@@ -689,11 +689,14 @@ end
 
 -- The VIP dig site: a patch of sand inside golden posts and a red rope, with
 -- a crown sign. Returns the ground point where the VIP dig spot sits.
-local function vipSite(base: Instance): Vector3
+local function vipSite(base: Instance, top: number): Vector3
 	local site = L.vipSite
 	local ground = Kit.highestGround(site.x, site.z, site.radius + 1, L.beachHeight)
-	-- The entrance faces the plaza; a red carpet runs to it from the deck.
-	local toPlaza = Vector3.new(L.spawn.x - site.x, 0, L.spawn.z - site.z).Unit
+	-- The entrance faces the plaza deck: a red carpet runs to it from an open
+	-- stretch of the deck's east edge (between the corner planter and the
+	-- bag shop), so it leads onto the deck rather than into a wall.
+	local deckPoint = Vector3.new(L.base.maxX - 5, 0, L.vipSite.carpetZ)
+	local toPlaza = Vector3.new(deckPoint.X - site.x, 0, deckPoint.Z - site.z).Unit
 	local posts = {}
 	for i = 0, 7 do
 		local a = i / 8 * math.pi * 2
@@ -744,15 +747,16 @@ local function vipSite(base: Instance): Vector3
 		canCollide = false,
 		castShadow = false,
 	})
-	-- Red carpet from the deck's edge to the entrance, with gold borders,
-	-- following the sand in short pieces.
+	-- Red carpet from the entrance onto the deck, with gold borders,
+	-- following the sand (and then the deck) in short pieces.
 	local entrance = Vector3.new(site.x, 0, site.z) + toPlaza * (site.radius - 0.5)
-	local runway = (entrance.X - (L.base.maxX + 2)) / -toPlaza.X
+	local runway = (deckPoint - entrance).Magnitude
 	local side = Vector3.new(-toPlaza.Z, 0, toPlaza.X)
 	local pieces = math.max(1, math.ceil(runway / 3))
 	for i = 1, pieces do
 		local center = entrance + toPlaza * ((i - 0.5) * runway / pieces)
-		local y = Kit.groundOr(center.X, center.Z, L.beachHeight)
+		local onDeck = center.X <= L.base.maxX + 0.5
+		local y = if onDeck then top else Kit.groundOr(center.X, center.Z, L.beachHeight)
 		-- X runs along the carpet.
 		local frame = CFrame.fromMatrix(Vector3.new(center.X, y + 0.08, center.Z), toPlaza, Vector3.yAxis)
 		part(base, {
@@ -777,8 +781,8 @@ local function vipSite(base: Instance): Vector3
 		end
 		Kit.addObstacle(center, 4)
 	end
-	-- Gold posts with lights at the start of the carpet.
-	local start = entrance + toPlaza * runway
+	-- Gold posts with lights where the carpet meets the deck.
+	local start = entrance + toPlaza * ((entrance.X - (L.base.maxX + 2.5)) / -toPlaza.X)
 	for _, s in { -1, 1 } do
 		local p = start + side * s * 3.2
 		local y = Kit.groundOr(p.X, p.Z, L.beachHeight)
@@ -1100,7 +1104,7 @@ function Base.build(rng: Random): BaseInfo
 		end
 	end
 
-	local vipSpot = vipSite(base)
+	local vipSpot = vipSite(base, top)
 
 	return { folder = base, deckTop = top, pads = pads, vipSpot = vipSpot }
 end

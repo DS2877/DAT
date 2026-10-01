@@ -78,7 +78,8 @@ function LootService.rollFor(data: { [string]: any }, context: DigContext): Find
 	local digNumber = data.stats.digs + 1
 	local minRarity = Guarantees.beforeRoll(data.onboarding, context.areaId, digNumber, now, rng)
 	if context.deep then
-		minRarity = atLeast(minRarity, Loot.deepDig.minRarity)
+		local deep = Loot.deepDig.areas[context.areaId]
+		minRarity = atLeast(minRarity, if deep then deep.minRarity else "Epic")
 	end
 	if context.goldenX then
 		minRarity = atLeast(minRarity, Retention.goldenX.minRarity)

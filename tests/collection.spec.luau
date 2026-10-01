@@ -55,8 +55,12 @@ test("best find ranks rarity first, then mutated value", function()
 end)
 
 test("deep dig config is sane", function()
-	expect.truthy(Loot.deepDig.chance > 0 and Loot.deepDig.chance < 0.05)
-	expect.truthy(Loot.deepDig.extraHits >= 3)
+	for area, deep in Loot.deepDig.areas do
+		expect.truthy(deep.chance > 0 and deep.chance < 0.2, area .. " deep dig chance")
+		expect.truthy(deep.extraHits >= 10, area .. " deep digs take a while")
+	end
 	expect.eq(Loot.deepDig.areas.Beach, nil)
+	expect.eq(Loot.deepDig.areas.Volcano.minRarity, "Legendary")
+	expect.truthy(Loot.deepDig.areas.Volcano.chance > Loot.deepDig.areas.Jungle.chance, "deeper = more often")
 	expect.eq(Loot.firstFindMultiplier, 2)
 end)

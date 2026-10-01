@@ -66,6 +66,7 @@ local function snapshot(player: Player, data: { [string]: any })
 		finds = data.stats.finds,
 		sales = data.stats.sales,
 		guideDone = data.onboarding.guideDone,
+		freeDrinkUsed = data.onboarding.freeDrinkUsed,
 		discovered = data.discovered,
 		settings = data.settings,
 	}

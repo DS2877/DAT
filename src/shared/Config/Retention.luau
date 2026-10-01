@@ -13,6 +13,9 @@ local Retention = {
 		baseCost = 3000000, -- cash needed (on top of owning the shovel)
 		costGrowth = 1.3, -- each rebirth costs this much more
 		cashBonusPerRebirth = 0.25,
+		-- Each rebirth also makes you walk this much faster (up to the max).
+		walkSpeedPerRebirth = 0.10,
+		maxWalkSpeedBonus = 0.50,
 		-- One title per rebirth (the last repeats with a number after it).
 		titles = {
 			"Bronze Hunter",

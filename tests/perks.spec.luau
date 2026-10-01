@@ -121,6 +121,8 @@ test("Tiki Bar drinks: prices follow the next goal; cash and luck drinks apply",
 	local LootRoller = requireShared("Logic/LootRoller")
 	local data = fresh()
 	local soda = Drinks.Defs.SpeedSoda
+	expect.eq(DrinkPrice.of(soda, data), 0) -- the tutorial's first drink is free
+	data.onboarding.freeDrinkUsed = true
 	expect.eq(DrinkPrice.of(soda, data), soda.min) -- Stone Shovel ($250) is cheap
 	data.shovelLevel = 4 -- next: Diamond ($80,000)
 	expect.eq(DrinkPrice.of(soda, data), math.floor(80000 * soda.goalPercent + 0.5))
@@ -136,4 +138,16 @@ test("Tiki Bar drinks: prices follow the next goal; cash and luck drinks apply",
 	end
 	expect.eq(LootRoller.rollMutation(rng), nil)
 	expect.eq(LootRoller.rollMutation(rng, 2), "Shiny")
+end)
+
+test("the tutorial needs a bag, a shovel and the free drink", function()
+	local Tutorial = requireShared("Logic/Tutorial")
+	local data = fresh()
+	data.shovelLevel = 2
+	expect.eq(Tutorial.update(data), false)
+	data.bagLevel = 2
+	expect.eq(Tutorial.update(data), false)
+	data.onboarding.freeDrinkUsed = true
+	expect.eq(Tutorial.update(data), true)
+	expect.eq(data.onboarding.guideDone, true)
 end)

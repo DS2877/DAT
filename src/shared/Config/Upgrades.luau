@@ -3,8 +3,8 @@
 -- Costs are tuned with scripts/pacing.luau toward the pacing targets (a
 -- typical player: Jungle ~8 min, Ruins ~30 min, Volcano ~80 min, first
 -- rebirth ~3 h); re-tune from analytics once real players exist.
--- Bags: start small (5), a cheap first step to 10, then each step costs
--- about as much as a shovel of the same stage.
+-- Bags: start small (5), a cheap first step to 10, about a shovel's price
+-- up to 20, and much more after that (late-game goals).
 -- Dig time per spot = hits * hitInterval (Wooden: 3 hits x 0.5s = 1.5s).
 
 export type ShovelDef = {
@@ -47,10 +47,10 @@ Upgrades.Bags = {
 	{ level = 2, name = "Satchel", capacity = 10, cost = 100 },
 	{ level = 3, name = "Backpack", capacity = 15, cost = 8000 },
 	{ level = 4, name = "Explorer Pack", capacity = 20, cost = 30000 },
-	{ level = 5, name = "Treasure Sack", capacity = 30, cost = 120000 },
-	{ level = 6, name = "Giant Sack", capacity = 45, cost = 400000 },
-	{ level = 7, name = "Pirate Chest Pack", capacity = 65, cost = 1500000 },
-	{ level = 8, name = "Bottomless Bag", capacity = 90, cost = 5000000 },
+	{ level = 5, name = "Treasure Sack", capacity = 30, cost = 350000 },
+	{ level = 6, name = "Giant Sack", capacity = 45, cost = 1500000 },
+	{ level = 7, name = "Pirate Chest Pack", capacity = 65, cost = 5000000 },
+	{ level = 8, name = "Bottomless Bag", capacity = 90, cost = 15000000 },
 } :: { BagDef }
 
 return table.freeze(Upgrades)

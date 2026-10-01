@@ -259,10 +259,12 @@ function Gates.build(): { [string]: GateInfo }
 	-- ridge only stops people climbing from the Jungle into the Ruins.
 	local ruinsSide = Vector3.new(if rx > L.jungleRuinsX then 1 else -1, 0, 0)
 	invisibleWall(walls, Vector3.new(L.jungleRuinsX, 0, z), Vector3.new(L.jungleRuinsX, 0, vz), ruinsSide)
-	-- Play-area limits.
-	invisibleWall(walls, Vector3.new(b.minX, 0, b.minZ), Vector3.new(b.minX, 0, b.maxZ))
-	invisibleWall(walls, Vector3.new(b.maxX, 0, b.minZ), Vector3.new(b.maxX, 0, b.maxZ))
-	invisibleWall(walls, Vector3.new(b.minX, 0, b.minZ), Vector3.new(b.maxX, 0, b.minZ))
+	-- Play-area limits. The north limit stands behind the volcano so the
+	-- whole cone can be climbed (it's steep: the climb is the challenge).
+	local northZ = math.min(b.minZ, L.volcano.z - L.volcano.radius - 30)
+	invisibleWall(walls, Vector3.new(b.minX, 0, northZ), Vector3.new(b.minX, 0, b.maxZ))
+	invisibleWall(walls, Vector3.new(b.maxX, 0, northZ), Vector3.new(b.maxX, 0, b.maxZ))
+	invisibleWall(walls, Vector3.new(b.minX, 0, northZ), Vector3.new(b.maxX, 0, northZ))
 	invisibleWall(walls, Vector3.new(b.minX, 0, b.maxZ), Vector3.new(b.maxX, 0, b.maxZ))
 
 	local gates = {}

@@ -4,6 +4,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Progression = require(ReplicatedStorage.Shared.Logic.Progression)
+local Tutorial = require(ReplicatedStorage.Shared.Logic.Tutorial)
 local Analytics = require(script.Parent.Analytics)
 local CharacterService = require(script.Parent.CharacterService)
 local EconomyService = require(script.Parent.EconomyService)
@@ -52,9 +53,7 @@ local function onBuyUpgrade(player: Player, kind: any)
 	end
 	data[levelKey] = nextDef.level
 	Analytics.funnel(player, data, "FirstUpgrade")
-	if not data.onboarding.guideDone then
-		data.onboarding.guideDone = true
-	end
+	Tutorial.update(data)
 	if kind == "Shovel" then
 		CharacterService.refreshShovel(player)
 	end

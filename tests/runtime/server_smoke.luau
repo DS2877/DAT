@@ -199,7 +199,7 @@ H.fireServer(player, "BuyUpgrade", "Shovel")
 task.wait(0.05)
 check(data.shovelLevel == 2, "shovel upgraded to Stone")
 check(data.cash == 9750, "upgrade cost deducted")
-check(data.onboarding.guideDone, "new-player guide finished after the first upgrade")
+check(not data.onboarding.guideDone, "the tutorial goes on after the shovel (bag and drink next)")
 
 H.moveTo(player, V3(MapLayout.bagStation.x, deckTop, MapLayout.bagStation.z))
 H.fireServer(player, "BuyUpgrade", "Bag")
@@ -383,7 +383,25 @@ do
 	local tikiPad = workspace.Decor:FindFirstChild("TikiPad", true)
 	check(tikiPad ~= nil, "the Tiki Bar has a drinks pad")
 	local soda = Drinks.Defs.SpeedSoda
+	-- The tutorial's first drink is free and finishes the tutorial.
+	check(
+		not data.onboarding.guideDone and DrinkPrice.isFree(data),
+		"the first drink is free during the tutorial"
+	)
+	H.moveTo(player, tikiPad.Position + V3(0, 0.5, 0))
+	task.wait(0.05)
+	local cashBefore = data.cash
+	H.fireServer(player, "BuyDrink", "JumpJuice")
+	task.wait(0.1)
+	check(
+		data.cash == cashBefore
+			and (data.activeBoosts.JumpJuice or 0) > os.time()
+			and data.onboarding.freeDrinkUsed,
+		"free first drink served"
+	)
+	check(data.onboarding.guideDone, "bag + shovel + drink complete the tutorial")
 	local price = DrinkPrice.of(soda, data)
+	check(price > 0, "after that drinks cost cash")
 	data.cash = price + 10
 	H.moveTo(player, V3(0, deckTop, 200))
 	H.fireServer(player, "BuyDrink", "SpeedSoda")

@@ -55,8 +55,9 @@ function CharacterService.refreshTitle(player: Player)
 	local rows = (if title ~= "" then 1 else 0) + (if vip then 1 else 0)
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "RankTitle"
-	gui.Size = UDim2.fromOffset(220, 30 * rows)
-	gui.StudsOffsetWorldSpace = Vector3.new(0, 2.6 + (rows - 1) * 0.9, 0)
+	-- Sized in studs (not pixels), so it stays small on screen up close.
+	gui.Size = UDim2.fromScale(5, 0.8 * rows)
+	gui.StudsOffsetWorldSpace = Vector3.new(0, 2.2 + (rows - 1) * 0.4, 0)
 	gui.MaxDistance = 120
 	gui.LightInfluence = 0
 	gui.Adornee = head

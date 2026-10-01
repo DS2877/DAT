@@ -53,7 +53,7 @@ local function refresh()
 		local drink = Drinks.Defs[card.id]
 		local price = DrinkPrice.of(drink, data :: any)
 		local affordable = data.cash >= price
-		card.price.Text = Format.cash(price)
+		card.price.Text = if price == 0 then "FREE!" else Format.cash(price)
 		Ui.setButtonColor(card.price, if affordable then C.Green else C.Grey)
 		local left = Boosts.secondsLeft(data.activeBoosts, drink.boost, now)
 		card.timer.Text = if left > 0
@@ -170,9 +170,7 @@ function TikiController.init()
 			local character = player.Character
 			local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 			local onPad = false
-			-- Not part of the tutorial: the bar opens once it's finished.
-			local data = ClientState.data
-			if pad and root and data and data.guideDone then
+			if pad and root then
 				local offset = root.Position - (pad :: BasePart).Position
 				onPad = Vector3.new(offset.X, 0, offset.Z).Magnitude <= Drinks.stationRadius
 					and math.abs(offset.Y) < 8

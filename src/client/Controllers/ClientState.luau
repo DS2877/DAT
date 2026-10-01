@@ -20,6 +20,7 @@ export type Snapshot = {
 	finds: number,
 	sales: number,
 	guideDone: boolean,
+	freeDrinkUsed: boolean?, -- the tutorial's free Tiki Bar drink
 	discovered: { [string]: { normal: boolean?, shiny: boolean?, golden: boolean? } },
 	-- Retention (from RewardService)
 	giftStart: number, -- server time the session's playtime gifts started counting

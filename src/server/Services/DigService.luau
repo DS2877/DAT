@@ -155,10 +155,10 @@ local function onDigHit(player: Player, spotId: any)
 		and not s.deep
 		and not isGoldenX
 		and Loot.deepDig.areas[spot.areaId]
-		and random:NextNumber() < Loot.deepDig.chance
+		and random:NextNumber() < Loot.deepDig.areas[spot.areaId].chance
 	then
 		s.deep = true
-		s.required += Loot.deepDig.extraHits
+		s.required += Loot.deepDig.areas[spot.areaId].extraHits
 		spot.reservedBy = player
 		spot.reservedUntil = now + DigConfig.progressTimeout
 		Analytics.custom(player, "DeepDig")
