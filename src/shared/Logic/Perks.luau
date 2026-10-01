@@ -1,7 +1,10 @@
 --!strict
 -- Pure: what a player's passes do. `data.passes` = { [passKey] = true } for
--- owned passes (VIP also counts as Auto Dig and Auto Sell). Perks with an
--- on/off switch read it from `data.settings`.
+-- owned passes (VIP also counts as Auto Dig and Auto Sell). Every pass has
+-- an on/off switch in `data.settings` (on unless switched off); a perk that
+-- comes with VIP also turns off when VIP is switched off.
+
+export type Data = { [string]: any }
 
 local Boosts = require(script.Parent.Boosts)
 local Monetization = require(script.Parent.Parent.Config.Monetization)
@@ -35,14 +38,22 @@ function Perks.has(data: { [string]: any }, passKey: string): boolean
 	return false
 end
 
--- True if the player has the pass and hasn't switched the perk off.
-function Perks.enabled(data: { [string]: any }, passKey: string): boolean
-	if not Perks.has(data, passKey) then
-		return false
-	end
+local function switchedOn(data: { [string]: any }, passKey: string): boolean
 	local toggle = Monetization.Passes[passKey].toggle
 	local settings = data.settings
-	return not toggle or type(settings) ~= "table" or settings[toggle] ~= false
+	return type(settings) ~= "table" or settings[toggle] ~= false
+end
+
+-- True if the player has the pass and hasn't switched the perk off.
+function Perks.enabled(data: { [string]: any }, passKey: string): boolean
+	if not Perks.has(data, passKey) or not switchedOn(data, passKey) then
+		return false
+	end
+	if data.passes[passKey] == true then
+		return true
+	end
+	-- Only through VIP: VIP must be on too.
+	return switchedOn(data, "VIP")
 end
 
 -- Passes that include this one (for "Included in VIP" on the shop card).
@@ -57,7 +68,7 @@ end
 
 function Perks.bagCapacity(data: { [string]: any }): number
 	local base = Progression.bagCapacity(data.bagLevel)
-	if Perks.has(data, "BigBag") then
+	if Perks.enabled(data, "BigBag") then
 		return math.ceil(base * P.bigBagMultiplier) -- rounded up
 	end
 	return base
@@ -66,7 +77,7 @@ end
 -- Dig speed: 1 + 1 for the 2x Dig Speed pass + 1 for the boost (capped).
 function Perks.digSpeed(data: { [string]: any }, now: number): number
 	local speed = 1
-	if Perks.has(data, "FastDig") then
+	if Perks.enabled(data, "FastDig") then
 		speed += P.fastDigBonus
 	end
 	if Boosts.isActive(data.activeBoosts, "DigSpeed2x", now) then
@@ -78,10 +89,10 @@ end
 -- Permanent cash multiplier from passes (2x Cash, VIP's +10%).
 function Perks.cashMultiplier(data: { [string]: any }): number
 	local multiplier = 1
-	if Perks.has(data, "CashX2") then
+	if Perks.enabled(data, "CashX2") then
 		multiplier *= P.cashPassMultiplier
 	end
-	if Perks.has(data, "VIP") then
+	if Perks.enabled(data, "VIP") then
 		multiplier *= 1 + P.vipCashBonus
 	end
 	return multiplier
@@ -89,7 +100,7 @@ end
 
 -- Odds multipliers from 2x Luck (Rare and better), or nil without it.
 function Perks.luckMultipliers(data: { [string]: any }): { [string]: number }?
-	if not Perks.has(data, "Luck2x") then
+	if not Perks.enabled(data, "Luck2x") then
 		return nil
 	end
 	local m = P.luckMultiplier

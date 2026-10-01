@@ -269,6 +269,15 @@ check(
 H.fireServer(buyer, "SetSetting", "autoSell", true)
 task.wait(0.05)
 check(Perks.enabled(buyerData, "AutoSell"), "and back on")
+H.fireServer(buyer, "SetSetting", "vip", false)
+task.wait(0.05)
+check(
+	buyer:GetAttribute("VIP") == nil and not Perks.enabled(buyerData, "AutoSell"),
+	"switching VIP off removes the tag and its included perks"
+)
+H.fireServer(buyer, "SetSetting", "vip", true)
+task.wait(0.05)
+check(buyer:GetAttribute("VIP") == true, "and back on")
 ownerData.passes.BigBag = true
 check(
 	Perks.bagCapacity(ownerData) == math.ceil(Progression.bagCapacity(ownerData.bagLevel) * 1.5),
@@ -419,6 +428,17 @@ do
 	H.fireServer(player, "BuyDrink", "LuckyLemonade")
 	task.wait(0.05)
 	check(data.activeBoosts.LuckyLemonade == nil and data.cash == 10, "not enough cash: no drink")
+	H.fireServer(player, "PauseBoost", "SpeedSoda", true)
+	task.wait(0.6)
+	check(
+		data.activeBoosts.SpeedSoda == nil
+			and (data.pausedBoosts.SpeedSoda or 0) > 250
+			and humanoid.WalkSpeed < 25,
+		"a drink can be paused (time kept, speed back to normal)"
+	)
+	H.fireServer(player, "PauseBoost", "SpeedSoda", false)
+	task.wait(0.6)
+	check(humanoid.WalkSpeed > 25 and data.pausedBoosts.SpeedSoda == nil, "and resumed")
 	data.activeBoosts.SpeedSoda = nil
 	task.wait(0.6)
 	check(humanoid.WalkSpeed < 25, "speed back to normal when it runs out")

@@ -97,7 +97,7 @@ local function onDigHit(player: Player, spotId: any)
 		return
 	end
 	if spot.vip then
-		if not Perks.has(data, "VIP") then
+		if not Perks.enabled(data, "VIP") then
 			reject(player, spotId, "VipOnly")
 			return
 		end
@@ -168,7 +168,7 @@ local function onDigHit(player: Player, spotId: any)
 			{ spotId = spotId, hits = s.hits, required = s.required, deepDig = true }
 		)
 		-- A saved Instant Deep Dig finishes it right away.
-		if data.instantDeepDigs > 0 then
+		if data.instantDeepDigs > 0 and data.settings.instantDeepDig ~= false then
 			task.delay(0.8, function()
 				if data.instantDeepDigs > 0 and DigService.instantDeepDig(player) then
 					data.instantDeepDigs -= 1

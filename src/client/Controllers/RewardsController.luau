@@ -289,6 +289,10 @@ local function refreshChips()
 		if left > 0 then
 			table.insert(chips, { text = def.displayName .. " " .. clock(left), color = C.Gold })
 		end
+		local paused = if data.pausedBoosts then data.pausedBoosts[id] else nil
+		if paused and paused > 0 then
+			table.insert(chips, { text = "⏸ " .. def.displayName .. " " .. clock(paused), color = C.Grey })
+		end
 	end
 	-- A bought server-wide 2x Cash (everyone sees who boosted).
 	local serverUntil = workspace:GetAttribute("ServerBoostUntil")

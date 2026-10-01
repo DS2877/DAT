@@ -151,3 +151,34 @@ test("the tutorial needs a bag, a shovel and the free drink", function()
 	expect.eq(Tutorial.update(data), true)
 	expect.eq(data.onboarding.guideDone, true)
 end)
+
+test("every pass can be switched off; VIP off also turns off what it includes", function()
+	local data = fresh()
+	for key, pass in Monetization.Passes do
+		expect.truthy(type(pass.toggle) == "string", key .. " has an on/off switch")
+	end
+	data.passes.VIP = true
+	data.passes.BigBag = true
+	expect.eq(Perks.enabled(data, "AutoDig"), true)
+	data.settings.vip = false
+	expect.eq(Perks.enabled(data, "VIP"), false)
+	expect.eq(Perks.enabled(data, "AutoDig"), false) -- only had it through VIP
+	expect.eq(Perks.has(data, "AutoDig"), true) -- still owned
+	data.settings.bigBag = false
+	expect.eq(Perks.bagCapacity(data), Progression.bagCapacity(1))
+	data.settings.bigBag = true
+	expect.eq(Perks.bagCapacity(data), 8)
+end)
+
+test("timed boosts can be paused and resumed without losing time", function()
+	local Boosts = requireShared("Logic/Boosts")
+	local active, paused = {}, {}
+	Boosts.add(active, "Cash2x", 300, 1000)
+	expect.eq(Boosts.pause(active, paused, "Cash2x", 1100), true)
+	expect.eq(Boosts.isActive(active, "Cash2x", 1100), false)
+	expect.eq(paused.Cash2x, 200)
+	expect.eq(Boosts.resume(active, paused, "Cash2x", 5000), true)
+	expect.eq(Boosts.secondsLeft(active, "Cash2x", 5000), 200)
+	expect.eq(paused.Cash2x, nil)
+	expect.eq(Boosts.pause(active, paused, "DigSpeed2x", 5000), false) -- nothing running
+end)

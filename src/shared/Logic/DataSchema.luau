@@ -42,6 +42,7 @@ function DataSchema.template(): { [string]: any }
 		instantDeepDigs = 0, -- Instant Deep Digs bought while none was running
 		robuxSpent = 0,
 		activeBoosts = {}, -- [boostId] = expiry unix time
+		pausedBoosts = {}, -- [boostId] = seconds left (switched off by the player)
 		-- Audio settings, and on/off switches for perks the player owns.
 		settings = { music = true, sounds = true, autoDig = true, autoSell = true, radar = true },
 		onboarding = {

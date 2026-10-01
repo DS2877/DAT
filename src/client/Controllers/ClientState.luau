@@ -32,6 +32,7 @@ export type Snapshot = {
 	groupRewardClaimed: boolean,
 	digCharges: { Rare: number, Epic: number },
 	activeBoosts: { [string]: number },
+	pausedBoosts: { [string]: number }?, -- boosts the player switched off (seconds left)
 	settings: { [string]: boolean }?, -- music, sounds, autoDig, autoSell, radar
 	-- Purchases (from PurchaseService)
 	passes: { [string]: boolean }?,

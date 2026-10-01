@@ -33,6 +33,7 @@ local EconomyService = require(script.Parent.EconomyService)
 local Net = require(script.Parent.Parent.Net)
 local PlayerData = require(script.Parent.PlayerData)
 local ServerBoostService = require(script.Parent.ServerBoostService)
+local SettingsService = require(script.Parent.SettingsService)
 
 local PurchaseService = {}
 
@@ -64,7 +65,7 @@ local function applyPassAttributes(player: Player, data: { [string]: any })
 			player:SetAttribute("Pass_" .. key, true)
 		end
 	end
-	player:SetAttribute("VIP", if Perks.has(data, "VIP") then true else nil)
+	player:SetAttribute("VIP", if Perks.enabled(data, "VIP") then true else nil)
 end
 
 -- Records an owned pass. Returns true if it's new.
@@ -294,6 +295,15 @@ function PurchaseService.init()
 		}
 	end)
 
+	-- Switching VIP on/off changes the name tag and chat tag right away.
+	SettingsService.Changed:Connect(function(player: Player, key: string)
+		local data = PlayerData.get(player)
+		if data and key == Monetization.Passes.VIP.toggle then
+			applyPassAttributes(player, data)
+			CharacterService.refreshTitle(player)
+		end
+	end)
+
 	PlayerData.Loaded:Connect(function(player: Player, data)
 		applyPassAttributes(player, data)
 		task.spawn(function()
@@ -321,7 +331,7 @@ function PurchaseService.init()
 
 	Net.on("SellAnywhere", 1, 2, function(player: Player)
 		local data = PlayerData.get(player)
-		if data and Perks.has(data, "AutoSell") then
+		if data and Perks.enabled(data, "AutoSell") then
 			EconomyService.sellAll(player, "Anywhere")
 		end
 	end)

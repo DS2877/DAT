@@ -21,7 +21,7 @@ export type Pass = {
 	icon: string, -- store/icons/<icon>.png
 	price: number,
 	order: number,
-	toggle: string?, -- the settings key that turns the perk on/off
+	toggle: string, -- the settings key that turns the perk on/off (on when bought)
 	enabled: boolean?, -- false = not sold (and not created on Roblox)
 }
 
@@ -74,6 +74,7 @@ local Monetization = {
 			icon = "BigBag",
 			price = 149,
 			order = 3,
+			toggle = "bigBag",
 		},
 		AutoSell = {
 			id = 2002844650,
@@ -95,6 +96,7 @@ local Monetization = {
 			icon = "FastDig",
 			price = 249,
 			order = 5,
+			toggle = "fastDig",
 		},
 		CashX2 = {
 			id = 1998771960,
@@ -105,6 +107,7 @@ local Monetization = {
 			icon = "CashX2",
 			price = 299,
 			order = 6,
+			toggle = "cashX2",
 		},
 		VIP = {
 			id = 2002010877,
@@ -115,6 +118,7 @@ local Monetization = {
 			icon = "VIP",
 			price = 399,
 			order = 7,
+			toggle = "vip",
 		},
 		-- Off until the developer decides (see the Phase 5 report): luck on
 		-- free gameplay loot. Not created on Roblox while disabled.
@@ -127,6 +131,7 @@ local Monetization = {
 			icon = "Luck2x",
 			price = 349,
 			order = 8,
+			toggle = "luck2x",
 			enabled = false,
 		},
 	} :: { [string]: Pass },

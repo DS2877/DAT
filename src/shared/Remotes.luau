@@ -12,6 +12,7 @@ return table.freeze({
 	ClaimGroupReward = "ClaimGroupReward", -- ()
 	Rebirth = "Rebirth", -- ()
 	SetSetting = "SetSetting", -- (key: settings key, on: boolean)
+	PauseBoost = "PauseBoost", -- (boostId: string, paused: boolean)
 	EquipSkin = "EquipSkin", -- (skinId: string, "" = none)
 	SellAnywhere = "SellAnywhere", -- () Auto Sell's SELL button
 	BuyDrink = "BuyDrink", -- (drinkId: string) at the Tiki Bar

@@ -1,12 +1,15 @@
 --!strict
--- The ⚙️ Settings panel: music and sound effects on/off, plus an on/off
--- switch for each owned perk that has one (Auto Dig, Auto Sell, Treasure
--- Radar). Saved in the player's profile (SetSetting); audio applies at once.
--- The Shop's pass cards use the same switches (SettingsController.set).
+-- The ⚙️ Settings panel: music and sound effects on/off, an on/off switch
+-- for every pass the player owns, using saved Instant Deep Digs, and
+-- pause / resume for every running timed boost (bought boosts, drinks,
+-- rewards). Saved in the player's profile; audio applies at once. The
+-- Shop's pass cards use the same switches (SettingsController.set).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Boosts = require(ReplicatedStorage.Shared.Logic.Boosts)
 local Monetization = require(ReplicatedStorage.Shared.Config.Monetization)
+local Retention = require(ReplicatedStorage.Shared.Config.Retention)
 local Signal = require(ReplicatedStorage.Shared.Util.Signal)
 local Sound = require(script.Parent.Parent.Sound)
 local Ui = require(script.Parent.Parent.Ui)
@@ -20,12 +23,25 @@ local SettingsController = {}
 -- Fired (key, on) when a setting is switched on this client.
 SettingsController.Changed = Signal.new()
 
-type Row = { key: string, pass: string?, frame: Frame, button: TextButton }
+-- A row is a setting (`key`) or a timed boost (`boost`).
+type Row = {
+	key: string,
+	pass: string?,
+	boost: string?,
+	label: string,
+	frame: Frame,
+	button: TextButton,
+	text: TextLabel,
+}
 
-local ROWS: { { key: string, label: string, pass: string?, order: number } } = {
+local ROWS: { { key: string, label: string, pass: string?, boost: string?, order: number } } = {
 	{ key = "music", label = "🎵  Music", order = -2 },
 	{ key = "sounds", label = "🔊  Sounds", order = -1 },
+	{ key = "instantDeepDig", label = "🌋  Use saved Instant Deep Digs", order = 50 },
 }
+for boostId, def in Retention.boosts do
+	table.insert(ROWS, { key = "boost:" .. boostId, label = def.displayName, boost = boostId, order = 100 })
+end
 for passKey, pass in Monetization.Passes do
 	if pass.toggle and pass.enabled ~= false then
 		table.insert(
@@ -52,9 +68,30 @@ function SettingsController.current(key: string): boolean
 	return not settings or (settings :: any)[key] ~= false
 end
 
+local function clock(seconds: number): string
+	return string.format("%d:%02d", seconds // 60, seconds % 60)
+end
+
 local function refresh()
+	local data = ClientState.data
+	local now = os.time()
 	for _, row in rows do
-		row.frame.Visible = not row.pass or ClientState.hasPass(row.pass)
+		if row.boost then
+			-- Running (ON) or paused (OFF), with the time left.
+			local left = if data then Boosts.secondsLeft(data.activeBoosts, row.boost, now) else 0
+			local paused = if data and data.pausedBoosts then data.pausedBoosts[row.boost] or 0 else 0
+			row.frame.Visible = left > 0 or paused > 0
+			local on = left > 0
+			row.text.Text = row.label .. "  " .. clock(math.floor(if on then left else paused))
+			row.button.Text = if on then "ON" else "PAUSED"
+			Ui.setButtonColor(row.button, if on then C.Green else C.Grey)
+			continue
+		end
+		if row.pass then
+			row.frame.Visible = ClientState.hasPass(row.pass)
+		elseif row.key == "instantDeepDig" then
+			row.frame.Visible = data ~= nil and (data.instantDeepDigs or 0) > 0
+		end
 		local on = SettingsController.current(row.key)
 		row.button.Text = if on then "ON" else "OFF"
 		Ui.setButtonColor(row.button, if on then C.Green else C.Grey)
@@ -84,7 +121,7 @@ local function build()
 		icon = "⚙️",
 		accent = C.Blue,
 		width = 480,
-		height = 262 + 84 * (#ROWS - 2),
+		height = 560,
 		parent = HudController.root(),
 		dim = true,
 	})
@@ -108,7 +145,8 @@ local function build()
 			BackgroundTransparency = 0.3,
 			Parent = list,
 		}, { Ui.corner(UDim.new(0, 16)), Ui.stroke(3) })
-		Ui.plainLabel({
+		local text = Ui.plainLabel({
+			Name = "Label",
 			Position = UDim2.fromOffset(18, 14),
 			Size = UDim2.new(1, -180, 1, -28),
 			Font = Ui.TitleFont,
@@ -126,10 +164,28 @@ local function build()
 			Parent = frame,
 		}, C.Green)
 		local key = entry.key
+		local boost = entry.boost
 		button.Activated:Connect(function()
+			if boost then
+				local data = ClientState.data
+				local running = data ~= nil and Boosts.secondsLeft(data.activeBoosts, boost, os.time()) > 0
+				Sound.play("UiClick")
+				local remote =
+					ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("PauseBoost") :: RemoteEvent
+				remote:FireServer(boost, running)
+				return
+			end
 			SettingsController.set(key, not SettingsController.current(key))
 		end)
-		table.insert(rows, { key = key, pass = entry.pass, frame = frame, button = button })
+		table.insert(rows, {
+			key = key,
+			pass = entry.pass,
+			boost = boost,
+			label = entry.label,
+			frame = frame,
+			button = button,
+			text = text,
+		})
 	end
 	refresh()
 end
@@ -148,6 +204,15 @@ function SettingsController.init()
 		-- The server's copy wins once it arrives.
 		table.clear(pending)
 		refresh()
+	end)
+	-- Boost timers tick while the panel is open.
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			if panel.Visible then
+				refresh()
+			end
+		end
 	end)
 end
 

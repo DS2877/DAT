@@ -24,6 +24,38 @@ function Boosts.multiplier(activeBoosts: { [string]: number }, boostId: string, 
 	return if Boosts.isActive(activeBoosts, boostId, now) then Retention.boosts[boostId].multiplier else 1
 end
 
+-- Pausing (the player switched a boost off): the time left moves to
+-- `paused` and doesn't run down until it's resumed.
+function Boosts.pause(
+	active: { [string]: number },
+	paused: { [string]: number },
+	boostId: string,
+	now: number
+): boolean
+	local left = Boosts.secondsLeft(active, boostId, now)
+	if left <= 0 then
+		return false
+	end
+	paused[boostId] = (paused[boostId] or 0) + left
+	active[boostId] = nil
+	return true
+end
+
+function Boosts.resume(
+	active: { [string]: number },
+	paused: { [string]: number },
+	boostId: string,
+	now: number
+): boolean
+	local left = paused[boostId]
+	if not left or left <= 0 then
+		return false
+	end
+	paused[boostId] = nil
+	Boosts.add(active, boostId, left, now)
+	return true
+end
+
 function Boosts.prune(activeBoosts: { [string]: number }, now: number)
 	for id, expiry in activeBoosts do
 		if type(expiry) ~= "number" or expiry <= now or not Retention.boosts[id] then

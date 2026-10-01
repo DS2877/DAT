@@ -41,7 +41,7 @@ function CharacterService.refreshTitle(player: Player)
 		existing:Destroy()
 	end
 	local title = Rebirth.title(data.rebirths)
-	local vip = Perks.has(data, "VIP")
+	local vip = Perks.enabled(data, "VIP")
 	-- VIPs show their name in gold (instead of Roblox's own name tag).
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	if humanoid then
