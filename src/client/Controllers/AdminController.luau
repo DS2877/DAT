@@ -1,11 +1,14 @@
 --!strict
 -- The 🛠️ admin panel (only for admins: the server sets the "Admin"
 -- attribute and checks every action again). Tabs:
---   PLAYER  cash, shovel, bag, rebirths, passes, boosts, treasures, resets,
+--   PLAYER  reset your own progress (to test the game as a new player);
+--           cash, shovel, bag, rebirths, passes, boosts, treasures, resets,
 --           teleport to / bring / kick (for the selected player)
---   WORLD   teleports, time of day, your own speed and jump
+--   WORLD   teleports, time of day, your own speed and jump, and spawning
+--           things where you stand (treasure spots, money rain, fireworks,
+--           a Mega Dig)
 --   EVENTS  Treasure Rush, server 2x Cash, ADMIN ABUSE, hidden treasures,
---           announcements
+--           announcements, messages to every server
 --   INFO    uptime, players, hidden treasures right now
 
 local Players = game:GetService("Players")
@@ -31,9 +34,16 @@ local targetRow: Frame
 local targetId: number = player.UserId
 local infoLabel: TextLabel
 
-local function send(action: string, ...: any)
+-- Actions that need a second tap.
+local CONFIRM = { ResetProgress = true, ResetAll = true, Kick = true }
+
+local function sendFor(target: number, action: string, ...: any)
 	Sound.play("UiClick")
-	remote:FireServer(action, targetId, ...)
+	remote:FireServer(action, target, ...)
+end
+
+local function send(action: string, ...: any)
+	sendFor(targetId, action, ...)
 end
 
 local function selectTab(name: string)
@@ -69,8 +79,17 @@ local function refreshTargets()
 	end
 end
 
--- A titled group of buttons in a page.
-local function section(page: ScrollingFrame, order: number, title: string, buttons: { { any } })
+-- A titled group of buttons in a page. opts.self: the buttons act on you
+-- (not the selected player); opts.prefix: added to the button names;
+-- opts.cell: bigger buttons.
+local function section(
+	page: ScrollingFrame,
+	order: number,
+	title: string,
+	buttons: { { any } },
+	opts: { self: boolean?, prefix: string?, cell: UDim2? }?
+)
+	local o = opts or {}
 	Ui.plainLabel({
 		LayoutOrder = order * 2,
 		Size = UDim2.new(1, 0, 0, 30),
@@ -88,21 +107,34 @@ local function section(page: ScrollingFrame, order: number, title: string, butto
 		Parent = page,
 	}, {
 		Ui.new("UIGridLayout", {
-			CellSize = UDim2.fromOffset(160, 44),
+			CellSize = o.cell or UDim2.fromOffset(160, 44),
 			CellPadding = UDim2.fromOffset(8, 8),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
 	})
 	for i, b in buttons do
 		local button = Ui.button({
-			Name = b[2],
+			Name = (o.prefix or "") .. b[2],
 			LayoutOrder = i,
 			Text = b[1],
 			Parent = grid,
 		}, b[3] or C.Blue)
 		local args = table.move(b, 4, #b, 1, {})
+		local armedUntil = 0
 		button.Activated:Connect(function()
-			send(b[2], table.unpack(args))
+			if CONFIRM[b[2]] and os.clock() > armedUntil then
+				-- First tap arms it; a second tap within 3 seconds does it.
+				armedUntil = os.clock() + 3
+				button.Text = "TAP AGAIN!"
+				Sound.play("Denied")
+				task.delay(3, function()
+					button.Text = b[1]
+				end)
+				return
+			end
+			armedUntil = 0
+			button.Text = b[1]
+			sendFor(if o.self then player.UserId else targetId, b[2], table.unpack(args))
 		end)
 	end
 end
@@ -124,6 +156,52 @@ local function page(name: string): ScrollingFrame
 	})
 	pages[name] = p
 	return p
+end
+
+-- A text box with a send button (announcements, messages).
+local function textRow(page: ScrollingFrame, order: number, title: string, action: string, color: Color3)
+	Ui.plainLabel({
+		LayoutOrder = order,
+		Size = UDim2.new(1, 0, 0, 30),
+		Font = Ui.TitleFont,
+		Text = title,
+		TextColor3 = C.Ink,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Parent = page,
+	})
+	local row = Ui.new("Frame", {
+		Name = action .. "Row",
+		LayoutOrder = order + 1,
+		Size = UDim2.new(1, 0, 0, 48),
+		BackgroundTransparency = 1,
+		Parent = page,
+	})
+	local box = Ui.new("TextBox", {
+		Name = action .. "Text",
+		Size = UDim2.new(1, -150, 1, 0),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		Font = Ui.Font,
+		PlaceholderText = "Type a message...",
+		Text = "",
+		TextSize = 22,
+		TextColor3 = C.Ink,
+		ClearTextOnFocus = false,
+		Parent = row,
+	}, { Ui.corner(UDim.new(0, 12)), Ui.stroke(3) })
+	local sendButton = Ui.button({
+		Name = "Send",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.fromScale(1, 0),
+		Size = UDim2.new(0, 140, 1, 0),
+		Text = "SEND",
+		Parent = row,
+	}, color)
+	sendButton.Activated:Connect(function()
+		if box.Text ~= "" then
+			send(action, box.Text)
+			box.Text = ""
+		end
+	end)
 end
 
 local function build()
@@ -179,8 +257,22 @@ local function build()
 		}),
 	})
 
-	-- PLAYER (acts on the selected player).
+	-- PLAYER (acts on the selected player; the first row on you).
 	local playerPage = page("Player")
+	section(playerPage, 0, "🧪 TEST THE GAME AS A NEW PLAYER (you)", {
+		{ "RESET MY PROGRESS", "ResetProgress", C.Red },
+		{ "BRAND NEW ME", "ResetAll", C.Red },
+	}, { self = true, prefix = "My", cell = UDim2.fromOffset(280, 54) })
+	Ui.plainLabel({
+		LayoutOrder = 2,
+		Size = UDim2.new(1, 0, 0, 24),
+		TextScaled = false,
+		TextSize = 18,
+		Text = "Progress: keeps passes, skins and settings. Brand new: removes test passes too. Tap twice.",
+		TextColor3 = C.Ink,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Parent = playerPage,
+	})
 	section(playerPage, 1, "💰 CASH", {
 		{ "+1K", "AddCash", C.Green, 1000 },
 		{ "+100K", "AddCash", C.Green, 100000 },
@@ -255,6 +347,17 @@ local function build()
 		{ "Jump x1", "Jump", C.Grey, 1 },
 		{ "Jump x3", "Jump", C.Blue, 3 },
 	})
+	section(worldPage, 0, "✨ SPAWN (where you stand)", {
+		{ "Legendary spot", "SpawnSpot", C.Orange, "Legendary" },
+		{ "Mythic spot", "SpawnSpot", C.Red, "Mythic" },
+		{ "Secret spot", "SpawnSpot", C.Gold, "Secret" },
+		{ "Clue ring", "SpawnRing", C.Blue },
+		{ "💸 Money rain", "MoneyRain", C.Green },
+		{ "🎆 Fireworks", "Fireworks", C.Purple },
+		{ "⛏️ Mega Dig here", "MegaDig", C.Gold, "Here" },
+		{ "Mega Dig (beach)", "MegaDig", C.Orange },
+		{ "Close Mega Dig", "MegaDig", C.Grey, "Stop" },
+	})
 
 	-- EVENTS (everyone in the server).
 	local eventsPage = page("Events")
@@ -280,47 +383,14 @@ local function build()
 		{ "Secret: Volcano", "Hide", C.Gold, "Secret", "Volcano" },
 		{ "Legendary: Jungle", "Hide", C.Orange, "Legendary", "Jungle" },
 	})
-	Ui.plainLabel({
-		LayoutOrder = 20,
-		Size = UDim2.new(1, 0, 0, 30),
-		Font = Ui.TitleFont,
-		Text = "📢 ANNOUNCE TO THE SERVER",
-		TextColor3 = C.Ink,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Parent = eventsPage,
-	})
-	local announceRow = Ui.new("Frame", {
-		LayoutOrder = 21,
-		Size = UDim2.new(1, 0, 0, 48),
-		BackgroundTransparency = 1,
-		Parent = eventsPage,
-	})
-	local box = Ui.new("TextBox", {
-		Name = "AnnounceText",
-		Size = UDim2.new(1, -150, 1, 0),
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		Font = Ui.Font,
-		PlaceholderText = "Type a message...",
-		Text = "",
-		TextSize = 22,
-		TextColor3 = C.Ink,
-		ClearTextOnFocus = false,
-		Parent = announceRow,
-	}, { Ui.corner(UDim.new(0, 12)), Ui.stroke(3) })
-	local sendButton = Ui.button({
-		Name = "Send",
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.fromScale(1, 0),
-		Size = UDim2.new(0, 140, 1, 0),
-		Text = "SEND",
-		Parent = announceRow,
-	}, C.Green)
-	sendButton.Activated:Connect(function()
-		if box.Text ~= "" then
-			send("Announce", box.Text)
-			box.Text = ""
-		end
-	end)
+	textRow(eventsPage, 20, "📢 ANNOUNCE TO THIS SERVER", "Announce", C.Green)
+	textRow(
+		eventsPage,
+		22,
+		"🌍 MESSAGE TO ALL SERVERS (a speech bubble from you)",
+		"GlobalMessage",
+		C.Purple
+	)
 
 	-- INFO.
 	local infoPage = page("Info")

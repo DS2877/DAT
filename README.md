@@ -156,11 +156,21 @@ meaningful at every stage. Buying one that's running adds 5 minutes.
   on-screen draw (one ticket per hit, 3 hits to enter); the other helpers
   get some cash.
 * **Admin panel** (🛠️, `Config/Admin.luau`): for the game's owner (and any
-  listed user ids; everyone in Studio). Cash, levels, test passes, boosts,
-  treasures, resets, teleports, kick; Treasure Rush, server 2x Cash, ADMIN
-  ABUSE (2x cash + rush + clue odds + hidden treasures for everyone),
-  hiding treasures, announcements, time of day. Every action is checked on
-  the server.
+  listed user ids; everyone in Studio). Every action is checked on the
+  server.
+  * PLAYER: RESET MY PROGRESS (keeps purchases) and BRAND NEW ME (a fresh
+    player; tap twice) to test the game from the start, the tutorial
+    restarts at once; cash, levels, test passes, boosts, treasures, resets,
+    teleports and kick for any player.
+  * WORLD: spawn things where you stand (a Legendary / Mythic / Secret spot,
+    a ring of clue spots, money rain, fireworks, a Mega Dig), teleports,
+    time of day, your speed and jump.
+  * EVENTS: Treasure Rush, server 2x Cash, ADMIN ABUSE (2x cash + rush +
+    clue odds + hidden treasures for everyone, with a party sky: night,
+    rainbow light, disco beams, fireworks and confetti), hiding treasures,
+    announcements, and messages to every server (filtered, sent with
+    MessagingService, shown at the top of everyone's screen as a speech
+    bubble from your avatar).
 
 ## Audio
 

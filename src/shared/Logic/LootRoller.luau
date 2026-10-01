@@ -86,6 +86,27 @@ function LootRoller.getOdds(areaId: string, options: RollOptions?): { [string]: 
 	return odds
 end
 
+-- Can a dig in this area roll this rarity at all?
+function LootRoller.canProduce(areaId: string, rarity: string): boolean
+	local area = Areas.Defs[areaId]
+	return area ~= nil and (area.odds[rarity] or 0) > 0 and #LootRoller.getPool(areaId, rarity) > 0
+end
+
+-- The area whose treasures a spot of `rarity` at `areaId` should roll from:
+-- its own if it has that rarity, else the nearest later area that does.
+function LootRoller.areaFor(areaId: string, rarity: string): string
+	if LootRoller.canProduce(areaId, rarity) then
+		return areaId
+	end
+	local best, bestOrder = areaId, math.huge
+	for id, area in Areas.Defs do
+		if area.order < bestOrder and LootRoller.canProduce(id, rarity) then
+			best, bestOrder = id, area.order
+		end
+	end
+	return best
+end
+
 function LootRoller.rollRarity(odds: { [string]: number }, rng: Rng): string
 	local total = 0
 	for _, rarity in Rarities.Order do

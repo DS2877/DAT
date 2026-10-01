@@ -407,7 +407,26 @@ if adminButton then
 		abuseChip = abuseChip or (chip:IsA("TextLabel") and chip.Text:find("ADMIN ABUSE") ~= nil)
 	end
 	check(abuseChip, "ADMIN ABUSE shows a countdown chip")
+	local Lighting = game:GetService("Lighting")
+	local function partyParts(): number
+		local n = 0
+		for _, d in H.workspace:GetDescendants() do
+			if d.Name == "DiscoBeam" or d.Name == "Confetti" then
+				n += 1
+			end
+		end
+		return n
+	end
+	check(
+		Lighting:FindFirstChild("PartyTint") ~= nil and partyParts() > 0,
+		"ADMIN ABUSE throws a party in the sky (" .. partyParts() .. " beams)"
+	)
 	H.fireServer(player, "AdminAction", "Abuse", nil, 0)
+	task.wait(0.3)
+	check(
+		Lighting:FindFirstChild("PartyTint") == nil and partyParts() == 0,
+		"the sky goes back to normal after"
+	)
 	H.signal(adminButton, "Activated"):Fire({})
 	task.wait(0.1)
 end
@@ -509,6 +528,44 @@ do
 	check(drawFrame ~= nil, "the winner draw spins on screen")
 	task.wait(H.require(Shared.Config.MegaDig).drawSeconds + 0.5)
 	check(drawFrame and drawFrame:FindFirstChild("Window") and true, "the draw finished without errors")
+end
+
+print("\n== Admin: messages and reset ==")
+do
+	H.signal(adminButton, "Activated"):Fire({})
+	task.wait(0.2)
+	local adminPanel = root:FindFirstChild("Admin")
+	H.signal(adminPanel:FindFirstChild("Events", true), "Activated"):Fire({})
+	local box = adminPanel:FindFirstChild("GlobalMessageText", true)
+	check(box ~= nil, "the Events tab has a box for messages to every server")
+	box.Text = "Mega Dig in 5 minutes, see you there!"
+	H.signal(box.Parent:FindFirstChild("Send"), "Activated"):Fire({})
+	task.wait(1.5)
+	local bubble = root:FindFirstChild("GlobalMessage")
+	check(bubble ~= nil, "the message drops in at the top of the screen")
+	if bubble then
+		check(bubble.Avatar.Image:find(tostring(player.UserId)) ~= nil, "with the admin's avatar")
+		check(
+			bubble.Bubble.Text.Text == "Mega Dig in 5 minutes, see you there!",
+			"in a speech bubble (" .. bubble.Bubble.Text.Text .. ")"
+		)
+	end
+	H.signal(adminPanel:FindFirstChild("Player", true), "Activated"):Fire({})
+	local reset = adminPanel:FindFirstChild("MyResetProgress", true)
+	check(reset ~= nil, "the Player tab has RESET MY PROGRESS")
+	data.rebirths = 0
+	data.onboarding.guideDone = true
+	data.shovelLevel = 3
+	H.signal(reset, "Activated"):Fire({})
+	task.wait(0.3)
+	check(data.shovelLevel == 3 and reset.Text == "TAP AGAIN!", "the first tap only asks to tap again")
+	H.signal(reset, "Activated"):Fire({})
+	task.wait(0.8)
+	check(data.shovelLevel == 1 and data.onboarding.guideDone == false, "the second tap resets your progress")
+	check(player:GetAttribute("Pass_AutoDig") == true, "your purchases stay")
+	H.signal(adminButton, "Activated"):Fire({})
+	task.wait(0.8)
+	check(root.Tutorial.Visible, "the tutorial starts over right away")
 end
 
 running = false

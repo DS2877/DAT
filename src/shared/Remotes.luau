@@ -28,5 +28,7 @@ return table.freeze({
 	Announce = "Announce", -- (announcement) to everyone
 	AdminInfo = "AdminInfo", -- (info) players, uptime, hidden treasures
 	MegaDigDraw = "MegaDigDraw", -- (draw) the Mega Dig's winner draw, to everyone
-	GlobalMessage = "GlobalMessage", -- (message) an admin's message to every server
+	GlobalMessage = "GlobalMessage", -- ({ text, userId, name }) an admin's message to every server
+	Fireworks = "Fireworks", -- (position, count) to everyone
+	CoinPicked = "CoinPicked", -- (amount, position) a money-rain coin
 })

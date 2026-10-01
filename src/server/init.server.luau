@@ -28,6 +28,8 @@ local DrinkService = require(Services.DrinkService)
 local JackpotService = require(Services.JackpotService)
 local AdminService = require(Services.AdminService)
 local MegaDigService = require(Services.MegaDigService)
+local PartyService = require(Services.PartyService)
+local GlobalMessageService = require(Services.GlobalMessageService)
 
 -- init: connect remotes and signals. Order matters only for PlayerData.Loaded
 -- listeners, which must exist before PlayerData starts loading players.
@@ -45,6 +47,8 @@ SettingsService.init()
 PurchaseService.init()
 DrinkService.init()
 DigService.onHiddenFound = JackpotService.onFound
+PartyService.init()
+GlobalMessageService.init()
 AdminService.init()
 LeaderboardService.init() -- before PlayerData: its leave handler must run first
 CharacterService.init()

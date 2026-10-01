@@ -5,9 +5,12 @@
 --
 -- Actions on a player (target = a user id, default yourself): cash, shovel,
 -- bag, rebirths, passes (for testing: the profile only, not Roblox), boosts,
--- Instant Deep Digs, treasures, tutorial / full reset, teleport, bring, kick.
+-- Instant Deep Digs, treasures, tutorial / progress / full reset, teleport,
+-- bring, kick.
 -- Server actions: Treasure Rush, server 2x Cash, ADMIN ABUSE, hidden
--- treasures, announcements, time of day, your own speed / jump.
+-- treasures, announcements, messages to every server, time of day, your
+-- own speed / jump, and spawning things where you stand (treasure spots,
+-- clue rings, money rain, fireworks, a Mega Dig).
 
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
@@ -19,16 +22,22 @@ local Areas = require(ReplicatedStorage.Shared.Config.Areas)
 local Boosts = require(ReplicatedStorage.Shared.Logic.Boosts)
 local DataSchema = require(ReplicatedStorage.Shared.Logic.DataSchema)
 local MapLayout = require(ReplicatedStorage.Shared.Config.MapLayout)
+local LootRoller = require(ReplicatedStorage.Shared.Logic.LootRoller)
 local Monetization = require(ReplicatedStorage.Shared.Config.Monetization)
 local Progression = require(ReplicatedStorage.Shared.Logic.Progression)
 local Rarities = require(ReplicatedStorage.Shared.Config.Rarities)
 local Retention = require(ReplicatedStorage.Shared.Config.Retention)
 local Treasures = require(ReplicatedStorage.Shared.Config.Treasures)
+local Zones = require(ReplicatedStorage.Shared.Logic.Zones)
 local Analytics = require(script.Parent.Analytics)
 local AnnouncementService = require(script.Parent.AnnouncementService)
 local CharacterService = require(script.Parent.CharacterService)
+local DigSpotService = require(script.Parent.DigSpotService)
 local EconomyService = require(script.Parent.EconomyService)
+local GlobalMessageService = require(script.Parent.GlobalMessageService)
 local JackpotService = require(script.Parent.JackpotService)
+local MegaDigService = require(script.Parent.MegaDigService)
+local PartyService = require(script.Parent.PartyService)
 local Net = require(script.Parent.Parent.Net)
 local PlayerData = require(script.Parent.PlayerData)
 local World = require(script.Parent.Parent.World.World)
@@ -158,6 +167,48 @@ local function stopAbuse()
 	end
 end
 
+-- Replaces the profile with a fresh one, keeping `keep`, and sends the
+-- player back to the spawn.
+local function resetData(target: Player, data: { [string]: any }, keep: { string })
+	local fresh = DataSchema.template()
+	for _, key in keep do
+		fresh[key] = data[key]
+	end
+	for key in data do
+		data[key] = nil
+	end
+	for key, value in fresh do
+		data[key] = value
+	end
+	EconomyService.addCash(target, data, 0, "Gameplay", "Admin")
+	refresh(target)
+	teleport(target, World.get().spawnPosition)
+end
+
+-- A point on the ground `distance` studs in front of the admin.
+local function inFront(admin: Player, distance: number): Vector3?
+	local root = rootOf(admin)
+	if not root then
+		return nil
+	end
+	local look = root.CFrame.LookVector
+	local flat = Vector3.new(look.X, 0, look.Z)
+	flat = if flat.Magnitude > 0.01 then flat.Unit else Vector3.new(0, 0, -1)
+	local at = root.Position + flat * distance
+	return PartyService.groundAt(at.X, at.Z, root.Position.Y)
+end
+
+-- A dig spot at `position`; `rarity` makes its treasure that rarity.
+-- (Its treasure comes from an area that has that rarity.)
+local function spawnSpot(position: Vector3, rarity: string?)
+	local areaId = Zones.areaAt(position.X, position.Z)
+	DigSpotService.spawnAt(position, areaId, {
+		clue = true,
+		forceRarity = rarity,
+		lootArea = if rarity then LootRoller.areaFor(areaId, rarity) else nil,
+	})
+end
+
 type Handler = (admin: Player, target: Player, data: { [string]: any }, args: { any }) -> string?
 
 -- Actions on the target player.
@@ -241,19 +292,25 @@ local PLAYER_ACTIONS: { [string]: Handler } = {
 	end,
 	ResetProgress = function(_, target, data)
 		-- Fresh progress; purchases (passes, skins, receipts) are kept.
-		local fresh = DataSchema.template()
-		for _, key in { "passes", "ownedCosmetics", "processedPurchaseIds", "settings", "robuxSpent" } do
-			fresh[key] = data[key]
+		resetData(
+			target,
+			data,
+			{ "passes", "ownedCosmetics", "processedPurchaseIds", "settings", "robuxSpent" }
+		)
+		return "Progress reset (purchases kept). The tutorial starts over!"
+	end,
+	ResetAll = function(_, target, data)
+		-- A brand new player: test passes and skins go too. Receipts are
+		-- kept so no purchase is ever granted twice; passes really owned on
+		-- Roblox come back on the next join.
+		resetData(target, data, { "processedPurchaseIds", "robuxSpent" })
+		for key in Monetization.Passes do
+			target:SetAttribute("Pass_" .. key, nil)
 		end
-		for key in data do
-			data[key] = nil
-		end
-		for key, value in fresh do
-			data[key] = value
-		end
-		EconomyService.addCash(target, data, 0, "Gameplay", "Admin")
-		refresh(target)
-		return "Progress reset (purchases kept)"
+		target:SetAttribute("VIP", nil)
+		target:SetAttribute("AdminSpeed", nil)
+		target:SetAttribute("AdminJump", nil)
+		return "You're a brand new player. The tutorial starts over!"
 	end,
 	GoTo = function(admin, target)
 		local root = rootOf(target)
@@ -330,14 +387,68 @@ local SERVER_ACTIONS: { [string]: (admin: Player, args: { any }) -> string? } = 
 		if text == "" then
 			return nil
 		end
-		local filtered = text
-		pcall(function()
-			local result = game:GetService("TextService"):FilterStringAsync(text, admin.UserId)
-			filtered = result:GetNonChatStringForBroadcastAsync()
-		end)
+		local filtered = GlobalMessageService.filter(text, admin.UserId)
+		if not filtered then
+			return "The text filter is busy, try again"
+		end
 		AnnouncementService.announce({ text = "📢 " .. filtered, color = "#FFD54A", secret = false })
 		Net.fireAll("Notify", "📢 " .. filtered, "Big")
 		return "Announced"
+	end,
+	GlobalMessage = function(admin, args)
+		return GlobalMessageService.send(admin, tostring(args[1] or ""))
+	end,
+	SpawnSpot = function(admin, args)
+		local rarity = args[1]
+		if type(rarity) ~= "string" or not Rarities.Info[rarity] then
+			return nil
+		end
+		local at = inFront(admin, Admin.spawn.spotDistance)
+		if not at then
+			return nil
+		end
+		spawnSpot(at, rarity)
+		return rarity .. " spot in front of you"
+	end,
+	SpawnRing = function(admin)
+		local root = rootOf(admin)
+		if not root then
+			return nil
+		end
+		local cfg = Admin.spawn
+		for i = 1, cfg.ringCount do
+			local angle = i / cfg.ringCount * math.pi * 2
+			local x = root.Position.X + math.cos(angle) * cfg.ringRadius
+			local z = root.Position.Z + math.sin(angle) * cfg.ringRadius
+			spawnSpot(PartyService.groundAt(x, z, root.Position.Y), nil)
+		end
+		return cfg.ringCount .. " clue spots around you"
+	end,
+	MoneyRain = function(admin)
+		local root = rootOf(admin)
+		if not root then
+			return nil
+		end
+		PartyService.moneyRain(root.Position)
+		return "Money rain!"
+	end,
+	Fireworks = function(admin)
+		local root = rootOf(admin)
+		if not root then
+			return nil
+		end
+		PartyService.fireworks(root.Position, 10)
+		return "Fireworks!"
+	end,
+	MegaDig = function(admin, args)
+		if args[1] == "Stop" then
+			return if MegaDigService.cancel() then "Mega Dig closed" else "No Mega Dig open"
+		end
+		local at = if args[1] == "Here" then inFront(admin, Admin.spawn.megaDistance) else nil
+		if args[1] == "Here" and not at then
+			return nil
+		end
+		return if MegaDigService.start(at) then "Mega Dig started" else "A Mega Dig is already open"
 	end,
 	Time = function(_, args)
 		local clock = tonumber(args[1])

@@ -239,7 +239,7 @@ function finish(
 	streaks[player] = streak
 	-- The VIP spot rolls like a clue spot in the player's best area.
 	local unlocked = Progression.unlockedAreas(data.shovelLevel)
-	local lootArea = if spot.vip then unlocked[#unlocked] or spot.areaId else spot.areaId
+	local lootArea = if spot.vip then unlocked[#unlocked] or spot.areaId else spot.lootArea or spot.areaId
 	local find = LootService.rollFor(data, {
 		areaId = lootArea,
 		clue = spot.clue,

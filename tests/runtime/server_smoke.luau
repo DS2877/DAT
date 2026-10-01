@@ -604,6 +604,129 @@ do
 	end
 end
 
+print("\n== Admin tools ==")
+do
+	local Admin = H.require(Shared.Config.Admin)
+	local Treasures = H.require(Shared.Config.Treasures)
+	local PartyService = H.require(Services.PartyService)
+	local admin = H.addPlayer("AdminTester", 5002)
+	H.waitFor(function()
+		return PlayerData.get(admin) ~= nil and admin.Character ~= nil
+	end, 5, "admin tester")
+	table.insert(Admin.userIds, 5002)
+	local adminData = PlayerData.get(admin)
+	local function act(...)
+		H.fireServer(admin, "AdminAction", ...)
+		task.wait(0.15)
+	end
+
+	-- Spawn a Mythic spot in front of you and dig it.
+	local beachSpot = spotList("Beach")[1]
+	H.moveTo(admin, beachSpot.PrimaryPart.Position + V3(0, 0, 30))
+	local here = admin.Character.HumanoidRootPart.Position
+	local function spotsNear(radius: number): { any }
+		local list = {}
+		for _, spot in spots:GetChildren() do
+			local p = spot.PrimaryPart.Position
+			if V3(p.X - here.X, 0, p.Z - here.Z).Magnitude <= radius then
+				table.insert(list, spot)
+			end
+		end
+		return list
+	end
+	local nearBefore = #spotsNear(Admin.spawn.spotDistance + 1)
+	act("SpawnSpot", nil, "Mythic")
+	local spawned
+	for _, spot in spotsNear(Admin.spawn.spotDistance + 1) do
+		if spot:GetAttribute("Clue") then
+			spawned = spot
+		end
+	end
+	check(
+		#spotsNear(Admin.spawn.spotDistance + 1) == nearBefore + 1 and spawned ~= nil,
+		"admin: spawn a treasure spot in front of you"
+	)
+	if spawned then
+		table.clear(adminData.bagContents)
+		local find = digSpot(admin, spawned)
+		check(
+			find and Treasures.ById[find.id].rarity == "Mythic",
+			"the spawned spot holds a Mythic (" .. tostring(find and find.rarity) .. ")"
+		)
+		check(spawned.Parent == nil, "it doesn't come back after digging")
+	end
+	H.moveTo(admin, here)
+	local ringBefore = #spotsNear(Admin.spawn.ringRadius + 1)
+	act("SpawnRing")
+	local ringAfter = #spotsNear(Admin.spawn.ringRadius + 1)
+	check(
+		ringAfter == ringBefore + Admin.spawn.ringCount,
+		"admin: a ring of clue spots (" .. ringAfter - ringBefore .. ")"
+	)
+
+	-- Money rain: coins fall; running into one pays.
+	local dropSeconds = Admin.moneyRain.dropSeconds
+	Admin.moneyRain.dropSeconds = 0.1
+	act("MoneyRain")
+	task.wait(0.3)
+	check(PartyService.coinCount() == Admin.moneyRain.coins, "admin: money rain drops coins")
+	check(H.lastClientEvent("Fireworks") ~= nil, "money rain starts with fireworks")
+	local coin = workspace.MoneyRain:GetChildren()[1]
+	local cash = adminData.cash
+	H.moveTo(admin, coin.Position)
+	task.wait(0.3)
+	check(adminData.cash > cash, "grabbing a coin pays cash")
+	check(H.lastClientEvent("CoinPicked", admin) ~= nil, "the coin pops on screen")
+	Admin.moneyRain.dropSeconds = dropSeconds
+
+	-- Mega Dig where you stand.
+	act("MegaDig", nil, "Here")
+	local MegaDigService = H.require(Services.MegaDigService)
+	check(MegaDigService.isActive(), "admin: start a Mega Dig")
+	act("MegaDig", nil, "Stop")
+	check(not MegaDigService.isActive(), "admin: close a Mega Dig")
+
+	-- Messages to every server.
+	local published = #H.published
+	act("GlobalMessage", nil, "Hello everyone!")
+	task.wait(0.2)
+	check(#H.published == published + 1, "admin: message published to every server")
+	local shown = 0
+	for _, args in H.clientEvents("GlobalMessage", player) do
+		if args[1].text == "Hello everyone!" then
+			shown += 1
+		end
+	end
+	check(shown == 1, "it shows once in this server too (" .. shown .. "x)")
+	local message = H.lastClientEvent("GlobalMessage", player)[1]
+	check(message.userId == 5002 and message.name ~= nil, "with the admin's id for the avatar")
+	H.clockOffset += 10
+	H.filterFails = true
+	act("GlobalMessage", nil, "Unfiltered")
+	H.filterFails = false
+	check(#H.published == published + 1, "nothing is sent if the text filter fails")
+
+	-- Reset my progress (keeps purchases), then a brand new player.
+	adminData.rebirths = 2
+	adminData.shovelLevel = 4
+	adminData.onboarding.guideDone = true
+	adminData.passes.AutoDig = true
+	admin:SetAttribute("Pass_AutoDig", true)
+	act("ResetProgress")
+	check(
+		adminData.rebirths == 0 and adminData.shovelLevel == 1 and adminData.onboarding.guideDone == false,
+		"admin: reset my progress"
+	)
+	check(adminData.passes.AutoDig == true, "a progress reset keeps purchases")
+	act("ResetAll")
+	check(
+		adminData.passes.AutoDig == nil and admin:GetAttribute("Pass_AutoDig") == nil,
+		"brand new player: test passes removed too"
+	)
+	table.remove(Admin.userIds)
+	admin:Kick("done")
+end
+
 print("\n== Golden X ==")
 H.fireServer(player, "RequestSync")
 task.wait(0.1)

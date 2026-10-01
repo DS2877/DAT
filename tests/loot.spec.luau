@@ -93,3 +93,10 @@ test("minRarity above what an area offers falls back to its best rarity", functi
 	expect.eq(roll.rarity, "Rare")
 	expect.truthy(Rarities.rank(roll.rarity) > 0)
 end)
+
+test("a forced rarity rolls from an area that has it", function()
+	expect.eq(LootRoller.areaFor("Volcano", "Mythic"), "Volcano")
+	local area = LootRoller.areaFor("Beach", "Mythic")
+	expect.eq(LootRoller.canProduce(area, "Mythic"), true)
+	expect.eq(LootRoller.areaFor("Beach", "Common"), "Beach")
+end)

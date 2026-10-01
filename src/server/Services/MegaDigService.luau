@@ -14,11 +14,13 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Areas = require(ReplicatedStorage.Shared.Config.Areas)
 local Bonuses = require(ReplicatedStorage.Shared.Logic.Bonuses)
 local MegaDig = require(ReplicatedStorage.Shared.Config.MegaDig)
 local MegaDigClock = require(ReplicatedStorage.Shared.Logic.MegaDigClock)
 local Rarities = require(ReplicatedStorage.Shared.Config.Rarities)
 local Treasures = require(ReplicatedStorage.Shared.Config.Treasures)
+local Zones = require(ReplicatedStorage.Shared.Logic.Zones)
 local Analytics = require(script.Parent.Analytics)
 local AnnouncementService = require(script.Parent.AnnouncementService)
 local CollectionService = require(script.Parent.CollectionService)
@@ -179,8 +181,14 @@ function MegaDigService.start(position: Vector3?): boolean
 		done = false,
 	}
 	setState()
+	local areaId = Zones.areaAt(at.X, at.Z)
+	local area = Areas.Defs[areaId]
 	tell(
-		"⛏️ A MEGA DIG SITE appeared on the BEACH! Everyone dig! A MYTHIC+ treasure is inside!",
+		string.format(
+			"⛏️ A MEGA DIG SITE appeared %s the %s! Everyone dig! A MYTHIC+ treasure is inside!",
+			if areaId == "Beach" then "on" else "in",
+			string.upper(if area then area.displayName else "island")
+		),
 		"#FFC933"
 	)
 	return true
@@ -309,6 +317,15 @@ function MegaDigService.onHit(player: Player, data: { [string]: any }): boolean
 	if s.hits >= s.required then
 		finish(s)
 	end
+	return true
+end
+
+-- Closes the open site without a winner (admin). Returns false if none.
+function MegaDigService.cancel(): boolean
+	if not site then
+		return false
+	end
+	close()
 	return true
 end
 

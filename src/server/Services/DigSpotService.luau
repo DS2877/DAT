@@ -33,6 +33,7 @@ export type Spot = {
 	range: number?,
 	-- An admin-spawned spot with a guaranteed rarity.
 	forceRarity: string?,
+	lootArea: string?, -- roll treasure from this area instead (admin spots)
 }
 
 local DigSpotService = {}

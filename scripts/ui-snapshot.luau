@@ -263,7 +263,20 @@ H.signal(root.TopButtons:FindFirstChild("AdminButton"), "Activated"):Fire({})
 snap("admin_player")
 H.signal(root.Admin:FindFirstChild("Events", true), "Activated"):Fire({})
 snap("admin_events")
+H.signal(root.Admin:FindFirstChild("World", true), "Activated"):Fire({})
+snap("admin_world")
 H.signal(root.TopButtons:FindFirstChild("AdminButton"), "Activated"):Fire({})
+-- A message to every server: the admin's speech bubble.
+H.fireServer(
+	player,
+	"AdminAction",
+	"GlobalMessage",
+	nil,
+	"ADMIN ABUSE starts in 5 minutes! Get to the beach!"
+)
+task.wait(1.6)
+snap("message")
+task.wait(7)
 
 -- The Auto Dig offer: a player without the pass holds DIG.
 data.onboarding.guideDone = true
@@ -303,6 +316,28 @@ task.wait(0.5)
 table.insert(data.bagContents, { id = "Shell", v = 12 })
 H.fireServer(player, "RequestSync")
 snap("hud_owner")
+
+-- The Mega Dig: an open site, then the winner draw.
+local MegaDigService = H.require(game:GetService("ServerScriptService").Server.Services.MegaDigService)
+local here = player.Character.HumanoidRootPart.Position
+MegaDigService.start(here + V3(10, 0, 0))
+task.wait(0.4)
+snap("megadig")
+local site
+for _, spot in H.workspace.DigSpots:GetChildren() do
+	if spot:GetAttribute("Mega") then
+		site = spot
+	end
+end
+for _ = 1, 2000 do
+	H.clockOffset += 1
+	H.fireServer(player, "DigHit", site:GetAttribute("SpotId"))
+	if not MegaDigService.isActive() then
+		break
+	end
+end
+task.wait(5.6)
+snap("megadraw")
 
 running = false
 fs.writeFile(process.args[2] or "ui.json", serde.encode("json", scenes))

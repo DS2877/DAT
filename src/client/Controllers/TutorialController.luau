@@ -357,9 +357,16 @@ local function finish(celebrate: boolean)
 	end
 end
 
-function TutorialController.init()
+local running = false
+
+-- Runs the guide until the tutorial is done (again after an admin reset).
+local function start()
+	if running then
+		return
+	end
+	running = true
+	currentStep = ""
 	buildWorldGuide()
-	buildBanner()
 	local accumulator = 0
 	local seenActive = false
 	local connection
@@ -388,6 +395,7 @@ function TutorialController.init()
 		if step == "DONE" then
 			finish(seenActive)
 			connection:Disconnect()
+			running = false
 			return
 		end
 		if not step then
@@ -405,6 +413,17 @@ function TutorialController.init()
 			ring.CFrame = CFrame.new(position + Vector3.new(0, 0.3, 0)) * CFrame.Angles(0, 0, math.rad(90))
 			markerText.Text = markerLabel
 			beam.Attachment0 = characterAttachment()
+		end
+	end)
+end
+
+function TutorialController.init()
+	buildBanner()
+	start()
+	ClientState.Changed:Connect(function()
+		local data = ClientState.data
+		if data and not data.guideDone and data.rebirths == 0 then
+			start()
 		end
 	end)
 end

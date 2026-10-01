@@ -278,16 +278,17 @@ local function showDraw(info: { [string]: any })
 		local find = info.find
 		local def = Treasures.ById[find.id]
 		local rarity = Rarities.Info[find.rarity]
+		local won = info.winnerUserId == player.UserId
 		resultLabel.Text = string.format(
-			"%s wins: %s!",
-			info.winnerName,
+			"%s: %s!",
+			if won then "YOU WIN" else info.winnerName .. " wins",
 			(if def then def.name else find.id)
 				.. (if rarity then " (" .. string.upper(rarity.displayName) .. ")" else "")
 		)
 		Ui.pop(frame, 0.15)
 		Sound.play(if find.rarity == "Secret" then "StingSecret" else "StingLegendary")
-		if info.winnerUserId == player.UserId then
-			HudController.bigText("YOU WON THE MEGA DIG!", C.Gold, 3)
+		if won then
+			-- The reveal shows the treasure big (and its rarity banner).
 			task.delay(0.8, function()
 				RevealController.reveal(info.position, find)
 			end)

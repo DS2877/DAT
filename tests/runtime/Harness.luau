@@ -975,6 +975,48 @@ methods.JSONDecode = function(_proxy, _inst, text)
 	return serde.decode("json", text)
 end
 
+-- TextService filtering: passes the text through (set H.filterFails to
+-- simulate the filter being down).
+H.filterFails = false
+methods.FilterStringAsync = function(_proxy, _inst, text)
+	if H.filterFails then
+		error("Text filter unavailable")
+	end
+	local result = {}
+	function result.GetNonChatStringForBroadcastAsync()
+		return text
+	end
+	function result.GetChatForUserAsync()
+		return text
+	end
+	return result
+end
+
+-- MessagingService: one "universe" in this process; published messages
+-- reach every subscriber (like every server, this one included).
+H.published = {} :: { { topic: string, message: any } }
+H.messagingFails = false
+local subscribers: { [string]: { any } } = {}
+methods.SubscribeAsync = function(_proxy, _inst, topic, callback)
+	subscribers[topic] = subscribers[topic] or {}
+	table.insert(subscribers[topic], guarded(callback, "MessagingService:" .. topic))
+	return { Disconnect = function() end }
+end
+methods.PublishAsync = function(_proxy, _inst, topic, message)
+	if H.messagingFails then
+		error("MessagingService unavailable")
+	end
+	table.insert(H.published, { topic = topic, message = message })
+	for _, callback in subscribers[topic] or {} do
+		realTask.defer(callback, { Data = message, Sent = os.time() })
+	end
+end
+
+-- Avatar thumbnails.
+methods.GetUserThumbnailAsync = function(_proxy, _inst, userId)
+	return "rbxthumb://type=AvatarHeadShot&id=" .. tostring(userId) .. "&w=150&h=150", true
+end
+
 -- TweenService: goals are applied immediately; Completed fires next frame.
 methods.Create = function(_proxy, inst, target, _info, goals)
 	if inst.ClassName ~= "TweenService" then
