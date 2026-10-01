@@ -225,6 +225,23 @@ H.signal(root.TopButtons:FindFirstChild("TopButton"), "Activated"):Fire({})
 
 H.moveTo(player, H.workspace.Base:FindFirstChild("RebirthPad").Position)
 snap("rebirth")
+H.moveTo(player, V3(MapLayout.spawn.x, deckTop, MapLayout.spawn.z))
+task.wait(0.4)
+
+H.signal(root.TopButtons:FindFirstChild("SettingsButton"), "Activated"):Fire({})
+snap("settings")
+H.signal(root.TopButtons:FindFirstChild("SettingsButton"), "Activated"):Fire({})
+
+-- The Auto Dig offer: a player without the pass holds DIG.
+H.require(Shared.Config.Monetization).Passes.AutoDig.id = 4242
+data.onboarding.guideDone = true
+H.fireServer(player, "RequestSync")
+H.moveTo(player, nearest.PrimaryPart.Position + V3(2, 0, 0))
+task.wait(0.4)
+local finger = { UserInputType = roblox.Enum.UserInputType.Touch, KeyCode = roblox.Enum.KeyCode.Unknown }
+H.signal(root.DigButton, "InputBegan"):Fire(finger)
+task.wait(1)
+snap("autodig")
 
 running = false
 fs.writeFile(process.args[2] or "ui.json", serde.encode("json", scenes))

@@ -182,6 +182,69 @@ end, 2, "sell")
 task.wait(1.5)
 check(#data.bagContents == 0, "sold at the pad")
 
+print("\n== Auto Dig pass ==")
+local Monetization = H.require(Shared.Config.Monetization)
+Monetization.Passes.AutoDig.id = 4242 -- as if the pass were set up
+H.buyPrompts = true
+local hits = 0
+local forward = H.onFireServer
+H.onFireServer = function(remote: string, ...)
+	if remote == "DigHit" then
+		hits += 1
+	end
+	forward(remote, ...)
+end
+local function goToSpot()
+	local here = player.Character.HumanoidRootPart.Position
+	local pick, distance = nil, math.huge
+	for _, spot in spots:GetChildren() do
+		if spot:GetAttribute("AreaId") == "Beach" then
+			local d = (spot.PrimaryPart.Position - here).Magnitude
+			if d < distance then
+				pick, distance = spot, d
+			end
+		end
+	end
+	H.moveTo(player, pick.PrimaryPart.Position + V3(3, 0, 0))
+	task.wait(0.4)
+end
+goToSpot()
+check(data.onboarding.guideDone, "tutorial done before any offer")
+hits = 0
+H.signal(digButton, "InputBegan"):Fire(finger)
+task.wait(1.5)
+check(hits == 1, "without Auto Dig, holding DIG digs once (" .. hits .. " hits)")
+local offer = root:FindFirstChild("AutoDigOffer")
+check(offer and offer.Visible, "holding DIG shows the Auto Dig offer")
+check(#H.passPrompts == 0, "no purchase prompt without a tap")
+H.signal(UserInputService, "InputEnded"):Fire(finger)
+hits = 0
+for _ = 1, 2 do
+	H.signal(digButton, "InputBegan"):Fire(finger)
+	H.signal(UserInputService, "InputEnded"):Fire(finger)
+	task.wait(0.1)
+end
+task.wait(0.8)
+check(hits == 2, "a tap during the swing still lands (" .. hits .. " hits)")
+check(offer.Visible, "the offer stays up while tapping")
+H.signal(offer.Get, "Activated"):Fire({ UserInputType = roblox.Enum.UserInputType.Touch })
+H.waitFor(function()
+	return player:GetAttribute("Pass_AutoDig") == true
+end, 2, "Auto Dig purchase")
+check(#H.passPrompts == 1 and H.passPrompts[1].passId == 4242, "GET opens the Roblox purchase prompt")
+check(player:GetAttribute("Pass_AutoDig") == true, "buying Auto Dig unlocks it right away")
+check(not offer.Visible, "the offer closes")
+task.wait(2.5) -- let the last find's reveal finish
+goToSpot()
+local findsBefore = data.stats.finds
+hits = 0
+H.signal(digButton, "InputBegan"):Fire(finger)
+H.waitFor(function()
+	return data.stats.finds > findsBefore
+end, 6, "Auto Dig find")
+check(data.stats.finds > findsBefore and hits >= 3, "with Auto Dig, holding DIG digs the spot out")
+H.signal(UserInputService, "InputEnded"):Fire(finger)
+
 running = false
 task.wait(0.2)
 

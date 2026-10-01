@@ -28,7 +28,8 @@ src/
     Data/            SessionStore: session-locked DataStore profiles
     Services/        PlayerData, DigSpotService, DigService, LootService,
                      EconomyService, UpgradeService, AreaService,
-                     CharacterService, SettingsService, Analytics
+                     CharacterService, SettingsService, MonetizationService,
+                     Analytics
     World/           MapBuilder (assembles the island), World (built-world holder)
       Build/         Terrain, Base, Gates, Beach, Jungle, Ruins, Volcano, Candidates, Kit
     Net.luau         Remotes + per-player rate limiting
@@ -62,7 +63,8 @@ Every number lives in `src/shared/Config/`:
 | `Retention.luau` | Rebirth, gifts, daily calendar, Golden X, Treasure Rush, boosts, friends, group, leaderboards |
 | `Dig.luau` | Dig ranges, respawn timers, anti-cheat tolerances |
 | `MapLayout.luau` | Island geography, base, stations, gates, paths, landmarks |
-| `Movement.luau` | Walk speed |
+| `Movement.luau` | Walk speed, spawn camera zoom |
+| `Monetization.luau` | Game pass ids and prices, the Auto Dig offer's limits |
 
 To add a treasure: append a row in `Treasures.luau` (tests check its value band
 and model archetype).
@@ -131,6 +133,24 @@ volcanic rock). Fanfares briefly duck the music. Each area has its own
 ambience bed, crossfaded as you walk, and the waterfall, campfire, lava and
 crater have 3D loops. Players can turn Music and Sounds off in ⚙️ Settings
 (saved in their profile).
+
+## Monetization
+
+**Auto Dig** (game pass): every tap on DIG digs once (a tap during the swing
+is remembered, so fast tapping keeps full speed); with Auto Dig, holding DIG
+keeps digging. It is a convenience only: the dig speed is the same.
+
+* A player without the pass who keeps holding DIG sees a small bubble beside
+  the button (closeable, hides by itself, at most every 3 minutes and 3 times
+  per session, never during the tutorial). The Roblox purchase prompt opens
+  only when they tap GET.
+* Ownership is checked on join (`UserOwnsGamePassAsync`) and granted at once
+  on a purchase in the server (`PromptGamePassPurchaseFinished`), exposed as
+  the player attribute `Pass_AutoDig`.
+* **Setup:** create the pass in Creator Hub (Creations → the game →
+  Monetization → Passes, price 80) and put its id in
+  `Config/Monetization.luau`. While the id is 0 the perk is free for
+  everyone and nothing is offered.
 
 ## Data
 

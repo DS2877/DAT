@@ -1,8 +1,12 @@
 --!strict
 -- Digging on the client: finds the nearest dig spot, shows the big DIG
--- button, turns taps / clicks / holds into paced hit intents, and plays the
--- instant local feedback (swing, dirt, thunk, camera nudge, growing hole).
+-- button, turns taps / clicks into paced hit intents, and plays the instant
+-- local feedback (swing, dirt, thunk, camera nudge, growing hole).
 -- The server validates every hit and decides the loot.
+--
+-- Every press digs once (a press during the swing is remembered and lands
+-- right after it, so fast tapping keeps full speed). With the Auto Dig pass,
+-- holding DIG keeps digging.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -10,6 +14,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local DigConfig = require(ReplicatedStorage.Shared.Config.Dig)
+local Monetization = require(ReplicatedStorage.Shared.Config.Monetization)
 local Progression = require(ReplicatedStorage.Shared.Logic.Progression)
 local Zones = require(ReplicatedStorage.Shared.Logic.Zones)
 local Effects = require(script.Parent.Parent.Effects)
@@ -17,6 +22,7 @@ local Sound = require(script.Parent.Parent.Sound)
 local Ui = require(script.Parent.Parent.Ui)
 local ClientState = require(script.Parent.ClientState)
 local HudController = require(script.Parent.HudController)
+local PassController = require(script.Parent.PassController)
 local RevealController = require(script.Parent.RevealController)
 
 local C = Ui.Colors
@@ -39,6 +45,9 @@ local digHit: RemoteEvent
 local target: Model? = nil
 local holding = false
 local holdInput: InputObject? = nil -- the touch/click that is holding the DIG button
+local pressedAt = 0
+local queued = false -- a press that came during the swing; lands when it ends
+local offerChecked = false -- this hold already considered the Auto Dig offer
 local nextHitAt = 0
 local highlight: Highlight
 local button: TextButton
@@ -171,6 +180,7 @@ local function tryHit()
 	end
 	if ClientState.isBagFull() then
 		holding = false
+		queued = false
 		HudController.flashBagFull()
 		return
 	end
@@ -280,9 +290,20 @@ local DIG_KEYS = {
 	[Enum.KeyCode.ButtonR2] = true,
 }
 
-local function startHolding()
+local function press()
 	holding = true
-	tryHit()
+	pressedAt = os.clock()
+	offerChecked = false
+	if os.clock() < nextHitAt then
+		queued = true
+	else
+		tryHit()
+	end
+end
+
+local function release()
+	holding = false
+	holdInput = nil
 end
 
 local function buildButton()
@@ -327,7 +348,7 @@ local function buildButton()
 			or input.UserInputType == Enum.UserInputType.MouseButton1
 		then
 			holdInput = input
-			startHolding()
+			press()
 		end
 	end)
 	-- Gamepad selection / accessibility activation.
@@ -336,7 +357,8 @@ local function buildButton()
 			input.UserInputType ~= Enum.UserInputType.Touch
 			and input.UserInputType ~= Enum.UserInputType.MouseButton1
 		then
-			tryHit()
+			press()
+			release()
 		end
 	end)
 end
@@ -348,7 +370,7 @@ local function bindInput()
 		end
 		if DIG_KEYS[input.KeyCode] or input.UserInputType == Enum.UserInputType.MouseButton1 then
 			if target then
-				startHolding()
+				press()
 			end
 		end
 	end)
@@ -359,8 +381,7 @@ local function bindInput()
 			or DIG_KEYS[input.KeyCode]
 			or input.UserInputType == Enum.UserInputType.MouseButton1
 		then
-			holding = false
-			holdInput = nil
+			release()
 		end
 	end)
 end
@@ -397,7 +418,7 @@ function DigController.init()
 	end
 	ClientState.Changed:Connect(refreshButton)
 
-	-- Retarget ~10x per second; hits are paced every frame while holding.
+	-- Retarget ~10x per second; hits are paced every frame.
 	local accumulator = 0
 	RunService.Heartbeat:Connect(function(dt)
 		accumulator += dt
@@ -408,11 +429,23 @@ function DigController.init()
 				target = nearest
 				highlight.Adornee = nearest
 				highlight.Enabled = nearest ~= nil
+				queued = false
 				refreshButton()
 			end
 		end
-		if holding and target then
+		if not target then
+			return
+		end
+		local now = os.clock()
+		if queued and now >= nextHitAt then
+			queued = false
 			tryHit()
+		elseif holding and PassController.owns("AutoDig") then
+			tryHit()
+		elseif holding and not offerChecked and now - pressedAt >= Monetization.AutoDigOffer.holdSeconds then
+			-- Holding without the pass digs once; mention Auto Dig (rate-limited).
+			offerChecked = true
+			PassController.offerAutoDig()
 		end
 	end)
 end

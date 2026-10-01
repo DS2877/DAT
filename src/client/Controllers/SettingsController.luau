@@ -43,7 +43,7 @@ local function build()
 		icon = "⚙️",
 		accent = C.Blue,
 		width = 480,
-		height = 290,
+		height = 262,
 		parent = HudController.root(),
 		dim = true,
 	})

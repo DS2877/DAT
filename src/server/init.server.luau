@@ -23,6 +23,7 @@ local RewardService = require(Services.RewardService)
 local RebirthService = require(Services.RebirthService)
 local LeaderboardService = require(Services.LeaderboardService)
 local SettingsService = require(Services.SettingsService)
+local MonetizationService = require(Services.MonetizationService)
 
 -- init: connect remotes and signals. Order matters only for PlayerData.Loaded
 -- listeners, which must exist before PlayerData starts loading players.
@@ -37,6 +38,7 @@ FriendsService.init()
 RewardService.init()
 RebirthService.init()
 SettingsService.init()
+MonetizationService.init()
 LeaderboardService.init() -- before PlayerData: its leave handler must run first
 CharacterService.init()
 PlayerData.init()

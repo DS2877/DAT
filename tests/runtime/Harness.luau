@@ -233,6 +233,7 @@ local EVENTS = {
 	Touched = true,
 	AncestryChanged = true,
 	Completed = true,
+	PromptGamePassPurchaseFinished = true,
 }
 
 local function isA(inst: any, className: string): boolean
@@ -1048,6 +1049,31 @@ methods.FireServer = function(_proxy, inst, ...)
 end
 
 -- Client-only services
+-- MarketplaceService: H.ownedPasses["userId:passId"] = true marks a pass as
+-- owned; a purchase prompt is recorded and, if H.buyPrompts, bought at once.
+H.ownedPasses = {} :: { [string]: boolean }
+H.passPrompts = {} :: { { userId: number, passId: number } }
+H.buyPrompts = false
+methods.UserOwnsGamePassAsync = function(_proxy, _inst, userId, passId)
+	assert(type(userId) == "number" and type(passId) == "number", "UserOwnsGamePassAsync expects numbers")
+	return H.ownedPasses[userId .. ":" .. passId] == true
+end
+methods.PromptGamePassPurchase = function(proxy, inst, player, passId)
+	assert(type(passId) == "number", "PromptGamePassPurchase expects a pass id")
+	local userId = unwrap(player).UserId
+	table.insert(H.passPrompts, { userId = userId, passId = passId })
+	local bought = H.buyPrompts
+	realTask.defer(function()
+		if bought then
+			H.ownedPasses[userId .. ":" .. passId] = true
+		end
+		signalFor(inst, "PromptGamePassPurchaseFinished"):Fire(player, passId, bought)
+	end)
+end
+methods.GetProductInfo = function(_proxy, _inst, id)
+	return { Name = "Product " .. tostring(id), PriceInRobux = 80 }
+end
+
 methods.PromptGameInvite = function() end
 methods.CanSendGameInviteAsync = function()
 	return true

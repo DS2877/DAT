@@ -206,6 +206,49 @@ task.wait(0.05)
 check(data.settings.cash == nil and data.settings.sounds == true, "malformed settings ignored")
 H.fireServer(player, "SetSetting", "music", true)
 
+print("\n== Game passes ==")
+do
+	local Monetization = H.require(game:GetService("ReplicatedStorage").Shared.Config.Monetization)
+	local MonetizationService =
+		H.require(game:GetService("ServerScriptService").Server.Services.MonetizationService)
+	local AutoDig = Monetization.Passes.AutoDig
+	check(
+		MonetizationService.hasPass(player, "AutoDig"),
+		"Auto Dig is free while the pass isn't set up (id 0)"
+	)
+	AutoDig.id = 4242
+	check(not MonetizationService.hasPass(player, "AutoDig"), "with a pass id, Auto Dig needs the pass")
+	H.ownedPasses["8801:4242"] = true
+	local owner = H.addPlayer("PassOwner", 8801)
+	local buyer = H.addPlayer("PassBuyer", 8802)
+	H.waitFor(function()
+		return owner:GetAttribute("Pass_AutoDig") == true
+	end, 3, "pass owner detected")
+	check(MonetizationService.hasPass(owner, "AutoDig"), "owned pass detected on join")
+	check(not MonetizationService.hasPass(buyer, "AutoDig"), "non-owner has no pass")
+	local MarketplaceService = game:GetService("MarketplaceService")
+	H.signal(MarketplaceService, "PromptGamePassPurchaseFinished"):Fire(buyer, 4242, false)
+	task.wait(0.05)
+	check(not MonetizationService.hasPass(buyer, "AutoDig"), "a declined purchase grants nothing")
+	H.signal(MarketplaceService, "PromptGamePassPurchaseFinished"):Fire(buyer, 999, true)
+	task.wait(0.05)
+	check(not MonetizationService.hasPass(buyer, "AutoDig"), "an unknown pass id grants nothing")
+	H.signal(MarketplaceService, "PromptGamePassPurchaseFinished"):Fire(buyer, 4242, true)
+	H.signal(MarketplaceService, "PromptGamePassPurchaseFinished"):Fire(buyer, 4242, true)
+	task.wait(0.05)
+	check(MonetizationService.hasPass(buyer, "AutoDig"), "buying the pass grants it at once")
+	local unlocks = 0
+	for _, event in H.clientEvents("Notify", buyer) do
+		if tostring(event[1]):find("AUTO DIG") then
+			unlocks += 1
+		end
+	end
+	check(unlocks == 1, "one unlock message for a repeated purchase event (" .. unlocks .. ")")
+	H.removePlayer(owner)
+	H.removePlayer(buyer)
+	AutoDig.id = 0
+end
+
 print("\n== Bad client input ==")
 local errorsBefore = #H.errors
 for _, args in

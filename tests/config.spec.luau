@@ -1,5 +1,6 @@
 -- Config integrity: catches typos and broken tuning before they ship.
 local Areas = requireShared("Config/Areas")
+local Monetization = requireShared("Config/Monetization")
 local Rarities = requireShared("Config/Rarities")
 local Treasures = requireShared("Config/Treasures")
 local Upgrades = requireShared("Config/Upgrades")
@@ -94,4 +95,18 @@ test("every treasure's model archetype exists in TreasureBuilder", function()
 			def.id .. " uses missing archetype " .. def.model
 		)
 	end
+end)
+
+test("game passes are well formed", function()
+	local ids = {}
+	for name, pass in Monetization.Passes do
+		expect.truthy(pass.id >= 0 and pass.id % 1 == 0, name .. " id must be 0 (not set up) or a pass id")
+		expect.truthy(pass.id == 0 or not ids[pass.id], name .. " reuses another pass's id")
+		ids[pass.id] = true
+		expect.truthy(pass.price >= 1 and pass.price % 1 == 0, name .. " price must be whole Robux")
+		expect.truthy(#pass.name > 0 and #pass.description > 0, name .. " needs a name and description")
+	end
+	local offer = Monetization.AutoDigOffer
+	expect.truthy(offer.cooldown >= 60, "the Auto Dig offer must not nag (cooldown >= 60 s)")
+	expect.truthy(offer.maxPerSession >= 1 and offer.visibleSeconds > 0, "offer limits")
 end)
