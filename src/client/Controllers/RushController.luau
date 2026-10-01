@@ -51,7 +51,7 @@ end
 local function update()
 	local active, seconds = Rush.state(workspace:GetServerTimeNow())
 	if active then
-		HudController.setRushText("✨ TREASURE RUSH! " .. clock(seconds) .. " left ✨", true)
+		HudController.setRushText("✨ RUSH! " .. clock(seconds) .. " left", true)
 	else
 		HudController.setRushText("Treasure Rush in " .. clock(seconds), false)
 	end

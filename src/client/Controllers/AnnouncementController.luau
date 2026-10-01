@@ -117,7 +117,7 @@ end
 function AnnouncementController.init()
 	feed = Ui.new("Frame", {
 		Name = "Announcements",
-		Position = UDim2.fromOffset(12, 116),
+		Position = UDim2.fromOffset(12, 192),
 		Size = UDim2.fromOffset(460, 3 * 40),
 		BackgroundTransparency = 1,
 		Parent = HudController.root(),

@@ -124,12 +124,12 @@ local function build()
 	cashPill, cashLabel = pill("Cash", UDim2.fromOffset(12, 8), "💰", C.Gold)
 	bagPill, bagLabel = pill("Bag", UDim2.fromOffset(12, 60), "🎒", C.Orange)
 
-	-- Next-goal bar (top center).
+	-- Next-goal bar: in the left column under cash and bag, so the middle
+	-- of the screen stays clear.
 	goalFrame = Ui.new("Frame", {
 		Name = "Goal",
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 8),
-		Size = UDim2.fromOffset(340, 36),
+		Position = UDim2.fromOffset(12, 112),
+		Size = UDim2.fromOffset(200, 46),
 		BackgroundColor3 = C.Dark,
 		Parent = root,
 	}, { Ui.corner(UDim.new(1, 0)), Ui.stroke(4) })
@@ -141,8 +141,9 @@ local function build()
 	}, { Ui.corner(UDim.new(1, 0)) })
 	goalLabel = Ui.label({
 		Name = "Text",
-		Position = UDim2.fromOffset(16, 6),
-		Size = UDim2.new(1, -32, 1, -12),
+		Position = UDim2.fromOffset(14, 5),
+		Size = UDim2.new(1, -28, 1, -10),
+		LineHeight = 0.95,
 		Parent = goalFrame,
 	})
 
@@ -230,9 +231,9 @@ local function build()
 	-- Treasure Rush countdown under the goal bar.
 	rushLabel = Ui.label({
 		Name = "Rush",
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 48),
-		Size = UDim2.fromOffset(320, 22),
+		Position = UDim2.fromOffset(16, 164),
+		Size = UDim2.fromOffset(196, 20),
+		TextXAlignment = Enum.TextXAlignment.Left,
 		Parent = root,
 	})
 
@@ -240,7 +241,7 @@ local function build()
 	chipRow = Ui.new("Frame", {
 		Name = "Chips",
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 74),
+		Position = UDim2.new(0.5, 0, 0, 8),
 		Size = UDim2.fromOffset(600, 24),
 		BackgroundTransparency = 1,
 		Parent = root,
@@ -327,15 +328,15 @@ local function refreshGoal()
 	if goal.kind == "Rebirth" then
 		goalFill.BackgroundColor3 = C.Purple
 		goalLabel.Text = if goal.affordable
-			then "REBIRTH READY! Visit the altar"
-			else string.format("Rebirth: %s / %s", Format.cash(data.cash), Format.cash(goal.cost))
+			then "Rebirth\nREADY at the altar!"
+			else string.format("Rebirth\n%s / %s", Format.cash(data.cash), Format.cash(goal.cost))
 	elseif goal.affordable then
 		goalFill.BackgroundColor3 = C.Green
-		goalLabel.Text = goal.name .. ": READY! Visit the shop"
+		goalLabel.Text = goal.name .. "\nREADY! Visit the shop"
 	else
 		goalFill.BackgroundColor3 = C.Gold
 		goalLabel.Text =
-			string.format("%s: %s / %s", goal.name, Format.cash(data.cash), Format.cash(goal.cost))
+			string.format("%s\n%s / %s", goal.name, Format.cash(data.cash), Format.cash(goal.cost))
 	end
 end
 

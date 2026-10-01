@@ -18,6 +18,7 @@ local RushController = require(Controllers.RushController)
 local RebirthController = require(Controllers.RebirthController)
 local LeaderboardController = require(Controllers.LeaderboardController)
 local AmbientController = require(Controllers.AmbientController)
+local CameraController = require(Controllers.CameraController)
 
 ClientState.init()
 HudController.init()
@@ -33,6 +34,7 @@ RushController.init()
 RebirthController.init()
 LeaderboardController.init()
 AmbientController.init()
+CameraController.init()
 
 -- Listeners are connected; request the snapshot (the server also pushes one
 -- on load, this covers the case where it arrived before we were ready).

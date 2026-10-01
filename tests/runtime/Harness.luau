@@ -1228,6 +1228,9 @@ function H.addPlayer(name: string, userId: number?): any
 	player.Name = name
 	player.DisplayName = name
 	player.UserId = userId or nextUserId
+	-- Roblox defaults the harness's instances don't carry.
+	player.CameraMinZoomDistance = 0.5
+	player.CameraMaxZoomDistance = 128
 	local players = unwrap(H.game:GetService("Players"))
 	player.Parent = players
 	local proxy = wrap(player)

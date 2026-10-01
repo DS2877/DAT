@@ -4,6 +4,9 @@
 
 local Movement = {
 	walkSpeed = 20,
+	-- Camera distance (studs) right after spawning, so players see the
+	-- plaza and the island around them. They can still zoom freely.
+	spawnZoom = 26,
 }
 
 return table.freeze(Movement)
