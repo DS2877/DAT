@@ -95,9 +95,17 @@ local function duck(seconds: number)
 	end)
 end
 
+-- The upbeat track plays while anything wants it (a Treasure Rush, being
+-- at a Mega Dig...).
+local upbeat: { [string]: boolean } = {}
+function AudioController.setUpbeat(reason: string, on: boolean)
+	upbeat[reason] = if on then true else nil
+	setMusic(if next(upbeat) then "Rush" else "Main")
+end
+
 -- Treasure Rush switches to the upbeat track while it lasts.
 function AudioController.setRush(active: boolean)
-	setMusic(if active then "Rush" else "Main")
+	AudioController.setUpbeat("Rush", active)
 end
 
 local function attachEmitter(part: BasePart, clip: AssetIds.Clip, maxDistance: number)

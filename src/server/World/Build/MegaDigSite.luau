@@ -31,6 +31,8 @@ local WOOD = hex("#7A5230")
 local WOOD_DARK = hex("#5B3A22")
 local GOLD = hex("#FFC933")
 local ROPE = hex("#C9A46A")
+local BUNTING =
+	{ hex("#FF5A5A"), hex("#FFD54A"), hex("#5CC8FF"), hex("#5BE36B"), hex("#B45CFF"), hex("#FF8A3D") }
 
 export type Handle = {
 	model: Model,
@@ -184,6 +186,7 @@ function MegaDigSite.build(position: Vector3, areaId: string): Handle
 		Kit.light(lantern, hex("#FFB347"), 14, 1.2)
 		table.insert(postTops, at + Vector3.new(0, 4.4, 0))
 	end
+	local up = Vector3.new(0, 1, 0)
 	for i = 1, posts do
 		local a, b = postTops[i], postTops[i % posts + 1]
 		local mid = (a + b) / 2 - Vector3.new(0, 0.5, 0)
@@ -191,12 +194,27 @@ function MegaDigSite.build(position: Vector3, areaId: string): Handle
 		part(model, {
 			name = "Rope",
 			size = Vector3.new((b - a).Magnitude, 0.25, 0.25),
-			cframe = CFrame.fromMatrix(mid, along, Vector3.new(0, 1, 0)),
+			cframe = CFrame.fromMatrix(mid, along, up),
 			color = ROPE,
 			material = Enum.Material.Fabric,
 			canCollide = false,
 			castShadow = false,
 		})
+		-- Party bunting: little flags hanging from the rope.
+		local length = (b - a).Magnitude
+		local flags = math.max(3, math.floor(length / 2.2))
+		for f = 1, flags do
+			local at = a + (b - a) * (f / (flags + 1)) - Vector3.new(0, 1.15, 0)
+			part(model, {
+				name = "Bunting",
+				size = Vector3.new(0.9, 0.9, 0.08),
+				cframe = CFrame.fromMatrix(at, (along + up).Unit, (up - along).Unit),
+				color = BUNTING[(i + f) % #BUNTING + 1],
+				material = Enum.Material.Fabric,
+				canCollide = false,
+				castShadow = false,
+			})
+		end
 	end
 
 	-- Props: pickaxes stuck in the heaps, crates by the fence.

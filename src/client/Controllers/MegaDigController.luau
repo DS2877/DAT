@@ -10,11 +10,14 @@
 --   * a sign over the site for finding it from afar
 --   * dirt flying with every hit, the ground shaking at 25/50/75%, and
 --     fireworks when the chest comes out
+--   * a party at the site while you're there (searchlights, confetti,
+--     rainbow lanterns, fireworks, upbeat music), and a big finale
 --   * the winner draw: a slot-machine reel of the helpers' names that
 --     slows down and stops on the winner, then the winner's treasure reveal
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 local MegaDig = require(ReplicatedStorage.Shared.Config.MegaDig)
@@ -25,6 +28,7 @@ local Effects = require(script.Parent.Parent.Effects)
 local Sound = require(script.Parent.Parent.Sound)
 local Ui = require(script.Parent.Parent.Ui)
 local HudController = require(script.Parent.HudController)
+local AudioController = require(script.Parent.AudioController)
 local PartyController = require(script.Parent.PartyController)
 local RevealController = require(script.Parent.RevealController)
 
@@ -53,7 +57,9 @@ local function findSite(): Model?
 			return spot
 		end
 	end
-	return nil
+	-- A dug-out site stays up (outside the dig spots) for its finale.
+	local finished = workspace:FindFirstChild("MegaDigSite")
+	return if finished and finished:IsA("Model") then finished else nil
 end
 
 -- Where the open site is (its center on the ground), and its soil color.
@@ -87,53 +93,55 @@ local infoLabel: TextLabel
 local flashUntil = 0
 
 local function buildPanel()
+	-- Slim and see-through: the game stays visible behind it.
 	panel = Ui.new("Frame", {
 		Name = "MegaDigPanel",
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, 84),
-		Size = UDim2.fromOffset(480, 92),
-		BackgroundColor3 = Color3.new(1, 1, 1),
+		Size = UDim2.fromOffset(330, 54),
+		BackgroundColor3 = Color3.fromRGB(34, 24, 14),
+		BackgroundTransparency = 0.35,
 		Visible = false,
 		Parent = HudController.root(),
-	}, {
-		Ui.corner(UDim.new(0, 20)),
-		Ui.stroke(4),
-		Ui.gradient(Color3.fromRGB(255, 249, 232), Color3.fromRGB(255, 226, 170)),
-	})
+	}, { Ui.corner(UDim.new(0, 14)), Ui.stroke(2, Color3.fromRGB(255, 201, 51)) })
 	Ui.label({
 		Name = "Title",
-		Position = UDim2.fromOffset(16, 6),
-		Size = UDim2.new(1, -150, 0, 30),
+		Position = UDim2.fromOffset(10, 3),
+		Size = UDim2.fromOffset(120, 20),
 		Font = Ui.TitleFont,
 		Text = "⛏️ MEGA DIG",
 		TextColor3 = C.Gold,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Parent = panel,
 	})
-	local pill = Ui.new("Frame", {
-		Name = "TimerPill",
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -12, 0, 7),
-		Size = UDim2.fromOffset(112, 28),
-		BackgroundColor3 = C.Dark,
+	percentLabel = Ui.label({
+		Name = "Percent",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 3),
+		Size = UDim2.fromOffset(70, 20),
+		Font = Ui.TitleFont,
+		Text = "0%",
 		Parent = panel,
-	}, { Ui.corner(UDim.new(1, 0)) })
+	})
 	timerLabel = Ui.label({
 		Name = "Timer",
-		Position = UDim2.fromOffset(6, 3),
-		Size = UDim2.new(1, -12, 1, -6),
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -10, 0, 3),
+		Size = UDim2.fromOffset(90, 20),
 		Font = Ui.TitleFont,
 		Text = "",
-		Parent = pill,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		Parent = panel,
 	})
 	local bar = Ui.new("Frame", {
 		Name = "Bar",
-		Position = UDim2.fromOffset(14, 40),
-		Size = UDim2.new(1, -28, 0, 26),
-		BackgroundColor3 = Color3.fromRGB(60, 40, 22),
+		Position = UDim2.fromOffset(10, 25),
+		Size = UDim2.new(1, -20, 0, 10),
+		BackgroundColor3 = Color3.fromRGB(20, 14, 8),
+		BackgroundTransparency = 0.2,
 		ClipsDescendants = true,
 		Parent = panel,
-	}, { Ui.corner(UDim.new(1, 0)), Ui.stroke(3) })
+	}, { Ui.corner(UDim.new(1, 0)) })
 	fill = Ui.new("Frame", {
 		Name = "Fill",
 		Size = UDim2.fromScale(0, 1),
@@ -143,33 +151,23 @@ local function buildPanel()
 		Ui.corner(UDim.new(1, 0)),
 		Ui.gradient(Color3.fromRGB(255, 226, 110), Color3.fromRGB(255, 160, 40)),
 	})
-	-- Milestones at 25 / 50 / 75%.
 	for _, at in { 0.25, 0.5, 0.75 } do
 		Ui.new("Frame", {
 			Name = "Notch",
 			AnchorPoint = Vector2.new(0.5, 0),
 			Position = UDim2.fromScale(at, 0),
-			Size = UDim2.new(0, 3, 1, 0),
+			Size = UDim2.new(0, 2, 1, 0),
 			BackgroundColor3 = Color3.new(1, 1, 1),
-			BackgroundTransparency = 0.35,
+			BackgroundTransparency = 0.5,
 			ZIndex = 3,
 			Parent = bar,
 		})
 	end
-	percentLabel = Ui.label({
-		Name = "Percent",
-		Size = UDim2.fromScale(1, 1),
-		Font = Ui.TitleFont,
-		Text = "0%",
-		ZIndex = 4,
-		Parent = bar,
-	})
-	infoLabel = Ui.plainLabel({
+	infoLabel = Ui.label({
 		Name = "Info",
-		Position = UDim2.fromOffset(14, 68),
-		Size = UDim2.new(1, -28, 0, 20),
+		Position = UDim2.fromOffset(10, 37),
+		Size = UDim2.new(1, -20, 0, 14),
 		Text = "",
-		TextColor3 = C.Ink,
 		Parent = panel,
 	})
 end
@@ -193,17 +191,13 @@ local function updatePanel(active: boolean, progress: number, left: number)
 	local total = (attr("MegaDigTotal") :: number?) or 0
 	local mine = (player:GetAttribute("MegaDigHits") :: number?) or 0
 	if distance > MegaDig.digRange + 25 then
-		infoLabel.Text = string.format(
-			"📍 %d studs away · %d digging · follow the golden beam!",
-			math.floor(distance),
-			diggers
-		)
+		infoLabel.Text = string.format("📍 %d studs away · follow the golden beam!", math.floor(distance))
 	elseif mine == 0 then
 		infoLabel.Text = string.format("👥 %d digging · tap DIG to join the draw!", diggers)
 	else
 		local chance = if total > 0 then mine / total else 0
 		infoLabel.Text = string.format(
-			"👥 %d digging · your hits: %d · win chance %d%%%s",
+			"👥 %d digging · your hits: %d · chance %d%%%s",
 			diggers,
 			mine,
 			math.floor(chance * 100 + 0.5),
@@ -372,17 +366,149 @@ local function update()
 end
 
 ---------------------------------------------------------------------------
+-- The party at the site: searchlights sweep the sky, confetti falls
+-- (more as it gets dug out), the lanterns cycle through colors, fireworks
+-- go up and the upbeat music plays while you're there. While it's drawing
+-- its winner, all of it goes up a notch.
+---------------------------------------------------------------------------
+
+type SiteParty = {
+	site: Model,
+	beams: { Part },
+	host: Part,
+	confetti: ParticleEmitter,
+	lanterns: { BasePart },
+	nextFirework: number,
+}
+
+local PARTY_RANGE = 160
+local siteParty: SiteParty? = nil
+
+local function stopSiteParty()
+	local p = siteParty
+	if not p then
+		return
+	end
+	siteParty = nil
+	for _, beam in p.beams do
+		beam:Destroy()
+	end
+	p.host:Destroy()
+	AudioController.setUpbeat("MegaDig", false)
+end
+
+local function partyPart(name: string, size: Vector3, transparency: number): Part
+	local part = Instance.new("Part")
+	part.Name = name
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.CastShadow = false
+	part.Material = Enum.Material.Neon
+	part.Size = size
+	part.Transparency = transparency
+	part.Parent = Effects.folder()
+	return part
+end
+
+local function startSiteParty(site: Model)
+	local beams = {}
+	for _ = 1, 4 do
+		table.insert(beams, partyPart("Searchlight", Vector3.new(1.8, 150, 1.8), 0.6))
+	end
+	local host = partyPart("SiteConfetti", Vector3.new(34, 1, 34), 1)
+	local confetti = PartyController.confettiEmitter(host)
+	confetti.Rate = 6
+	local lanterns = {}
+	for _, child in site:GetChildren() do
+		if child.Name == "Lantern" and child:IsA("BasePart") then
+			table.insert(lanterns, child)
+		end
+	end
+	siteParty = {
+		site = site,
+		beams = beams,
+		host = host,
+		confetti = confetti,
+		lanterns = lanterns,
+		nextFirework = os.clock() + 1,
+	}
+	AudioController.setUpbeat("MegaDig", true)
+end
+
+local function updateSiteParty(t: number)
+	local drawing = attr("MegaDigDrawing") == true
+	local site = if attr("MegaDigActive") == true or drawing then findSite() else nil
+	local center = site and site:FindFirstChild("Center") :: BasePart?
+	if not site or not center or distanceTo(center.Position) > PARTY_RANGE then
+		stopSiteParty()
+		return
+	end
+	if siteParty and siteParty.site ~= site then
+		stopSiteParty()
+	end
+	if not siteParty then
+		startSiteParty(site)
+	end
+	local p = siteParty :: SiteParty
+	local progress = if drawing then 1 else (attr("MegaDigProgress") :: number?) or 0
+	local energy = if drawing then 2.2 else 0.5 + progress
+	local position = center.Position
+	local ring = MegaDig.radius + 10
+	for i, beam in p.beams do
+		local a = i / #p.beams * math.pi * 2 + math.pi / 4
+		local base = position + Vector3.new(math.cos(a) * ring, 0, math.sin(a) * ring)
+		local turn = t * (0.5 + energy * 0.45) + i * 1.3
+		local tilt = math.rad(16 + 14 * math.sin(t * (0.9 + energy * 0.5) + i))
+		beam.CFrame = CFrame.new(base)
+			* CFrame.Angles(0, turn, 0)
+			* CFrame.Angles(tilt, 0, 0)
+			* CFrame.new(0, beam.Size.Y / 2, 0)
+		beam.Color = Color3.fromHSV((t * 0.12 + i / #p.beams) % 1, 0.7, 1)
+	end
+	p.host.CFrame = CFrame.new(position + Vector3.new(0, 30, 0))
+	p.confetti.Rate = if drawing then 160 else 6 + progress * 60
+	for i, lantern in p.lanterns do
+		local color = Color3.fromHSV((t * 0.35 + i / #p.lanterns) % 1, 0.65, 1)
+		lantern.Color = color
+		local light = lantern:FindFirstChildOfClass("PointLight")
+		if light then
+			light.Color = color
+		end
+	end
+	if t >= p.nextFirework then
+		p.nextFirework = t + (if drawing then 0.5 else math.max(1.4, 7 - progress * 5.6))
+		PartyController.fireworks(position, 1)
+	end
+end
+
+---------------------------------------------------------------------------
 -- The winner draw
 ---------------------------------------------------------------------------
 
 local function showDraw(info: { [string]: any })
 	-- Dug out! The chest bursts free: fireworks and a ground shake nearby.
 	local position = info.position
-	if typeof(position) == "Vector3" and distanceTo(position) < 140 then
-		PartyController.fireworks(position, 6)
-		Effects.cameraNudge(2)
+	if typeof(position) == "Vector3" and distanceTo(position) < 220 then
+		PartyController.celebrate(position, MegaDig.radius + 6)
+		Effects.cameraNudge(2.2)
 		Effects.dirtBurst(position + Vector3.new(0, 4, 0), 60)
 		Sound.play("DeepDig", 0.8)
+		Sound.play("AreaUnlocked", 0.8)
+		-- A golden flash.
+		local flash = Ui.new("Frame", {
+			Name = "MegaFlash",
+			Size = UDim2.fromScale(1, 1),
+			BackgroundColor3 = Color3.fromRGB(255, 220, 120),
+			BackgroundTransparency = 0.35,
+			ZIndex = 50,
+			Parent = HudController.root(),
+		})
+		TweenService:Create(flash, TweenInfo.new(0.9), { BackgroundTransparency = 1 }):Play()
+		task.delay(1, function()
+			flash:Destroy()
+		end)
 	end
 	local root = HudController.root()
 	local entries = info.entries or {}
@@ -533,6 +659,14 @@ function MegaDigController.init()
 		end
 	end)
 	buildPanel()
+	local partyClock = 0
+	RunService.Heartbeat:Connect(function(dt)
+		partyClock += dt
+		if partyClock >= 1 / 30 then
+			partyClock = 0
+			updateSiteParty(os.clock())
+		end
+	end)
 	workspace:GetAttributeChangedSignal("MegaDigProgress"):Connect(onProgress)
 	workspace:GetAttributeChangedSignal("MegaDigActive"):Connect(function()
 		lastProgress = 0

@@ -4,6 +4,8 @@
 --     through the rainbow, disco beams sweep the sky, fireworks go off and
 --     confetti falls, until it ends (then everything goes back)
 --   * fireworks the admin spawns (the "Fireworks" remote)
+--   * party pieces others use (the Mega Dig): confetti cannons, a fountain
+--     of gold coins, and the big finale with all of it at once
 --   * money-rain coins: a ding and "+$X" where a coin was grabbed
 
 local Lighting = game:GetService("Lighting")
@@ -125,6 +127,112 @@ function PartyController.fireworks(center: Vector3, count: number)
 	end
 end
 
+-- A rainbow confetti emitter on `parent`.
+function PartyController.confettiEmitter(parent: Instance): ParticleEmitter
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Name = "Confetti"
+	emitter.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 80, 120)),
+		ColorSequenceKeypoint.new(0.25, Color3.fromRGB(255, 210, 60)),
+		ColorSequenceKeypoint.new(0.5, Color3.fromRGB(80, 220, 120)),
+		ColorSequenceKeypoint.new(0.75, Color3.fromRGB(80, 160, 255)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 90, 255)),
+	})
+	emitter.Size = NumberSequence.new(0.35)
+	emitter.Rate = 60
+	emitter.Lifetime = NumberRange.new(5, 7)
+	emitter.Speed = NumberRange.new(2, 6)
+	emitter.SpreadAngle = Vector2.new(30, 30)
+	emitter.EmissionDirection = Enum.NormalId.Bottom
+	emitter.Acceleration = Vector3.new(0, -4, 0)
+	emitter.RotSpeed = NumberRange.new(-200, 200)
+	emitter.Rotation = NumberRange.new(0, 360)
+	emitter.LightEmission = 0.4
+	emitter.Parent = parent
+	return emitter
+end
+
+-- A confetti cannon going off at `at`.
+function PartyController.confetti(at: Vector3, amount: number)
+	local host = quietPart({
+		Name = "ConfettiCannon",
+		Size = Vector3.new(1, 1, 1),
+		Transparency = 1,
+		CFrame = CFrame.new(at),
+	})
+	local emitter = PartyController.confettiEmitter(host)
+	emitter.Enabled = false
+	emitter.EmissionDirection = Enum.NormalId.Top
+	emitter.Speed = NumberRange.new(20, 34)
+	emitter.SpreadAngle = Vector2.new(35, 35)
+	emitter.Acceleration = Vector3.new(0, -16, 0)
+	emitter.Drag = 1.2
+	emitter.Lifetime = NumberRange.new(3, 4.5)
+	emitter.Size = NumberSequence.new(0.5)
+	emitter:Emit(amount)
+	task.delay(5, function()
+		host:Destroy()
+	end)
+end
+
+-- Gold coins spraying up out of `at` and raining down around it.
+function PartyController.coinFountain(at: Vector3, count: number)
+	for i = 1, count do
+		task.delay(i * 0.035, function()
+			local a = rng:NextNumber(0, math.pi * 2)
+			local d = rng:NextNumber(6, 18)
+			local spin = CFrame.Angles(rng:NextNumber(0, 6), rng:NextNumber(0, 6), 0)
+			local coin = quietPart({
+				Name = "FountainCoin",
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(0.3, 1.6, 1.6),
+				Color = Color3.fromRGB(255, 201, 51),
+				Material = Enum.Material.Metal,
+				Reflectance = 0.3,
+				CFrame = CFrame.new(at) * spin,
+			})
+			local peak = at
+				+ Vector3.new(math.cos(a) * d * 0.45, rng:NextNumber(10, 18), math.sin(a) * d * 0.45)
+			local land = at + Vector3.new(math.cos(a) * d, -3, math.sin(a) * d)
+			local up = rng:NextNumber(0.45, 0.6)
+			TweenService:Create(coin, TweenInfo.new(up, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				CFrame = CFrame.new(peak) * spin * CFrame.Angles(3, 0, 0),
+			}):Play()
+			task.delay(up, function()
+				TweenService
+					:Create(coin, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+						CFrame = CFrame.new(land) * spin * CFrame.Angles(6, 0, 0),
+					})
+					:Play()
+			end)
+			task.delay(up + 1.4, function()
+				coin:Destroy()
+			end)
+			if i % 5 == 0 then
+				Sound.play("BagTick", 0.6, rng:NextNumber(1.2, 1.6))
+			end
+		end)
+	end
+end
+
+-- The big finale over `at`: a barrage of fireworks, confetti cannons on
+-- four sides and a fountain of gold coins.
+function PartyController.celebrate(at: Vector3, radius: number)
+	for i = 1, 5 do
+		task.delay((i - 1) * 1.1, function()
+			PartyController.fireworks(at, 5)
+		end)
+	end
+	for i = 0, 3 do
+		local a = i * math.pi / 2 + math.pi / 4
+		PartyController.confetti(at + Vector3.new(math.cos(a) * radius, 0, math.sin(a) * radius), 140)
+	end
+	task.delay(0.9, function()
+		PartyController.confetti(at + Vector3.new(0, 4, 0), 220)
+	end)
+	PartyController.coinFountain(at + Vector3.new(0, 4, 0), 70)
+end
+
 ---------------------------------------------------------------------------
 -- The ADMIN ABUSE party sky
 ---------------------------------------------------------------------------
@@ -178,25 +286,7 @@ local function startParty()
 		Size = Vector3.new(90, 1, 90),
 		Transparency = 1,
 	})
-	local emitter = Instance.new("ParticleEmitter")
-	emitter.Color = ColorSequence.new({
-		ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 80, 120)),
-		ColorSequenceKeypoint.new(0.25, Color3.fromRGB(255, 210, 60)),
-		ColorSequenceKeypoint.new(0.5, Color3.fromRGB(80, 220, 120)),
-		ColorSequenceKeypoint.new(0.75, Color3.fromRGB(80, 160, 255)),
-		ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 90, 255)),
-	})
-	emitter.Size = NumberSequence.new(0.35)
-	emitter.Rate = 60
-	emitter.Lifetime = NumberRange.new(5, 7)
-	emitter.Speed = NumberRange.new(2, 6)
-	emitter.SpreadAngle = Vector2.new(30, 30)
-	emitter.EmissionDirection = Enum.NormalId.Bottom
-	emitter.Acceleration = Vector3.new(0, -4, 0)
-	emitter.RotSpeed = NumberRange.new(-200, 200)
-	emitter.Rotation = NumberRange.new(0, 360)
-	emitter.LightEmission = 0.4
-	emitter.Parent = sky
+	PartyController.confettiEmitter(sky)
 	confetti = sky
 	burst((rootPosition() or Vector3.zero) + Vector3.new(0, 60, -30))
 end

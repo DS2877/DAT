@@ -567,7 +567,19 @@ do
 	task.wait(0.5)
 	local info = megaPanel.Info.Text
 	check(info:find("your hits: 5") ~= nil, "it shows your hits and win chance (" .. info .. ")")
-	check(megaPanel.Bar.Percent.Text ~= "0%", "and the progress (" .. megaPanel.Bar.Percent.Text .. ")")
+	check(megaPanel.Percent.Text ~= "0%", "and the progress (" .. megaPanel.Percent.Text .. ")")
+	local searchlights = 0
+	for _, d in H.workspace:GetDescendants() do
+		searchlights += if d.Name == "Searchlight" then 1 else 0
+	end
+	check(searchlights == 4, "a party at the site: searchlights sweep the sky (" .. searchlights .. ")")
+	local site0 = nil
+	for _, spot in spots:GetChildren() do
+		if spot:GetAttribute("Mega") then
+			site0 = spot
+		end
+	end
+	check(site0 and site0:FindFirstChild("Bunting") ~= nil, "and bunting hangs on the fence")
 	for _ = 1, 2000 do
 		H.clockOffset += 1
 		H.fireServer(player, "DigHit", id)
