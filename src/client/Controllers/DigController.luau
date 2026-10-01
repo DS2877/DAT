@@ -204,10 +204,15 @@ local function tryHit()
 
 	-- Instant local feedback; the server confirms progress in DigResult.
 	local position = spotPosition(spot)
-	Effects.swing(character, math.min(0.36, interval * 0.95))
-	Effects.dirtBurst(position, 6)
-	Effects.cameraNudge()
-	Sound.play(DIG_SOUND[spot:GetAttribute("AreaId") :: string? or "Beach"] or "DigHitSand")
+	-- The dig animation; dirt, shake and sound land when the shovel hits.
+	local swing = math.min(0.45, interval * 0.95)
+	Effects.swing(character, swing)
+	local hitSound = DIG_SOUND[spot:GetAttribute("AreaId") :: string? or "Beach"] or "DigHitSand"
+	task.delay(swing * 0.5, function()
+		Effects.dirtBurst(position, 6)
+		Effects.cameraNudge()
+		Sound.play(hitSound)
+	end)
 	local hole = holes[spot]
 	local current = hole and hole.spotId == id and hole
 	local areaId = spot:GetAttribute("AreaId") :: string?

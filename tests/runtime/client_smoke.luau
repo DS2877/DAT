@@ -158,6 +158,21 @@ for _ = 1, 8 do
 	task.wait(0.6)
 end
 check(data.stats.finds >= 1, "tapping DIG dug the spot out")
+do
+	-- The dig animation: the right shoulder moves off its rest pose mid-dig
+	-- and settles back after.
+	local Effects = H.require(clientScript.Effects)
+	local character = player.Character
+	local shoulder = character:FindFirstChild("RightShoulder", true)
+		or character:FindFirstChild("Right Shoulder", true)
+	local rest = shoulder.C0
+	Effects.swing(character, 0.4)
+	task.wait(0.18)
+	local moved = shoulder.C0 ~= rest
+	check(Effects.isDigging(character) and moved, "digging plays the dig animation")
+	task.wait(0.4)
+	check(not Effects.isDigging(character) and shoulder.C0 == rest, "and the body goes back to rest after")
+end
 task.wait(2.5) -- reveal + fly to bag
 check(root.Bag.Value.Text:find("1/5") ~= nil, "bag counter ticked to 1 (" .. root.Bag.Value.Text .. ")")
 

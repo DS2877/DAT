@@ -1030,6 +1030,27 @@ methods.GetUserThumbnailAsync = function(_proxy, _inst, userId)
 	return "rbxthumb://type=AvatarHeadShot&id=" .. tostring(userId) .. "&w=150&h=150", true
 end
 
+-- TweenService:GetValue: the easing curves the game uses.
+methods.GetValue = function(_proxy, inst, alpha, style, direction)
+	if inst.ClassName ~= "TweenService" then
+		error("GetValue is not a valid member of " .. inst.ClassName)
+	end
+	local name = tostring(style):match("%.(%w+)$") or tostring(style)
+	local dir = tostring(direction):match("%.(%w+)$") or tostring(direction)
+	if name == "Linear" then
+		return alpha
+	end
+	local function easeIn(x: number): number
+		return x * x
+	end
+	if dir == "In" then
+		return easeIn(alpha)
+	elseif dir == "Out" then
+		return 1 - easeIn(1 - alpha)
+	end
+	return if alpha < 0.5 then easeIn(alpha * 2) / 2 else 1 - easeIn((1 - alpha) * 2) / 2
+end
+
 -- TweenService: goals are applied immediately; Completed fires next frame.
 methods.Create = function(_proxy, inst, target, _info, goals)
 	if inst.ClassName ~= "TweenService" then

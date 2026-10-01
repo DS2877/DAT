@@ -103,7 +103,7 @@ local AssetIds = {
 	},
 
 	Animations = {
-		DigSwing = "", -- TODO: replace (shovel swing). Empty = procedural swing.
+		DigSwing = "", -- unused: the dig is a procedural whole-body animation (Effects.swing)
 	},
 }
 
