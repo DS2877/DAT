@@ -1413,6 +1413,7 @@ local InstanceGlobal = {
 		return proxy
 	end,
 }
+H.Instance = InstanceGlobal -- (tests making instances the way game code does)
 
 local baseGlobals = getfenv()
 local ROBLOX_GLOBALS = {

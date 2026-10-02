@@ -34,6 +34,7 @@ return table.freeze({
 	Fireworks = "Fireworks", -- (position, count) to everyone
 	CoinPicked = "CoinPicked", -- (amount, position) a money-rain coin
 	Meteor = "Meteor", -- (from: Vector3, to: Vector3, flight: number) a fireball (to everyone)
+	Seagull = "Seagull", -- (kind: "Steal" | "Perch" | "Return" | "GiveUp", userId, info) the hat thief (to everyone)
 	BountyDone = "BountyDone", -- (slot: number, description: string) a bounty was just finished
 	Portal = "Portal", -- (kind: "Locked" | "Attuned" | "ComingSoon" | "Teleporting", info) the Frost Portal
 })

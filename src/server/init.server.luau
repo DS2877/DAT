@@ -39,6 +39,7 @@ local WorldServers = require(Services.WorldServers)
 local BountyService = require(Services.BountyService)
 local NightService = require(Services.NightService)
 local EruptionService = require(Services.EruptionService)
+local SeagullService = require(Services.SeagullService)
 
 -- init: connect remotes and signals. Order matters only for PlayerData.Loaded
 -- listeners, which must exist before PlayerData starts loading players.
@@ -74,6 +75,7 @@ JackpotService.start()
 MegaDigService.run()
 NightService.start()
 EruptionService.run()
+SeagullService.start()
 if world ~= "Island" then
 	WorldServers.host(world)
 end

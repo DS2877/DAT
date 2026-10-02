@@ -10,7 +10,7 @@
 -- Server actions: Treasure Rush, server 2x Cash, ADMIN ABUSE, hidden
 -- treasures, announcements, messages to every server, time of day, your
 -- own speed / jump, and spawning things where you stand (treasure spots,
--- clue rings, money rain, fireworks, a Mega Dig).
+-- clue rings, money rain, fireworks, a Mega Dig), an eruption, a seagull.
 
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
@@ -39,6 +39,7 @@ local EconomyService = require(script.Parent.EconomyService)
 local GlobalMessageService = require(script.Parent.GlobalMessageService)
 local JackpotService = require(script.Parent.JackpotService)
 local EruptionService = require(script.Parent.EruptionService)
+local SeagullService = require(script.Parent.SeagullService)
 local MegaDigService = require(script.Parent.MegaDigService)
 local PartyService = require(script.Parent.PartyService)
 local Net = require(script.Parent.Parent.Net)
@@ -507,6 +508,11 @@ local SERVER_ACTIONS: { [string]: (admin: Player, args: { any }) -> string? } = 
 	end,
 	Eruption = function()
 		return if EruptionService.start() then "The volcano is waking up!" else "An eruption is already going"
+	end,
+	Seagull = function(admin)
+		return if SeagullService.steal(admin)
+			then "Incoming seagull!"
+			else "No seagull: wear a hat, stand near palms (Island), one at a time"
 	end,
 	Time = function(_, args)
 		local clock = tonumber(args[1])

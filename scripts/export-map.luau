@@ -60,6 +60,18 @@ if process.env.TREASURE_PREVIEW then
 	end
 end
 
+-- SEAGULL_PREVIEW=1: two seagulls (one flying) next to the treasure row
+-- (view "treasures").
+if process.env.SEAGULL_PREVIEW then
+	local roblox = require("@lune/roblox")
+	local SeagullService = H.require(game:GetService("ServerScriptService").Server.Services.SeagullService)
+	for i, flying in { false, true } do
+		local x, z = -18 + i * 6, 122
+		local y = H.terrainTop(x, z, 500) or 10
+		SeagullService.showcase(roblox.Vector3.new(x, y + (if flying then 4 else 1.2), z), flying)
+	end
+end
+
 local MapLayout = H.require(game:GetService("ReplicatedStorage").Shared.Config.MapLayout)
 -- Terrain beyond the play area too (the volcano cone, islets).
 local pb = MapLayout.bounds

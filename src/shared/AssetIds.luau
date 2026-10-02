@@ -68,6 +68,16 @@ local AssetIds = {
 		Owl = { clips = { clip(9117182187, 0.5) }, jitter = 0.05 }, -- Owl Hooting Reverberant Several 2 (PSE)
 		-- Junk finds: a squeaky toy.
 		Squeak = { clips = { clip(9125994570, 0.9) }, jitter = 0.08 }, -- Squeeze Toy Squeaky Rubber (PSE)
+		-- The seagull hat thief.
+		Squawk = {
+			clips = {
+				clip(9118858279, 0.7, 0, 1.6), -- Seagull Squawks 1 (PSE)
+				clip(9118858265, 0.7, 0, 1.6), -- Seagull Squawks 2 (PSE)
+				clip(9118858259, 0.7, 0, 1.6), -- Seagull Squawks 3 (PSE)
+			},
+			jitter = 0.06,
+		},
+		Wings = { clips = { clip(9113444620, 0.6, 0, 1.2) }, jitter = 0.05 }, -- Bird Wing Flaps Pigeon Two 1 (PSE)
 		Whoosh = { clips = { clip(15675028888, 0.51) }, jitter = 0.05 }, -- Roblox_UI_Whoosh_02: find flies to the bag
 
 		Streak = { clips = { clip(9126073001, 1.68, 0.1, 1.0) } }, -- Synth Sparkle Bell Ding (PSE)

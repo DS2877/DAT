@@ -37,6 +37,7 @@ do
 	local MegaDigService = H.require(game:GetService("ServerScriptService").Server.Services.MegaDigService)
 	H.require(game:GetService("ServerScriptService").Server.Services.NightService).setScheduled(false) -- nights only when a test forces one
 	H.require(game:GetService("ServerScriptService").Server.Services.EruptionService).setScheduled(false) -- eruptions only when a test starts one
+	H.require(game:GetService("ServerScriptService").Server.Services.SeagullService).setScheduled(false) -- seagulls only when a test sends one
 	MegaDigService.setScheduled(false)
 	MegaDigService.cancel()
 end
@@ -1069,6 +1070,101 @@ do
 	)
 	digger:Kick("done")
 	EruptionService.setTiming(nil)
+end
+
+print("\n== Seagull ==")
+do
+	local SeagullService = H.require(Services.SeagullService)
+	local Instance = H.Instance
+	check(
+		SeagullService.palmCount() > 10,
+		"seagulls know the palm tops (" .. SeagullService.palmCount() .. ")"
+	)
+	SeagullService.setTiming({ swoop = 0.3, toPalm = 0.3, away = 0.2, giveUpAfter = 1 })
+	local tourist = H.addPlayer("Tourist", 5024)
+	H.waitFor(function()
+		return PlayerData.get(tourist) ~= nil and tourist.Character ~= nil
+	end, 5, "tourist")
+	local character = tourist.Character
+	local head = character:FindFirstChild("Head")
+	check(not SeagullService.steal(tourist), "no hat, nothing to steal")
+	-- A hat, worn the Roblox way.
+	local headAttachment = Instance.new("Attachment")
+	headAttachment.Name = "HatAttachment"
+	headAttachment.Position = V3(0, 0.6, 0)
+	headAttachment.Parent = head
+	local function giveHat()
+		local hat = Instance.new("Accessory")
+		hat.Name = "CoolHat"
+		local handle = Instance.new("Part")
+		handle.Name = "Handle"
+		handle.Size = V3(1, 1, 1)
+		handle.Parent = hat
+		local a = Instance.new("Attachment")
+		a.Name = "HatAttachment"
+		a.Parent = handle
+		local weld = Instance.new("Weld")
+		weld.Name = "AccessoryWeld"
+		weld.Part0 = handle
+		weld.Part1 = head
+		weld.Parent = handle
+		hat.Parent = character
+		return hat
+	end
+	local hat = giveHat()
+	-- Stand near a palm (but not under it).
+	local palm = nil
+	for _, d in workspace:GetDescendants() do
+		if d:IsA("Model") and d.Name == "Palm" then
+			palm = d
+			break
+		end
+	end
+	local crown = palm:FindFirstChild("Coconut").Position
+	H.moveTo(tourist, V3(crown.X + 40, crown.Y - 20, crown.Z))
+	local data = PlayerData.get(tourist)
+	local cashBefore = data.cash
+	check(SeagullService.steal(tourist), "a seagull dives for the hat")
+	check(not SeagullService.steal(player), "one seagull at a time")
+	local perched = H.waitFor(function()
+		local e = H.lastClientEvent("Seagull", tourist)
+		return e ~= nil and e[1] == "Perch"
+	end, 5, "the seagull to sit")
+	local perch = H.lastClientEvent("Seagull", tourist)
+	check(perched and hat.Parent ~= character and hat.Parent.Name == "Seagull", "it takes the hat to a palm")
+	local where = perch and perch[3].palm
+	if where then
+		H.moveTo(tourist, V3(where.X + 3, where.Y - 20, where.Z))
+	end
+	H.waitFor(function()
+		local e = H.lastClientEvent("Seagull", tourist)
+		return e ~= nil and e[1] == "Return"
+	end, 5, "the hat back")
+	local back = H.lastClientEvent("Seagull", tourist)
+	check(
+		hat.Parent == character and hat.Handle:FindFirstChild("AccessoryWeld") ~= nil,
+		"walking under the palm gets the hat back"
+	)
+	check(
+		back[3].cash > 0 and data.cash == cashBefore + back[3].cash,
+		"with a coin as an apology (+" .. back[3].cash .. ")"
+	)
+	H.waitFor(function()
+		return not SeagullService.isBusy()
+	end, 5, "the seagull to leave")
+	check(workspace:FindFirstChild("Seagull") == nil, "the seagull flies off")
+	-- Nobody comes: it gets bored and brings it back.
+	check(SeagullService.steal(tourist), "it can strike again")
+	H.waitFor(function()
+		local e = H.lastClientEvent("Seagull", tourist)
+		return e ~= nil and e[1] == "GiveUp"
+	end, 6, "the seagull to give up")
+	check(hat.Parent == character, "a bored seagull brings the hat back")
+	H.waitFor(function()
+		return not SeagullService.isBusy()
+	end, 5, "the seagull to leave")
+	tourist:Kick("done")
+	SeagullService.setTiming(nil)
 end
 
 print("\n== Golden X ==")

@@ -34,6 +34,7 @@ do
 	local MegaDigService = H.require(game:GetService("ServerScriptService").Server.Services.MegaDigService)
 	H.require(game:GetService("ServerScriptService").Server.Services.NightService).setScheduled(false) -- nights only when a test forces one
 	H.require(game:GetService("ServerScriptService").Server.Services.EruptionService).setScheduled(false) -- eruptions only when a test starts one
+	H.require(game:GetService("ServerScriptService").Server.Services.SeagullService).setScheduled(false) -- seagulls only when a test sends one
 	MegaDigService.setScheduled(false)
 	MegaDigService.cancel()
 end
@@ -884,6 +885,29 @@ do
 	task.wait(1)
 	check(EruptionController.flying() == 0, "fireballs land and clean up")
 	EruptionService.setTiming(nil)
+end
+
+print("\n== Seagull ==")
+do
+	local Net = H.require(game:GetService("ServerScriptService").Server.Net)
+	local SeagullController = H.require(clientScript.Controllers.SeagullController)
+	local here = player.Character.HumanoidRootPart.Position
+	local model = H.Instance.new("Model")
+	model.Name = "Seagull"
+	local body = H.Instance.new("Part")
+	body.Name = "Body"
+	body.Anchored = true
+	body.Position = here + V3(20, 10, 0)
+	body.Parent = model
+	model.Parent = H.workspace
+	Net.fireAll("Seagull", "Steal", player.UserId, { model = model, palm = body.Position })
+	task.wait(0.2)
+	check(SeagullController.marked(), "the robbed player sees a YOUR HAT marker on the seagull")
+	check(body:FindFirstChild("Squawk") ~= nil, "the seagull squawks")
+	Net.fireAll("Seagull", "Return", player.UserId, { model = model, cash = 25 })
+	task.wait(0.2)
+	check(not SeagullController.marked(), "the marker goes when the hat is back")
+	model:Destroy()
 end
 
 print("\n== Wind ==")
