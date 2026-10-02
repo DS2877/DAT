@@ -53,6 +53,7 @@ H.runScript(game:GetService("ServerScriptService").Server)
 local workspace = H.workspace
 do
 	local MegaDigService = H.require(game:GetService("ServerScriptService").Server.Services.MegaDigService)
+	H.require(game:GetService("ServerScriptService").Server.Services.NightService).setScheduled(false) -- nights only when a test forces one
 	MegaDigService.setScheduled(false)
 	MegaDigService.cancel()
 end

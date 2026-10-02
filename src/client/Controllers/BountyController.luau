@@ -88,7 +88,7 @@ end
 local function build()
 	tracker = Ui.new("TextButton", {
 		Name = "BountyTracker",
-		Position = UDim2.fromOffset(12, 210),
+		Position = UDim2.fromOffset(12, 234),
 		Size = UDim2.fromOffset(300, 30),
 		BackgroundColor3 = C.Dark,
 		BackgroundTransparency = 0.25,

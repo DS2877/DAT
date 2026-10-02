@@ -31,6 +31,7 @@ local FriendsService = require(script.Parent.FriendsService)
 local LeaderboardService = require(script.Parent.LeaderboardService)
 local LootService = require(script.Parent.LootService)
 local MegaDigService = require(script.Parent.MegaDigService)
+local NightService = require(script.Parent.NightService)
 local Net = require(script.Parent.Parent.Net)
 local PlayerData = require(script.Parent.PlayerData)
 local RewardService = require(script.Parent.RewardService)
@@ -254,6 +255,9 @@ function finish(
 		RewardService.consumeGoldenX(data)
 	else
 		DigSpotService.consume(spotId)
+		if spot.moonlit then
+			NightService.onDug(spotId)
+		end
 	end
 	local serverNow = workspace:GetServerTimeNow()
 	if
@@ -278,6 +282,7 @@ function finish(
 		deep = wasDeep,
 		goldenX = isGoldenX,
 		friends = FriendsService.count(player),
+		moonlit = spot.moonlit,
 	})
 	LeaderboardService.onFind(data, find)
 	local capacity = Perks.bagCapacity(data)

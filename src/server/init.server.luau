@@ -37,6 +37,7 @@ local GlobalMessageService = require(Services.GlobalMessageService)
 local WorldPortalService = require(Services.WorldPortalService)
 local WorldServers = require(Services.WorldServers)
 local BountyService = require(Services.BountyService)
+local NightService = require(Services.NightService)
 
 -- init: connect remotes and signals. Order matters only for PlayerData.Loaded
 -- listeners, which must exist before PlayerData starts loading players.
@@ -70,6 +71,7 @@ AreaService.start()
 LeaderboardService.start()
 JackpotService.start()
 MegaDigService.run()
+NightService.start()
 if world ~= "Island" then
 	WorldServers.host(world)
 end

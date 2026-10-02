@@ -34,6 +34,8 @@ export type Spot = {
 	-- An admin-spawned spot with a guaranteed rarity.
 	forceRarity: string?,
 	lootArea: string?, -- roll treasure from this area instead (admin spots)
+	-- A moonlit spot (night only, better odds; see NightService).
+	moonlit: boolean?,
 }
 
 local DigSpotService = {}
@@ -473,6 +475,15 @@ function DigSpotService.get(spotId: number): Spot?
 	return active[spotId]
 end
 
+-- Every spot in play.
+function DigSpotService.list(): { Spot }
+	local list = {}
+	for _, spot in active do
+		table.insert(list, spot)
+	end
+	return list
+end
+
 -- Removes a dug-out spot and schedules a replacement in the same area.
 function DigSpotService.consume(spotId: number)
 	local spot = active[spotId]
@@ -480,7 +491,7 @@ function DigSpotService.consume(spotId: number)
 		return
 	end
 	active[spotId] = nil
-	if spot.mega or spot.forceRarity then
+	if spot.mega or spot.forceRarity or spot.moonlit then
 		-- One-off spots: gone for good.
 		spot.model:Destroy()
 		return

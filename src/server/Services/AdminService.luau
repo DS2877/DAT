@@ -509,7 +509,13 @@ local SERVER_ACTIONS: { [string]: (admin: Player, args: { any }) -> string? } = 
 		if not clock then
 			return nil
 		end
-		Lighting.ClockTime = clock % 24
+		-- Shown for 5 minutes (the day/night cycle runs on every client);
+		-- a night hour also starts a night (moonlit spots).
+		clock %= 24
+		Lighting.ClockTime = clock
+		workspace:SetAttribute("ClockOverride", clock)
+		workspace:SetAttribute("ClockOverrideUntil", workspace:GetServerTimeNow() + 300)
+		workspace:SetAttribute("ForceNight", if clock >= 19 or clock < 6 then true else nil)
 		return "Time: " .. clock
 	end,
 	Speed = function(admin, args)

@@ -62,6 +62,8 @@ local AssetIds = {
 		RevealEpic = { clips = { clip(1848287311, 0.43, 0.1, 2.5) }, duck = true }, -- "The Little Things - Hit" (APM)
 		StingLegendary = { clips = { clip(1842141561, 0.40, 0, 5.0) }, duck = true }, -- "Celebration Nation (sting a)" (APM)
 		StingSecret = { clips = { clip(1840095069, 0.62, 0, 7.5) }, duck = true }, -- "Make It Happen (sting b)" (APM)
+		-- Night: an owl now and then (the crickets are an ambience loop).
+		Owl = { clips = { clip(9117182187, 0.5) }, jitter = 0.05 }, -- Owl Hooting Reverberant Several 2 (PSE)
 		-- Junk finds: a squeaky toy.
 		Squeak = { clips = { clip(9125994570, 0.9) }, jitter = 0.08 }, -- Squeeze Toy Squeaky Rubber (PSE)
 		Whoosh = { clips = { clip(15675028888, 0.51) }, jitter = 0.05 }, -- Roblox_UI_Whoosh_02: find flies to the bag
@@ -91,6 +93,9 @@ local AssetIds = {
 		Ruins = { clip(9114057128, 5.4) }, -- Desert Wind, Whistley Light Gusts 2 (PSE)
 		Volcano = { clip(9112823197, 0.21) }, -- Lava Rumble 1 (PSE)
 	} :: { [string]: { Clip } },
+
+	-- The night's cricket loop (DayNightController fades it in and out).
+	NightAmbience = clip(9112764546, 0.5), -- Crickets Night 1 (PSE)
 
 	-- 3D loops attached to world objects (by part name) by AudioController.
 	Emitters = {

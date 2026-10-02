@@ -43,6 +43,7 @@ local MapLayout = H.require(Shared.Config.MapLayout)
 -- (the Mega Dig checks start one themselves).
 do
 	local MegaDigService = H.require(game:GetService("ServerScriptService").Server.Services.MegaDigService)
+	H.require(game:GetService("ServerScriptService").Server.Services.NightService).setScheduled(false) -- nights only when a test forces one
 	MegaDigService.setScheduled(false)
 	MegaDigService.cancel()
 end

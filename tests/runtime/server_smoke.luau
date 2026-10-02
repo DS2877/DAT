@@ -35,6 +35,7 @@ local workspace = H.workspace
 -- (the Mega Dig checks start one themselves).
 do
 	local MegaDigService = H.require(game:GetService("ServerScriptService").Server.Services.MegaDigService)
+	H.require(game:GetService("ServerScriptService").Server.Services.NightService).setScheduled(false) -- nights only when a test forces one
 	MegaDigService.setScheduled(false)
 	MegaDigService.cancel()
 end
@@ -985,6 +986,43 @@ do
 	task.wait(0.1)
 	check(hd.cash == before, "an unfinished bounty can't be claimed")
 	hunter:Kick("done")
+end
+
+print("\n== Night ==")
+do
+	local NightService = H.require(Services.NightService)
+	local DayNight = H.require(Shared.Config.DayNight)
+	workspace:SetAttribute("ForceNight", true)
+	H.waitFor(function()
+		return workspace:GetAttribute("Night") == true
+	end, 4, "night")
+	local expected = DayNight.moonlit.perArea * 4
+	check(
+		NightService.count() == expected,
+		"night lights moonlit spots in every area (" .. NightService.count() .. ")"
+	)
+	local moonSpot = nil
+	for _, spot in spots:GetChildren() do
+		if spot:GetAttribute("Moonlit") and spot:GetAttribute("AreaId") == "Beach" then
+			moonSpot = spot
+		end
+	end
+	check(moonSpot and moonSpot:FindFirstChild("MoonBeam") ~= nil, "they glow with a moon beam")
+	local owl = H.addPlayer("NightOwl", 5022)
+	H.waitFor(function()
+		return PlayerData.get(owl) ~= nil and owl.Character ~= nil
+	end, 5, "night owl")
+	local find = moonSpot and digSpot(owl, moonSpot)
+	check(
+		find ~= nil and NightService.count() == expected - 1,
+		"a moonlit spot can be dug (" .. tostring(find and find.rarity) .. ")"
+	)
+	owl:Kick("done")
+	workspace:SetAttribute("ForceNight", nil)
+	H.waitFor(function()
+		return workspace:GetAttribute("Night") == false
+	end, 4, "dawn")
+	check(NightService.count() == 0, "at dawn the moonlit spots fade away")
 end
 
 print("\n== Golden X ==")

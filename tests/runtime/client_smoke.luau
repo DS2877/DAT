@@ -32,6 +32,7 @@ local MapLayout = H.require(Shared.Config.MapLayout)
 -- (the Mega Dig checks start one themselves).
 do
 	local MegaDigService = H.require(game:GetService("ServerScriptService").Server.Services.MegaDigService)
+	H.require(game:GetService("ServerScriptService").Server.Services.NightService).setScheduled(false) -- nights only when a test forces one
 	MegaDigService.setScheduled(false)
 	MegaDigService.cancel()
 end
@@ -846,6 +847,21 @@ do
 		end
 	end
 	check(leftover == 0, "impact effects clean up after themselves (" .. leftover .. " left)")
+end
+
+print("\n== Day and night ==")
+do
+	local DayNightController = H.require(clientScript.Controllers.DayNightController)
+	local timer = root:FindFirstChild("NightTimer")
+	check(
+		timer and timer.Text:find("Night") ~= nil,
+		"the HUD counts down to the night (" .. tostring(timer and timer.Text) .. ")"
+	)
+	H.workspace:SetAttribute("ForceNight", true)
+	task.wait(0.4)
+	check(DayNightController.nightness() == 1, "a night darkens the sky")
+	H.workspace:SetAttribute("ForceNight", nil)
+	task.wait(3)
 end
 
 print("\n== Wind ==")

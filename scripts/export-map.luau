@@ -35,6 +35,14 @@ if process.env.MEGADIG_PREVIEW then
 	end
 end
 
+-- NIGHT_PREVIEW=1: a forced night (moonlit spots) with the clients' night
+-- lighting, for the 3D preview.
+local nightPreview = process.env.NIGHT_PREVIEW ~= nil
+if nightPreview then
+	H.workspace:SetAttribute("ForceNight", true)
+	require("@lune/task").wait(3)
+end
+
 -- TREASURE_PREVIEW=Id1,Id2,...: those treasures in a row on the beach (x2),
 -- for the 3D preview (view "treasures").
 if process.env.TREASURE_PREVIEW then
@@ -276,12 +284,22 @@ fs.writeFile(
 			else nil,
 		waterColor = if frost then H.unwrap(H.workspace).Terrain.WaterColor:ToHex() else nil,
 		lighting = {
-			clockTime = prop(lighting, "ClockTime"),
+			clockTime = if nightPreview then 0.5 else prop(lighting, "ClockTime"),
 			latitude = prop(lighting, "GeographicLatitude"),
-			brightness = prop(lighting, "Brightness"),
+			brightness = if nightPreview then 1.4 else prop(lighting, "Brightness"),
 			exposure = prop(lighting, "ExposureCompensation"),
-			ambient = hexOr(prop(lighting, "Ambient")),
-			outdoorAmbient = hexOr(prop(lighting, "OutdoorAmbient")),
+			ambient = if nightPreview
+				then string.sub(
+					H.require(game:GetService("ReplicatedStorage").Shared.Config.DayNight).night.ambient,
+					2
+				)
+				else hexOr(prop(lighting, "Ambient")),
+			outdoorAmbient = if nightPreview
+				then string.sub(
+					H.require(game:GetService("ReplicatedStorage").Shared.Config.DayNight).night.outdoorAmbient,
+					2
+				)
+				else hexOr(prop(lighting, "OutdoorAmbient")),
 			atmosphere = if atmosphere
 				then {
 					density = atmosphere.Density,

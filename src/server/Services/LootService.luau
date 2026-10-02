@@ -14,6 +14,7 @@ local Bonuses = require(ReplicatedStorage.Shared.Logic.Bonuses)
 local Boosts = require(ReplicatedStorage.Shared.Logic.Boosts)
 local Collection = require(ReplicatedStorage.Shared.Logic.Collection)
 local Guarantees = require(ReplicatedStorage.Shared.Logic.Guarantees)
+local DayNight = require(ReplicatedStorage.Shared.Config.DayNight)
 local Loot = require(ReplicatedStorage.Shared.Config.Loot)
 local RebirthPerks = require(ReplicatedStorage.Shared.Logic.RebirthPerks)
 local LootRoller = require(ReplicatedStorage.Shared.Logic.LootRoller)
@@ -55,6 +56,7 @@ export type DigContext = {
 	luck: { [string]: number }?, -- 2x Luck pass odds multipliers (off by default)
 	serverBoost: boolean?, -- a bought server-wide 2x Cash is running
 	jackpot: string?, -- a hidden treasure's rarity (Config/Jackpots)
+	moonlit: boolean?, -- a moonlit spot (night): much better odds
 }
 
 local function atLeast(current: string?, minimum: string): string
@@ -126,7 +128,10 @@ function LootService.rollFor(data: { [string]: any }, context: DigContext): Find
 				if context.clue or adminAbuse() then Loot.clueOddsMultipliers else nil,
 				if rushActive then Retention.rush.oddsMultipliers else nil
 			),
-			combineMultipliers(context.luck, treasureSense(data))
+			combineMultipliers(
+				combineMultipliers(context.luck, treasureSense(data)),
+				if context.moonlit then DayNight.moonlit.oddsMultipliers else nil
+			)
 		),
 		rebirths = data.rebirths,
 	})
