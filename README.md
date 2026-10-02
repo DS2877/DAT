@@ -74,6 +74,14 @@ Every number lives in `src/shared/Config/`:
 | `MegaDig.luau` | Mega Dig: schedule, size, hits needed, prize, draw, helper cash |
 | `Worlds.luau` | The next world: name, rebirths to unlock, its place id; the portal's sizes |
 | `Monetization.luau` | Passes, products, skins, perk numbers, offer limits |
+| `Bounties.luau` | Bounty Board: slots, bounty kinds, rewards, the every-5 bonus |
+| `RebirthPerks.luau` | Rebirth perk cards: what each does per level, max levels |
+| `DayNight.luau` | Day/night clock, night lighting, moonlit spots and their odds |
+| `Eruption.luau` | Volcano eruption: schedule, meteors, meteor spot odds |
+| `Seagull.luau` | Seagull hat thief: how often, flight times, the apology coin, its lines |
+| `Pets.luau` | Pets: egg chance and pity, cash bonus per rarity and level, every pet's model |
+| `Chatter.luau` | What the shopkeepers and the merchant say |
+| `Treasures.luau` (junk) | Junk finds (`set = "Junk"`) with their funny reveal lines (`quip`) |
 
 To add a treasure: append a row in `Treasures.luau` (tests check its value band
 and model archetype).
@@ -206,6 +214,45 @@ fluttering; jungle canopies sway; beach grass, ferns and bamboo leaves
 flutter; flags, sails and banners flap. One wind for the island with gusts
 that roll across it. Only things within `radius` of the camera move,
 `rate` times a second, in one BulkMoveTo.
+
+## World 1: things to do between digs
+
+All numbers are in `Config/`; each feature has offline and smoke tests.
+
+* **Perfect hits** (`Config/Dig.perfect`): a ring closes on every swing;
+  tapping as it lines up is a PERFECT hit (an extra hit's worth of digging).
+  The Perfectionist rebirth perk widens the window.
+* **Shovel impacts**: every shovel tier has its own hit effect (dust,
+  pebbles, sparks, coins ... rainbow, lava, cosmic). The shop shows the next one.
+* **Junk finds**: old boots, rubber ducks, dentures and friends, with a funny
+  line on the reveal and their own Junk Collector set.
+* **Victory dance**: Legendary+ or Golden finds make you dance (everyone sees it).
+* **Talking people**: the shopkeepers and the merchant chat when you walk up,
+  react to your upgrades and roast your junk sales.
+* **Bounty Board** (`BountyService`): three small goals at a time (dig in an
+  area, find a rarity, sell, PERFECT hits ...) for cash; every 5th claim also
+  gives an Epic dig and 2x Cash. Per world.
+* **Rebirth perks** (`RebirthService`, `Logic/RebirthPerks`): every rebirth
+  offers three perk cards, keep one forever (picking one again levels it).
+  Small on purpose: rebirths stay a new run, just different each time.
+* **Day and night** (`NightService`, `DayNightController`): a 20-minute day
+  on one clock for every server. At night moonlit dig spots with much better
+  odds glow all over the island.
+* **Volcano eruption** (`EruptionService`, `EruptionController`): at :05 and
+  :35 the volcano rumbles, the sky turns red and fireballs land as smoking
+  meteor dig spots with great odds (comets in Frostbite Peaks).
+* **Seagull hat thief** (`SeagullService`): now and then a seagull steals a
+  player's hat and sits on a palm with it. Walk under the palm to get it back,
+  with a coin as an apology. Island only, after the tutorial; nothing is lost.
+* **Pets** (`PetService`, `PetController`, `Builders/PetBuilder`): digs now
+  and then turn up an egg that hatches into one of the area's pets (8 on the
+  Island, 4 in Frostbite Peaks). The one that's out follows you and gives a
+  small cash bonus; a pet you have levels up. Eggs only come from digging.
+
+Admin panel (WORLD tab): Eruption, Steal my hat, Hatch a pet; time of day
+for night. Previews: `scripts/export-map.luau` with `NIGHT_PREVIEW`,
+`SEAGULL_PREVIEW` or `PET_PREVIEW` (view `treasures`), and
+`scripts/ui-snapshot.luau` (bounties, perks, pets scenes).
 
 ## Frostbite Peaks (world 2)
 
