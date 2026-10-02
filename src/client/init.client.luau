@@ -42,6 +42,7 @@ local PortalController = require(Controllers.PortalController)
 local RadarController = require(Controllers.RadarController)
 local ChatController = require(Controllers.ChatController)
 local SnowController = require(Controllers.SnowController)
+local WindController = require(Controllers.WindController)
 
 ClientState.init()
 AudioController.init()
@@ -72,6 +73,7 @@ PortalController.init()
 RadarController.init()
 ChatController.init()
 SnowController.init()
+WindController.init()
 
 -- Listeners are connected; request the snapshot (the server also pushes one
 -- on load, this covers the case where it arrived before we were ready).

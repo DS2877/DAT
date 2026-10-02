@@ -751,6 +751,36 @@ do
 	H.signal(root.TopButtons.GuideButton, "Activated"):Fire({})
 end
 
+print("\n== Wind ==")
+do
+	local WindController = H.require(clientScript.Controllers.WindController)
+	H.waitFor(function()
+		return WindController.count() > 100
+	end, 20, "the wind's scan")
+	check(
+		WindController.count() > 100,
+		"palms, canopies, grass and flags sway (" .. WindController.count() .. ")"
+	)
+	local palm = H.workspace:FindFirstChild("Palm", true)
+	local leaf = palm and palm:FindFirstChild("Leaf")
+	if leaf then
+		local camera = H.workspace.CurrentCamera
+		camera.CFrame = roblox.CFrame.new(leaf.Position + V3(0, 10, 30))
+		local before = leaf.CFrame
+		task.wait(0.4)
+		local after = leaf.CFrame
+		task.wait(0.4)
+		check(before ~= after and after ~= leaf.CFrame, "a palm frond near the camera moves with the wind")
+		check((leaf.Position - before.Position).Magnitude < 3, "and only a little (it stays on its palm)")
+		camera.CFrame = roblox.CFrame.new(V3(MapLayout.spawn.x, 40, MapLayout.spawn.z + 20))
+		task.wait(0.3)
+		print("wind parts moving near the spawn: " .. WindController.moved())
+		check(WindController.moved() < 2500, "a bounded number of parts move at a time")
+	else
+		check(false, "found a palm")
+	end
+end
+
 running = false
 task.wait(0.2)
 

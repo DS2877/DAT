@@ -198,6 +198,15 @@ meaningful at every stage. Buying one that's running adds 5 minutes.
     MessagingService, shown at the top of everyone's screen as a speech
     bubble from your avatar).
 
+## Wind (world 1)
+
+`Config/Wind.luau`, played on each client (`WindController`): palms lean
+downwind and sway, bending more toward the top, with their fronds
+fluttering; jungle canopies sway; beach grass, ferns and bamboo leaves
+flutter; flags, sails and banners flap. One wind for the island with gusts
+that roll across it. Only things within `radius` of the camera move,
+`rate` times a second, in one BulkMoveTo.
+
 ## Frostbite Peaks (world 2)
 
 The second world, reached through the Frost Portal at Rebirth 3, with free
