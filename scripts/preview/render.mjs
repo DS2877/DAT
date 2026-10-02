@@ -68,6 +68,7 @@ const VIEWS = {
 		pos: [L.vipSite.x - 10, beachY + 22, L.vipSite.z - 34],
 		target: [L.vipSite.x, beachY + 2, L.vipSite.z],
 	},
+	sellKeeper: { pos: [-4, beachY + 9, 200], target: [8, beachY + 3, 178] },
 	treasures: { pos: [-12, beachY + 7, 136], target: [-12, beachY + 2, 120] },
 	top: { pos: [0, 900, (map.bounds.minZ + map.bounds.maxZ) / 2 + 1], target: [0, 0, (map.bounds.minZ + map.bounds.maxZ) / 2], fov: 50 },
 };

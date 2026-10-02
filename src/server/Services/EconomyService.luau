@@ -9,6 +9,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Bag = require(ReplicatedStorage.Shared.Logic.Bag)
 local Economy = require(ReplicatedStorage.Shared.Config.Economy)
 local Goals = require(ReplicatedStorage.Shared.Logic.Goals)
+local Rarities = require(ReplicatedStorage.Shared.Config.Rarities)
+local Treasures = require(ReplicatedStorage.Shared.Config.Treasures)
 local Analytics = require(script.Parent.Analytics)
 local Net = require(script.Parent.Parent.Net)
 local PlayerData = require(script.Parent.PlayerData)
@@ -72,6 +74,17 @@ function EconomyService.sellAll(player: Player, source: string?): boolean
 	end
 	local count = Bag.count(data.bagContents)
 	local total = Bag.totalValue(data.bagContents)
+	-- What was in it (the merchant comments on junk and big finds).
+	local junk, bestRank = 0, 0
+	for _, item in data.bagContents do
+		local def = Treasures.ById[item.id]
+		if def then
+			if def.set == "Junk" then
+				junk += 1
+			end
+			bestRank = math.max(bestRank, Rarities.rank(def.rarity))
+		end
+	end
 	data.bagContents = {}
 	data.stats.sales += 1
 	EconomyService.addCash(player, data, total, "Gameplay", "SellTreasure")
@@ -85,6 +98,8 @@ function EconomyService.sellAll(player: Player, source: string?): boolean
 		goal = goal,
 		nearGoal = Goals.isNear(goal),
 		source = source or "Pad",
+		junk = junk,
+		best = Rarities.Order[bestRank],
 	})
 	return true
 end

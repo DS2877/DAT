@@ -305,6 +305,13 @@ H.waitFor(function()
 end, 2, "sell")
 task.wait(1.5)
 check(#data.bagContents == 0, "sold at the pad")
+do
+	local ChatterController = H.require(clientScript.Controllers.ChatterController)
+	check(
+		ChatterController.saying("SellKeeper") ~= "",
+		"the merchant has something to say about it (" .. ChatterController.saying("SellKeeper") .. ")"
+	)
+end
 
 print("\n== Auto Dig pass ==")
 local Monetization = H.require(Shared.Config.Monetization)

@@ -541,6 +541,19 @@ local function sellPavilion(base: Instance, top: number, rng: Random): BasePart
 		material = Enum.Material.WoodPlanks,
 	})
 	Kit.signText(back, "SELL HERE", hex("#FFD54A"), nil, { Enum.NormalId.Back })
+	-- The merchant who buys your treasure (and has opinions about it).
+	Kit.person(
+		base,
+		CFrame.new(sp.x + sp.size / 2 + 3.2, top, sp.z + 7) * CFrame.Angles(0, math.rad(60), 0),
+		{
+			shirt = hex("#E8A82A"),
+			pants = hex("#5A3A1E"),
+			hat = "Bandana",
+			hatColor = hex("#D93A3A"),
+			holding = "Coin",
+		},
+		"SellKeeper"
+	)
 	-- Chests and coin piles on both sides.
 	for _, side in { -1, 1 } do
 		local x = sp.x + side * (sp.size / 2 + 5)
