@@ -379,9 +379,12 @@ local SERVER_ACTIONS: { [string]: (admin: Player, args: { any }) -> string? } = 
 		end
 		local name = if target == Worlds.next.id then Worlds.next.name else Worlds.home.name
 		Net.fire("Portal", admin, "Teleporting", { name = name })
-		local ok, reason = if target == Worlds.next.id
-			then WorldServers.send(admin, target)
-			else WorldServers.sendHome(admin)
+		local ok, reason
+		if target == Worlds.next.id then
+			ok, reason = WorldServers.send(admin, target)
+		else
+			ok, reason = WorldServers.sendHome(admin)
+		end
 		if not ok then
 			Net.fire("Portal", admin, "TripFailed", nil)
 			return "Teleport failed: " .. tostring(reason)
