@@ -156,24 +156,49 @@ local ANIMATIONS = {
 	{ key = "DigR6", file = "dig-r6.rbxm", name = "Dig (R6)" },
 }
 
-local ids = {}
-local failed = false
-for _, anim in ANIMATIONS do
-	local file = fs.readFile(dir .. "/" .. anim.file)
-	local existing = configuredId(anim.key)
-	local requestJson = serde.encode("json", {
-		assetType = "Animation",
-		displayName = anim.name,
-		description = "Dig for Cash: the shovel dig (wind up, dig in, scoop, toss).",
-		creationContext = creationContext,
-	})
+-- Sends one upload: a new version of `existing` (PATCH), or a new asset.
+local function upload(anim: { [string]: string }, file: string, existing: string?): (number, any)
+	local requestJson = serde.encode(
+		"json",
+		if existing
+			then { assetId = tonumber(existing) }
+			else {
+				assetType = "Animation",
+				displayName = anim.name,
+				description = "Dig for Cash: the shovel dig (wind up, chop in, scoop, toss).",
+				creationContext = creationContext,
+			}
+	)
 	local body, contentType = multipart(requestJson, anim.file, file)
-	local s, result = request({
+	return request({
 		url = "https://apis.roblox.com/assets/v1/assets" .. (if existing then "/" .. existing else ""),
 		method = if existing then "PATCH" else "POST",
 		headers = { ["x-api-key"] = apiKey :: string, ["content-type"] = contentType },
 		body = body,
 	})
+end
+
+local ids = {}
+local failed = false
+for _, anim in ANIMATIONS do
+	local file = fs.readFile(dir .. "/" .. anim.file)
+	local existing = configuredId(anim.key)
+	local s, result = upload(anim, file, existing)
+	if existing and s ~= 200 then
+		-- Roblox may not take new versions of this asset: upload a new one
+		-- (its id goes in AssetIds).
+		print(
+			string.format(
+				"%s: a new version of %s was refused (%d %s); uploading a new animation",
+				anim.name,
+				existing,
+				s,
+				serde.encode("json", result or {})
+			)
+		)
+		existing = nil
+		s, result = upload(anim, file, nil)
+	end
 	if s ~= 200 then
 		print(
 			string.format(
