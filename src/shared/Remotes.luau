@@ -17,6 +17,7 @@ return table.freeze({
 	SellAnywhere = "SellAnywhere", -- () Auto Sell's SELL button
 	BuyDrink = "BuyDrink", -- (drinkId: string) at the Tiki Bar
 	AdminAction = "AdminAction", -- (action, targetUserId?, ...args) admins only
+	ClaimBounty = "ClaimBounty", -- (slot: number) a finished bounty's reward
 	ShopEvent = "ShopEvent", -- (event: "ShopOpened" | "OfferShown" | "PurchasePrompted", key: string?)
 
 	-- Server -> Client
@@ -31,5 +32,6 @@ return table.freeze({
 	GlobalMessage = "GlobalMessage", -- ({ text, userId, name }) an admin's message to every server
 	Fireworks = "Fireworks", -- (position, count) to everyone
 	CoinPicked = "CoinPicked", -- (amount, position) a money-rain coin
+	BountyDone = "BountyDone", -- (slot: number, description: string) a bounty was just finished
 	Portal = "Portal", -- (kind: "Locked" | "Attuned" | "ComingSoon" | "Teleporting", info) the Frost Portal
 })

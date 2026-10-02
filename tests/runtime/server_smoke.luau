@@ -954,6 +954,39 @@ do
 	tapper:Kick("done")
 end
 
+print("\n== Bounty Board ==")
+do
+	local hunter = H.addPlayer("Hunter", 5021)
+	H.waitFor(function()
+		return PlayerData.get(hunter) ~= nil and hunter.Character ~= nil
+	end, 5, "hunter")
+	local hd = PlayerData.get(hunter)
+	check(hd.bounties and #hd.bounties.slots == 3, "a new player gets three bounties")
+	hd.bounties.slots[1] = {
+		kind = "Dig",
+		target = 1,
+		progress = 0,
+		reward = { kind = "Cash", goalPercent = 0.06, min = 100 },
+	}
+	local find = digSpot(hunter, spotList("Beach")[3])
+	check(find ~= nil and hd.bounties.slots[1].progress == 1, "digging counts toward a bounty")
+	local done = H.lastClientEvent("BountyDone", hunter)
+	check(done and done[1] == 1, "and the player hears it's done")
+	local cashBefore = hd.cash
+	H.fireServer(hunter, "ClaimBounty", 1)
+	task.wait(0.1)
+	check(hd.cash >= cashBefore + 100, "claiming pays the reward")
+	check(
+		hd.bounties.completed == 1 and hd.bounties.slots[1].progress == 0,
+		"and a new bounty takes its place"
+	)
+	local before = hd.cash
+	H.fireServer(hunter, "ClaimBounty", 2)
+	task.wait(0.1)
+	check(hd.cash == before, "an unfinished bounty can't be claimed")
+	hunter:Kick("done")
+end
+
 print("\n== Golden X ==")
 H.fireServer(player, "RequestSync")
 task.wait(0.1)

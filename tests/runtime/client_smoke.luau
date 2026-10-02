@@ -767,6 +767,33 @@ do
 	H.signal(root.TopButtons.GuideButton, "Activated"):Fire({})
 end
 
+print("\n== Bounty Board ==")
+do
+	local tracker = root:FindFirstChild("BountyTracker")
+	check(
+		tracker and tracker.Visible,
+		"the bounty tracker shows (" .. tostring(tracker and tracker:FindFirstChild("Text").Text) .. ")"
+	)
+	H.signal(tracker, "Activated"):Fire({})
+	task.wait(0.2)
+	local board = root:FindFirstChild("Bounties")
+	check(board and board.Visible, "tapping it opens the Bounty Board")
+	local first = board and board:FindFirstChild("Bounty1", true)
+	local text = first and first:FindFirstChild("Text")
+	check(text and text.Text ~= "", "with the bounties listed (" .. tostring(text and text.Text) .. ")")
+	-- Finish one on the server and claim it from the board.
+	data.bounties.slots[1].progress = data.bounties.slots[1].target
+	H.fireServer(player, "RequestSync")
+	task.wait(0.3)
+	local claim = first:FindFirstChild("Claim")
+	check(claim.Text == "CLAIM", "a finished bounty can be claimed")
+	local completed = data.bounties.completed
+	H.signal(claim, "Activated"):Fire({})
+	task.wait(0.3)
+	check(data.bounties.completed == completed + 1, "claiming it from the board works")
+	board.Visible = false
+end
+
 print("\n== Shovel impacts ==")
 do
 	local ImpactFx = H.require(clientScript.ImpactFx)

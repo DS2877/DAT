@@ -1,6 +1,6 @@
 --!strict
--- Per-world runs. Each world has its own run: cash, shovel, bag and what's
--- in the bag. Everything else (collection, rebirths, purchases, dailies,
+-- Per-world runs. Each world has its own run: cash, shovel, bag, what's in
+-- the bag and the Bounty Board. Everything else (collection, rebirths, purchases, dailies,
 -- settings, stats) is shared by every world.
 --
 -- The stored profile keeps the island's run at the top level (as before
@@ -11,11 +11,11 @@
 
 local WorldState = {}
 
-WorldState.FIELDS = { "cash", "shovelLevel", "bagLevel", "bagContents" }
+WorldState.FIELDS = { "cash", "shovelLevel", "bagLevel", "bagContents", "bounties" }
 
 -- A world's run before its first visit.
 function WorldState.fresh(): { [string]: any }
-	return { cash = 0, shovelLevel = 1, bagLevel = 1, bagContents = {} }
+	return { cash = 0, shovelLevel = 1, bagLevel = 1, bagContents = {}, bounties = {} }
 end
 
 local function pick(source: any): { [string]: any }

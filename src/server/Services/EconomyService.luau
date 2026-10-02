@@ -10,6 +10,7 @@ local Bag = require(ReplicatedStorage.Shared.Logic.Bag)
 local Economy = require(ReplicatedStorage.Shared.Config.Economy)
 local Goals = require(ReplicatedStorage.Shared.Logic.Goals)
 local Rarities = require(ReplicatedStorage.Shared.Config.Rarities)
+local Signal = require(ReplicatedStorage.Shared.Util.Signal)
 local Treasures = require(ReplicatedStorage.Shared.Config.Treasures)
 local Analytics = require(script.Parent.Analytics)
 local Net = require(script.Parent.Parent.Net)
@@ -19,6 +20,9 @@ local World = require(script.Parent.Parent.World.World)
 local SELL_CHECK_INTERVAL = 0.25
 
 local EconomyService = {}
+
+-- Fired (player, data, total) after every sale (the Bounty Board listens).
+EconomyService.Sold = Signal.new()
 
 local function updateLeaderstats(player: Player, data: { [string]: any })
 	local stats = player:FindFirstChild("leaderstats")
@@ -101,6 +105,7 @@ function EconomyService.sellAll(player: Player, source: string?): boolean
 		junk = junk,
 		best = Rarities.Order[bestRank],
 	})
+	EconomyService.Sold:Fire(player, data, total)
 	return true
 end
 

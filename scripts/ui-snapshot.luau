@@ -257,6 +257,14 @@ snap("rebirth")
 H.moveTo(player, V3(MapLayout.spawn.x, deckTop, MapLayout.spawn.z))
 task.wait(0.4)
 
+-- The Bounty Board (one bounty finished).
+data.bounties.slots[2].progress = data.bounties.slots[2].target
+H.fireServer(player, "RequestSync")
+task.wait(0.3)
+H.signal(root:FindFirstChild("BountyTracker"), "Activated"):Fire({})
+snap("bounties")
+root.Bounties.Visible = false
+
 H.signal(root.TopButtons:FindFirstChild("SettingsButton"), "Activated"):Fire({})
 snap("settings")
 H.signal(root.TopButtons:FindFirstChild("SettingsButton"), "Activated"):Fire({})

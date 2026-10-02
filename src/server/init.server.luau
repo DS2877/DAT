@@ -36,6 +36,7 @@ local PartyService = require(Services.PartyService)
 local GlobalMessageService = require(Services.GlobalMessageService)
 local WorldPortalService = require(Services.WorldPortalService)
 local WorldServers = require(Services.WorldServers)
+local BountyService = require(Services.BountyService)
 
 -- init: connect remotes and signals. Order matters only for PlayerData.Loaded
 -- listeners, which must exist before PlayerData starts loading players.
@@ -56,6 +57,7 @@ DigService.onHiddenFound = JackpotService.onFound
 PartyService.init()
 GlobalMessageService.init()
 WorldPortalService.init()
+BountyService.init()
 AdminService.init()
 LeaderboardService.init() -- before PlayerData: its leave handler must run first
 CharacterService.init()

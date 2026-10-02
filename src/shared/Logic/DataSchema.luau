@@ -45,6 +45,8 @@ function DataSchema.template(): { [string]: any }
 		-- Other worlds' runs: [worldId] = { cash, shovelLevel, bagLevel,
 		-- bagContents } (the island's run is the top level; Logic/WorldState).
 		worldSaves = {},
+		-- The Bounty Board: { slots = { bounty }, completed = n } (Logic/Bounties).
+		bounties = {},
 		activeBoosts = {}, -- [boostId] = expiry unix time
 		pausedBoosts = {}, -- [boostId] = seconds left (switched off by the player)
 		-- Audio settings, and on/off switches for perks the player owns.

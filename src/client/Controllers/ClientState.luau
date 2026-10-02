@@ -41,6 +41,8 @@ export type Snapshot = {
 	starterPackBought: boolean?,
 	instantDeepDigs: number?,
 	paidRandomRestricted: boolean?,
+	-- The Bounty Board (from BountyService)
+	bounties: { slots: { any }, completed: number }?,
 }
 
 local ClientState = {}
