@@ -17,6 +17,7 @@ local Perks = require(ReplicatedStorage.Shared.Logic.Perks)
 local Progression = require(ReplicatedStorage.Shared.Logic.Progression)
 local Rush = require(ReplicatedStorage.Shared.Logic.Rush)
 local Streak = require(ReplicatedStorage.Shared.Logic.Streak)
+local Signal = require(ReplicatedStorage.Shared.Util.Signal)
 local Zones = require(ReplicatedStorage.Shared.Logic.Zones)
 local Analytics = require(script.Parent.Analytics)
 local AnnouncementService = require(script.Parent.AnnouncementService)
@@ -34,6 +35,11 @@ local ServerBoostService = require(script.Parent.ServerBoostService)
 
 local DigService = {}
 
+-- Fired (player, data) for each PERFECT hit, and (player, data, find, spot)
+-- for each finished dig (bounties, pets and events listen).
+DigService.Perfect = Signal.new()
+DigService.Found = Signal.new()
+
 type DigState = {
 	spotId: number,
 	hits: number,
@@ -47,6 +53,7 @@ local finish: (Player, { [string]: any }, DigSpotService.Spot, DigState, boolean
 local streaks: { [Player]: Streak.State } = {}
 local random = Random.new()
 local lastRushLogged: { [Player]: number } = {}
+local lastPerfect: { [Player]: number } = {}
 local autoSellQueued: { [Player]: boolean } = {}
 
 -- Set by JackpotService: a hidden treasure was dug up.
@@ -65,10 +72,11 @@ local function reject(player: Player, spotId: number, reason: string)
 	Net.fire("DigResult", player, { spotId = spotId, rejected = reason })
 end
 
-local function onDigHit(player: Player, spotId: any)
+local function onDigHit(player: Player, spotId: any, perfect: any)
 	if type(spotId) ~= "number" or spotId ~= spotId or spotId % 1 ~= 0 then
 		return -- malformed
 	end
+	perfect = perfect == true
 	local data = PlayerData.get(player)
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
@@ -157,6 +165,14 @@ local function onDigHit(player: Player, spotId: any)
 	local s = state :: DigState
 	s.hits += 1
 	s.lastHit = now
+	-- A PERFECT tap (timed on the client's ring) digs extra, once per cycle.
+	local wasPerfect = false
+	if perfect and now - (lastPerfect[player] or -math.huge) >= DigConfig.perfect.cycle * 0.75 then
+		lastPerfect[player] = now
+		s.hits += DigConfig.perfect.bonusHits
+		wasPerfect = true
+		DigService.Perfect:Fire(player, data)
+	end
 
 	if data.stats.digs == 0 and s.hits == 1 then
 		Analytics.funnel(player, data, "FirstDig")
@@ -184,7 +200,7 @@ local function onDigHit(player: Player, spotId: any)
 		Net.fire(
 			"DigResult",
 			player,
-			{ spotId = spotId, hits = s.hits, required = s.required, deepDig = true }
+			{ spotId = spotId, hits = s.hits, required = s.required, deepDig = true, perfect = wasPerfect }
 		)
 		-- A saved Instant Deep Dig finishes it right away.
 		if data.instantDeepDigs > 0 and data.settings.instantDeepDig ~= false then
@@ -202,11 +218,18 @@ local function onDigHit(player: Player, spotId: any)
 		Net.fire(
 			"DigResult",
 			player,
-			{ spotId = spotId, hits = s.hits, required = s.required, deep = s.deep }
+			{ spotId = spotId, hits = s.hits, required = s.required, deep = s.deep, perfect = wasPerfect }
 		)
 		return
 	end
 
+	if wasPerfect then
+		Net.fire(
+			"DigResult",
+			player,
+			{ spotId = spotId, perfect = true, hits = s.hits, required = s.required }
+		)
+	end
 	finish(player, data, spot, s, isGoldenX)
 end
 
@@ -271,6 +294,7 @@ function finish(
 		bagValue = Bag.totalValue(data.bagContents),
 	})
 	CollectionService.onFind(player, data, find)
+	DigService.Found:Fire(player, data, find, spot)
 	if spot.jackpot then
 		DigService.onHiddenFound(player, spotId, find)
 	else
@@ -323,6 +347,7 @@ function DigService.init()
 		states[player] = nil
 		streaks[player] = nil
 		lastRushLogged[player] = nil
+		lastPerfect[player] = nil
 		autoSellQueued[player] = nil
 	end)
 end

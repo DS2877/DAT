@@ -53,6 +53,13 @@ local offerChecked = false -- this hold already considered the Auto Dig offer
 local nextHitAt = 0
 local highlight: Highlight
 local button: TextButton
+-- Perfect hits (Config/Dig.perfect): a ring shrinks onto the DIG button;
+-- a tap while it's on the button is PERFECT.
+local ring: Frame
+local ringStroke: UIStroke
+local cycleStart = 0
+local lastPerfectTap = -math.huge
+local pendingPerfect = false -- the press that queued the next hit was perfect
 
 -- Local-only hole visuals per spot model: { part, hits }.
 local holes: { [Model]: { part: Part, hits: number, required: number, spotId: number } } = {}
@@ -173,7 +180,7 @@ end
 -- Hitting
 ---------------------------------------------------------------------------
 
-local function tryHit()
+local function tryHit(perfect: boolean?)
 	local spot = target
 	local id = spot and spotId(spot)
 	local character = player.Character
@@ -226,7 +233,9 @@ local function tryHit()
 	local required = if current
 		then current.required
 		else shovel.hits + (DigConfig.areaExtraHits[areaId or "Beach"] or 0)
-	local predicted = (if current then current.hits else 0) + 1
+	local predicted = (if current then current.hits else 0)
+		+ 1
+		+ (if perfect and not mega then DigConfig.perfect.bonusHits else 0)
 	if not mega then
 		setHoleProgress(spot, math.min(predicted, required), required)
 	end
@@ -240,7 +249,7 @@ local function tryHit()
 		end
 	end
 
-	digHit:FireServer(id)
+	digHit:FireServer(id, perfect == true)
 end
 
 local function findSpotById(id: number): Model?
@@ -282,6 +291,9 @@ local function onDigResult(result: { [string]: any })
 		return
 	end
 
+	if result.perfect then
+		DigController.showPerfect(spot)
+	end
 	if result.deepDig then
 		-- The ground rumbles: this spot needs extra hits, and the reward is big.
 		Sound.play("DeepDig")
@@ -330,14 +342,34 @@ local DIG_KEYS = {
 	[Enum.KeyCode.ButtonR2] = true,
 }
 
+-- Where the ring is in its cycle (0 = just appeared, 1 = on the button).
+local function ringPhase(): number
+	return ((os.clock() - cycleStart) % DigConfig.perfect.cycle) / DigConfig.perfect.cycle
+end
+
+-- Is this tap PERFECT? (The ring is on the button; one per cycle.)
+local function judgeTap(): boolean
+	local cfg = DigConfig.perfect
+	local now = os.clock()
+	local phase = ringPhase()
+	local onButton = phase >= 1 - cfg.window / cfg.cycle or phase <= 0.05
+	if onButton and now - lastPerfectTap >= cfg.cycle * 0.8 then
+		lastPerfectTap = now
+		return true
+	end
+	return false
+end
+
 local function press()
 	holding = true
 	pressedAt = os.clock()
 	offerChecked = false
+	local perfect = target ~= nil and not (target :: Model):GetAttribute("Mega") and judgeTap()
 	if os.clock() < nextHitAt then
 		queued = true
+		pendingPerfect = pendingPerfect or perfect
 	else
-		tryHit()
+		tryHit(perfect)
 	end
 end
 
@@ -380,6 +412,27 @@ local function buildButton()
 		Text = "Click or [E]",
 		Visible = not UserInputService.TouchEnabled,
 		Parent = button,
+	})
+
+	-- The perfect-hit ring, centered on the button (a sibling, so the
+	-- button's padding doesn't move it).
+	ring = Ui.new("Frame", {
+		Name = "PerfectRing",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(1, -28 - 75, 1, -190 - 75),
+		Size = UDim2.fromOffset(150, 150),
+		BackgroundTransparency = 1,
+		Visible = false,
+		ZIndex = 2,
+		Parent = HudController.root(),
+	}, {
+		Ui.corner(UDim.new(1, 0)),
+	})
+	ringStroke = Ui.new("UIStroke", {
+		Thickness = 6,
+		Color = Color3.new(1, 1, 1),
+		Transparency = 0.2,
+		Parent = ring,
 	})
 
 	button.InputBegan:Connect(function(input)
@@ -466,6 +519,9 @@ function DigController.init()
 			accumulator = 0
 			local nearest = findNearest()
 			if nearest ~= target then
+				if nearest and not target then
+					cycleStart = os.clock() -- a fresh ring for a new spot
+				end
 				target = nearest
 				highlight.Adornee = nearest
 				highlight.Enabled = nearest ~= nil
@@ -473,13 +529,32 @@ function DigController.init()
 				refreshButton()
 			end
 		end
+		-- The ring: shrinks onto the button, gold while a tap is PERFECT.
+		local showRing = target ~= nil
+			and button.Visible
+			and button.Text == "DIG!"
+			and not (target :: Model):GetAttribute("Mega")
+			and not (holding and ClientState.perkOn("AutoDig"))
+		ring.Visible = showRing
+		if showRing then
+			local cfg = DigConfig.perfect
+			local phase = ringPhase()
+			local scale = 1 + (1 - phase) * 0.8
+			ring.Size = UDim2.fromOffset(150 * scale, 150 * scale)
+			local perfectNow = phase >= 1 - cfg.window / cfg.cycle or phase <= 0.05
+			ringStroke.Color = if perfectNow then C.Gold else Color3.new(1, 1, 1)
+			ringStroke.Thickness = if perfectNow then 9 else 5
+			ringStroke.Transparency = if perfectNow then 0 else 0.15 + phase * 0.25
+		end
 		if not target then
 			return
 		end
 		local now = os.clock()
 		if queued and now >= nextHitAt then
 			queued = false
-			tryHit()
+			local perfect = pendingPerfect
+			pendingPerfect = false
+			tryHit(perfect)
 		elseif holding and ClientState.perkOn("AutoDig") then
 			tryHit()
 		elseif holding and not offerChecked and now - pressedAt >= Monetization.Offers.autoDigHoldSeconds then
@@ -490,6 +565,31 @@ function DigController.init()
 			end
 		end
 	end)
+end
+
+-- PERFECT! over the DIG button, a golden burst at the spot and a ding.
+function DigController.showPerfect(spot: Model?)
+	Sound.play("Streak", 1, 1.25)
+	local label = Ui.label({
+		Name = "PerfectText",
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(1, -103, 1, -350),
+		Size = UDim2.fromOffset(220, 46),
+		Font = Ui.TitleFont,
+		Text = "PERFECT!",
+		TextColor3 = C.Gold,
+		Rotation = math.random(-8, 8),
+		ZIndex = 5,
+		Parent = HudController.root(),
+	})
+	Ui.pop(label, 0.25)
+	Ui.tween(label, 0.7, { Position = UDim2.new(1, -103, 1, -390), TextTransparency = 1 })
+	task.delay(0.75, function()
+		label:Destroy()
+	end)
+	if spot then
+		Effects.sparkles(spotPosition(spot) + Vector3.new(0, 1.5, 0), C.Gold, 18)
+	end
 end
 
 -- The on-screen DIG button (for the tutorial's pointer).

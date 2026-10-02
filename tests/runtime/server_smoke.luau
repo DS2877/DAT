@@ -920,6 +920,35 @@ do
 	explorer:Kick("done")
 end
 
+print("\n== Perfect hits ==")
+do
+	local DigConfig = H.require(Shared.Config.Dig)
+	local tapper = H.addPlayer("Tapper", 5020)
+	H.waitFor(function()
+		return PlayerData.get(tapper) ~= nil and tapper.Character ~= nil
+	end, 5, "tapper")
+	local spot = spotList("Beach")[2]
+	local id = spot:GetAttribute("SpotId")
+	H.moveTo(tapper, spot.PrimaryPart.Position + V3(2, 0, 0))
+	H.clockOffset += 2
+	H.fireServer(tapper, "DigHit", id, true)
+	task.wait()
+	local first = H.lastClientEvent("DigResult", tapper)
+	check(
+		first and first[1].hits == 1 + DigConfig.perfect.bonusHits and first[1].perfect,
+		"a PERFECT tap digs extra"
+	)
+	H.clockOffset += 0.5
+	H.fireServer(tapper, "DigHit", id, true)
+	task.wait()
+	local second = H.lastClientEvent("DigResult", tapper)
+	check(
+		second and not second[1].perfect and second[1].hits == 2 + DigConfig.perfect.bonusHits,
+		"only one perfect per cycle (the server checks)"
+	)
+	tapper:Kick("done")
+end
+
 print("\n== Golden X ==")
 H.fireServer(player, "RequestSync")
 task.wait(0.1)

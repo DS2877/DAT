@@ -33,6 +33,16 @@ local Dig = {
 	nearSpawnMax = 44,
 	-- Keep at least this many active spots on those near-base points.
 	minNearBaseSpots = 3,
+	-- Perfect hits: a ring around the DIG button shrinks onto it every
+	-- `cycle` seconds; a tap while it's on the button (the last `window`
+	-- seconds of the cycle) is PERFECT and counts `bonusHits` extra. At most
+	-- one perfect per cycle (the server checks), and holding (Auto Dig)
+	-- never makes them.
+	perfect = {
+		cycle = 1.1,
+		window = 0.18,
+		bonusHits = 1,
+	},
 	-- Max hits per second accepted from one client before rate limiting.
 	-- (Room for the fastest shovel with 2x Dig Speed pass + boost.)
 	maxHitsPerSecond = 20,

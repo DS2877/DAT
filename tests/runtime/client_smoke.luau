@@ -143,6 +143,7 @@ H.moveTo(player, nearest.PrimaryPart.Position + V3(3, 0, 0))
 task.wait(0.3)
 local digButton = root.DigButton
 check(digButton.Visible, "DIG button appears next to a spot")
+check(root:FindFirstChild("PerfectRing") and root.PerfectRing.Visible, "with the perfect-hit ring around it")
 local finger = { UserInputType = roblox.Enum.UserInputType.Touch, KeyCode = roblox.Enum.KeyCode.Unknown }
 local UserInputService = H.wrap(H.unwrap(game:GetService("UserInputService")))
 -- Each tap digs once.
