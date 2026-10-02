@@ -52,6 +52,8 @@ function DataSchema.template(): { [string]: any }
 		rebirthPerks = {},
 		perkChoices = {},
 		perksEarned = 0,
+		-- Pets dug up (Logic/Pets): levels, the one that's out, egg counters.
+		pets = { owned = {}, equipped = "", digsSinceEgg = 0, eggs = 0 },
 		activeBoosts = {}, -- [boostId] = expiry unix time
 		pausedBoosts = {}, -- [boostId] = seconds left (switched off by the player)
 		-- Audio settings, and on/off switches for perks the player owns.

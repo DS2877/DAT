@@ -50,6 +50,7 @@ local PerkController = require(Controllers.PerkController)
 local DayNightController = require(Controllers.DayNightController)
 local EruptionController = require(Controllers.EruptionController)
 local SeagullController = require(Controllers.SeagullController)
+local PetController = require(Controllers.PetController)
 
 ClientState.init()
 AudioController.init()
@@ -88,6 +89,7 @@ PerkController.init()
 DayNightController.init()
 EruptionController.init()
 SeagullController.init()
+PetController.init()
 
 -- Listeners are connected; request the snapshot (the server also pushes one
 -- on load, this covers the case where it arrived before we were ready).

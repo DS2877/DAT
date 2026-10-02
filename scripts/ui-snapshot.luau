@@ -281,6 +281,15 @@ data.rebirths = 0
 data.perksEarned = 0
 H.fireServer(player, "RequestSync")
 
+-- The Pets window (three pets, one out at level 2).
+data.pets = { owned = { Crab = 2, Parrot = 1, Phoenix = 1 }, equipped = "Crab", digsSinceEgg = 0, eggs = 4 }
+H.fireServer(player, "RequestSync")
+task.wait(0.3)
+H.signal(root.TopButtons:FindFirstChild("PetsButton"), "Activated"):Fire({})
+task.wait(0.2)
+snap("pets")
+root.Pets.Visible = false
+
 H.signal(root.TopButtons:FindFirstChild("SettingsButton"), "Activated"):Fire({})
 snap("settings")
 H.signal(root.TopButtons:FindFirstChild("SettingsButton"), "Activated"):Fire({})

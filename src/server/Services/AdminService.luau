@@ -40,6 +40,8 @@ local GlobalMessageService = require(script.Parent.GlobalMessageService)
 local JackpotService = require(script.Parent.JackpotService)
 local EruptionService = require(script.Parent.EruptionService)
 local SeagullService = require(script.Parent.SeagullService)
+local PetService = require(script.Parent.PetService)
+local Pets = require(ReplicatedStorage.Shared.Logic.Pets)
 local MegaDigService = require(script.Parent.MegaDigService)
 local PartyService = require(script.Parent.PartyService)
 local Net = require(script.Parent.Parent.Net)
@@ -508,6 +510,18 @@ local SERVER_ACTIONS: { [string]: (admin: Player, args: { any }) -> string? } = 
 	end,
 	Eruption = function()
 		return if EruptionService.start() then "The volcano is waking up!" else "An eruption is already going"
+	end,
+	Pet = function(admin)
+		local list = {}
+		for id, pet in Pets.byId do
+			if pet.world == CurrentWorld.id() then
+				table.insert(list, id)
+			end
+		end
+		table.sort(list)
+		local id = list[math.random(1, #list)]
+		local outcome = PetService.hatch(admin, id)
+		return if outcome then "Hatched " .. Pets.byId[id].name .. " (" .. outcome .. ")" else nil
 	end,
 	Seagull = function(admin)
 		return if SeagullService.steal(admin)

@@ -910,6 +910,52 @@ do
 	model:Destroy()
 end
 
+print("\n== Pets ==")
+do
+	local PetService = H.require(game:GetService("ServerScriptService").Server.Services.PetService)
+	local PetController = H.require(clientScript.Controllers.PetController)
+	local data = H.require(game:GetService("ServerScriptService").Server.Services.PlayerData).get(player)
+	local before = data.pets.equipped
+	PetService.hatch(player, "Parrot")
+	if before ~= "" then
+		H.fireServer(player, "EquipPet", "Parrot")
+	end
+	H.waitFor(function()
+		return PetController.following()[player.Name] == "Parrot"
+	end, 4, "the parrot to follow")
+	check(PetController.following()[player.Name] == "Parrot", "your pet follows you around")
+	local petModel = nil
+	for _, m in H.workspace.PetModels:GetChildren() do
+		if m.Name == "Pet_Parrot" then
+			petModel = m
+		end
+	end
+	task.wait(0.5)
+	local rootPos = player.Character.HumanoidRootPart.Position
+	check(petModel ~= nil and (petModel:GetPivot().Position - rootPos).Magnitude < 8, "it stays close by")
+	local petsButton = root:FindFirstChild("PetsButton", true)
+	check(petsButton ~= nil and petsButton.Visible, "the Pets button shows once you have a pet")
+	PetController.setOpen(true)
+	task.wait(0.2)
+	local panel = PetController.panel()
+	local cards = 0
+	for _, d in panel:GetDescendants() do
+		if d.Name:sub(1, 4) == "Pet_" then
+			cards += 1
+		end
+	end
+	check(
+		cards == #H.require(game:GetService("ReplicatedStorage").Shared.Config.Pets).list,
+		"the window lists every pet (" .. cards .. ")"
+	)
+	PetController.setOpen(false)
+	H.fireServer(player, "EquipPet", "")
+	H.waitFor(function()
+		return PetController.following()[player.Name] == nil
+	end, 4, "the pet to go away")
+	check(PetController.following()[player.Name] == nil, "a put-away pet disappears")
+end
+
 print("\n== Wind ==")
 do
 	local WindController = H.require(clientScript.Controllers.WindController)

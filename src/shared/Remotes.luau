@@ -18,6 +18,7 @@ return table.freeze({
 	BuyDrink = "BuyDrink", -- (drinkId: string) at the Tiki Bar
 	AdminAction = "AdminAction", -- (action, targetUserId?, ...args) admins only
 	ChoosePerk = "ChoosePerk", -- (perkId: string) a rebirth perk card
+	EquipPet = "EquipPet", -- (petId: string, "" = none) which pet is out
 	ClaimBounty = "ClaimBounty", -- (slot: number) a finished bounty's reward
 	ShopEvent = "ShopEvent", -- (event: "ShopOpened" | "OfferShown" | "PurchasePrompted", key: string?)
 
@@ -35,6 +36,7 @@ return table.freeze({
 	CoinPicked = "CoinPicked", -- (amount, position) a money-rain coin
 	Meteor = "Meteor", -- (from: Vector3, to: Vector3, flight: number) a fireball (to everyone)
 	Seagull = "Seagull", -- (kind: "Steal" | "Perch" | "Return" | "GiveUp", userId, info) the hat thief (to everyone)
+	PetHatched = "PetHatched", -- (petId, outcome: "New" | "LevelUp" | "Maxed", level, cash) an egg hatched
 	BountyDone = "BountyDone", -- (slot: number, description: string) a bounty was just finished
 	Portal = "Portal", -- (kind: "Locked" | "Attuned" | "ComingSoon" | "Teleporting", info) the Frost Portal
 })

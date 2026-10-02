@@ -1167,6 +1167,47 @@ do
 	SeagullService.setTiming(nil)
 end
 
+print("\n== Pets ==")
+do
+	local PetService = H.require(Services.PetService)
+	local PetConfig = H.require(Shared.Config.Pets)
+	local owner = H.addPlayer("PetOwner", 5025)
+	H.waitFor(function()
+		return PlayerData.get(owner) ~= nil and owner.Character ~= nil
+	end, 5, "pet owner")
+	local data = PlayerData.get(owner)
+	-- The first egg comes within the first digs.
+	data.pets.digsSinceEgg = PetConfig.firstEggAt - 1
+	local list = spotList("Beach")
+	local find = digSpot(owner, list[#list])
+	check(find ~= nil and data.pets.eggs == 1, "a dig turns up the first egg")
+	H.waitFor(function()
+		return H.lastClientEvent("PetHatched", owner) ~= nil
+	end, 4, "the egg to hatch")
+	local hatched = H.lastClientEvent("PetHatched", owner)
+	local id = hatched and hatched[1]
+	check(
+		id ~= nil and hatched[2] == "New" and H.require(Shared.Config.Pets).list ~= nil,
+		"it hatches into a beach pet (" .. tostring(id) .. ")"
+	)
+	check(owner.Character:GetAttribute("Pet") == id, "the new pet comes out by itself")
+	check(PetService.hatch(owner, id) == "LevelUp", "the same pet again levels it up")
+	check(owner.Character:GetAttribute("PetLevel") == 2, "everyone sees its level")
+	H.fireServer(owner, "EquipPet", "Yeti")
+	task.wait(0.1)
+	check(owner.Character:GetAttribute("Pet") == id, "pets you don't have can't come out")
+	H.fireServer(owner, "EquipPet", "")
+	task.wait(0.1)
+	check(owner.Character:GetAttribute("Pet") == nil, "a pet can be put away")
+	H.fireServer(owner, "EquipPet", id)
+	task.wait(0.1)
+	H.fireServer(owner, "RequestSync")
+	task.wait(0.1)
+	local snap = H.lastClientEvent("DataSync", owner)[1]
+	check(snap.pets and snap.pets.owned[id] == 2, "the client knows its pets")
+	owner:Kick("done")
+end
+
 print("\n== Golden X ==")
 H.fireServer(player, "RequestSync")
 task.wait(0.1)

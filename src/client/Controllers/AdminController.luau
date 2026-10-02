@@ -367,6 +367,7 @@ local function build()
 		{ "Close Mega Dig", "MegaDig", C.Grey, "Stop" },
 		{ "🌋 Eruption", "Eruption", C.Red },
 		{ "🐦 Steal my hat", "Seagull", C.Blue },
+		{ "🥚 Hatch a pet", "Pet", C.Green },
 	})
 
 	-- EVENTS (everyone in the server).

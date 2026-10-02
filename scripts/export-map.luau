@@ -72,6 +72,23 @@ if process.env.SEAGULL_PREVIEW then
 	end
 end
 
+-- PET_PREVIEW=1: every pet in a row on the beach (view "treasures").
+if process.env.PET_PREVIEW then
+	local roblox = require("@lune/roblox")
+	local PetBuilder = H.require(game:GetService("ReplicatedStorage").Shared.Builders.PetBuilder)
+	local PetConfig = H.require(game:GetService("ReplicatedStorage").Shared.Config.Pets)
+	for i, pet in PetConfig.list do
+		local x, z = -22 + ((i - 1) % 6) * 4, 119 + (if i > 6 then 6 else 0)
+		local y = H.terrainTop(x, z, 500) or 10
+		local model = PetBuilder.build(pet.id)
+		model.Parent = H.workspace
+		model:PivotTo(
+			roblox.CFrame.new(x, y + (if pet.fly then 1.5 else 0), z)
+				* roblox.CFrame.Angles(0, math.pi + 0.3, 0)
+		)
+	end
+end
+
 local MapLayout = H.require(game:GetService("ReplicatedStorage").Shared.Config.MapLayout)
 -- Terrain beyond the play area too (the volcano cone, islets).
 local pb = MapLayout.bounds

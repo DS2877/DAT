@@ -6,6 +6,7 @@ local Boosts = require(script.Parent.Boosts)
 local Collection = require(script.Parent.Collection)
 local Goals = require(script.Parent.Goals)
 local Perks = require(script.Parent.Perks)
+local Pets = require(script.Parent.Pets)
 local Progression = require(script.Parent.Progression)
 local RebirthPerks = require(script.Parent.RebirthPerks)
 local Retention = require(script.Parent.Parent.Config.Retention)
@@ -18,6 +19,7 @@ export type Parts = {
 	friends: number,
 	boost: number,
 	passes: number,
+	pets: number,
 }
 
 function Bonuses.friendsBonus(friendCount: number): number
@@ -47,6 +49,7 @@ function Bonuses.parts(
 		friends = 1 + Bonuses.friendsBonus(friendCount),
 		boost = boost,
 		passes = Perks.cashMultiplier(data),
+		pets = 1 + Pets.cashBonus(data),
 	}
 end
 
@@ -57,7 +60,7 @@ function Bonuses.cashMultiplier(
 	serverBoost: boolean?
 ): number
 	local p = Bonuses.parts(data, friendCount, now, serverBoost)
-	return p.sets * p.rebirths * p.friends * p.boost * p.passes
+	return p.sets * p.rebirths * p.friends * p.boost * p.passes * p.pets
 end
 
 -- Cash for a { kind = "Cash" } reward: a share of the player's next goal.
