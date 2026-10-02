@@ -40,7 +40,8 @@ test("treasure values fall inside their rarity band", function()
 		Secret = { 250000, math.huge },
 	}
 	for _, def in Treasures.List do
-		local band = bands[def.rarity]
+		-- Junk is allowed to be worth a laughable amount.
+		local band = if def.set == "Junk" then { 1, 100 } else bands[def.rarity]
 		expect.truthy(band, def.id .. " unknown rarity")
 		expect.truthy(Areas.Defs[def.area], def.id .. " unknown area")
 		expect.truthy(def.value >= band[1] and def.value <= band[2], def.id .. " value outside band")

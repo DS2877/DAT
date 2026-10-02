@@ -153,6 +153,19 @@ local function infoCard(adornee: BasePart, find: Find, color: Color3, style: Sty
 		TextColor3 = Ui.Colors.Gold,
 		Parent = list,
 	})
+	-- Junk (and anything else with a quip) gets a funny line.
+	local def = Treasures.ById[find.id]
+	if def and def.quip then
+		gui.Size += UDim2.fromOffset(0, 26)
+		Ui.label({
+			LayoutOrder = 4,
+			Size = UDim2.fromOffset(if big then 340 else 270, 24),
+			Font = Ui.Font,
+			Text = "“" .. def.quip .. "”",
+			TextColor3 = Color3.fromRGB(255, 240, 200),
+			Parent = list,
+		})
+	end
 	Ui.pop(list, 0.35)
 	return gui, rarityLabel
 end
@@ -287,6 +300,12 @@ function RevealController.reveal(position: Vector3, find: Find)
 	local pillar: Part? = nil
 	if style.tier == 0 then
 		Sound.play("RevealCommon")
+		local def = Treasures.ById[find.id]
+		if def and def.set == "Junk" then
+			task.delay(0.25, function()
+				Sound.play("Squeak")
+			end)
+		end
 	else
 		Sound.play("RevealRare")
 		if style.tier == 1 and (find.rarity == "Epic" or find.mutation == "Shiny") then

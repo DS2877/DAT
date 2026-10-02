@@ -35,6 +35,23 @@ if process.env.MEGADIG_PREVIEW then
 	end
 end
 
+-- TREASURE_PREVIEW=Id1,Id2,...: those treasures in a row on the beach (x2),
+-- for the 3D preview (view "treasures").
+if process.env.TREASURE_PREVIEW then
+	local roblox = require("@lune/roblox")
+	local TreasureBuilder = H.require(game:GetService("ReplicatedStorage").Shared.Builders.TreasureBuilder)
+	local i = 0
+	for id in string.gmatch(process.env.TREASURE_PREVIEW, "[^,]+") do
+		local x, z = -30 + i * 6, 120
+		local y = H.terrainTop(x, z, 500) or 10
+		local model = TreasureBuilder.build(id)
+		model.Parent = H.workspace
+		model:PivotTo(roblox.CFrame.new(x, y + 2.5, z))
+		model:ScaleTo(2)
+		i += 1
+	end
+end
+
 local MapLayout = H.require(game:GetService("ReplicatedStorage").Shared.Config.MapLayout)
 -- Terrain beyond the play area too (the volcano cone, islets).
 local pb = MapLayout.bounds

@@ -5,7 +5,7 @@ local Loot = requireShared("Config/Loot")
 
 local function discoverArea(discovered, areaId, except)
 	for _, def in Treasures.List do
-		if def.area == areaId and def.id ~= except then
+		if Collection.setOf(def) == areaId and def.id ~= except then
 			discovered[def.id] = { normal = true }
 		end
 	end
@@ -63,4 +63,34 @@ test("deep dig config is sane", function()
 	expect.eq(Loot.deepDig.areas.Volcano.minRarity, "Legendary")
 	expect.truthy(Loot.deepDig.areas.Volcano.chance > Loot.deepDig.areas.Jungle.chance, "deeper = more often")
 	expect.eq(Loot.firstFindMultiplier, 2)
+end)
+
+test("junk has its own set, and drops with the Commons", function()
+	local LootRoller = requireShared("Logic/LootRoller")
+	local discovered = {}
+	discoverArea(discovered, "Junk")
+	local found, total = Collection.setProgress(discovered, "Junk")
+	expect.truthy(total >= 5, "junk set size")
+	expect.eq(found, total)
+	expect.eq(Collection.completedSets(discovered)[1], "Junk")
+	expect.eq(Collection.setName("Junk"), "Junk Collector")
+	-- Beach's own set ignores the junk.
+	local _, beachTotal = Collection.setProgress(discovered, "Beach")
+	expect.eq(beachTotal, 10)
+	local junkInPool = 0
+	for _, def in LootRoller.getPool("Beach", "Common") do
+		if def.set == "Junk" then
+			junkInPool += 1
+			expect.truthy(def.quip ~= nil, def.id .. " has a quip")
+		end
+	end
+	expect.eq(junkInPool, total)
+	-- Areas without Commons of their own fall back to the Beach's, junk too.
+	local jungleJunk = 0
+	for _, def in LootRoller.getPool("Jungle", "Common") do
+		if def.set == "Junk" then
+			jungleJunk += 1
+		end
+	end
+	expect.eq(jungleJunk, total)
 end)

@@ -6,6 +6,11 @@ local Collection = {
 	-- permanent cash bonus (applied to every find's value).
 	setBonus = 0.10,
 
+	-- Sets besides the areas' (treasures name them with `set`).
+	extraSets = {
+		{ id = "Junk", name = "Junk Collector", icon = "🗑️" },
+	},
+
 	-- Roblox badge ids awarded for completing each area's set.
 	-- TODO: create the badges on the Creator Dashboard and put their ids here.
 	-- 0 = no badge (skipped safely).

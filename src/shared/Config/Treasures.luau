@@ -22,6 +22,10 @@ export type TreasureDef = {
 	rebirths: number?,
 	-- The world it drops in: nil = the island, "Frost" = Frostbite Peaks.
 	world: string?,
+	-- The collection set it counts toward, if not its area's (e.g. "Junk").
+	set: string?,
+	-- A funny line shown when it's dug up.
+	quip: string?,
 }
 
 local CurrentWorld = require(script.Parent.Parent.Logic.CurrentWorld)
@@ -117,6 +121,17 @@ local All: { TreasureDef } = {
 	{ id = "FrostThrone", name = "Ice Throne", rarity = "Secret", area = "Volcano", value = 5400000, model = "Toilet", color = "#BFF6FF", world = "Frost" },
 	{ id = "FrostAuroraArtifact", name = "Aurora Artifact", rarity = "Secret", area = "Volcano", value = 7800000, model = "Relic", color = "#6CFFC4", accent = "#FF5FD2", world = "Frost" },
 	{ id = "FrostHeart", name = "The Frozen Heart", rarity = "Secret", area = "Volcano", value = 12000000, model = "Chest", color = "#0F1E33", accent = "#7FF3FF", world = "Frost" },
+
+	-- (New rows go at the end: the leaderboards store treasures by position.)
+	-- Island junk: silly finds mixed into the Commons (they drop wherever Commons
+	-- do, a little less often than real ones), with their own set.
+	{ id = "OldBoot", name = "Old Boot", rarity = "Common", area = "Beach", set = "Junk", value = 16, model = "Boot", color = "#5A3E2B", accent = "#2B1D14", weight = 0.25, quip = "Smells like adventure. And feet." },
+	{ id = "RubberDuck", name = "Rubber Duck", rarity = "Common", area = "Beach", set = "Junk", value = 22, model = "Duck", color = "#FFD83D", accent = "#FF8A1E", weight = 0.25, quip = "Squeak. It's judging you." },
+	{ id = "Dentures", name = "Grandma's Dentures", rarity = "Common", area = "Beach", set = "Junk", value = 30, model = "Dentures", color = "#F4F1E6", accent = "#FF8FA3", weight = 0.25, quip = "Grandma has been looking everywhere for these." },
+	{ id = "NormalRock", name = "A Very Normal Rock", rarity = "Common", area = "Beach", set = "Junk", value = 3, model = "Rock", color = "#B5AFA5", weight = 0.25, quip = "It's a rock. A very normal rock." },
+	{ id = "Homework", name = "Someone's Homework", rarity = "Common", area = "Beach", set = "Junk", value = 14, model = "Paper", color = "#F7F4EA", accent = "#3F6FD8", weight = 0.25, quip = "The dog really did bury it." },
+	{ id = "SoggySock", name = "Soggy Sock", rarity = "Common", area = "Beach", set = "Junk", value = 9, model = "Sock", color = "#E8E2D0", accent = "#D94A4A", weight = 0.25, quip = "Still damp. Somehow." },
+	{ id = "TvRemote", name = "Lost TV Remote", rarity = "Common", area = "Beach", set = "Junk", value = 26, model = "Remote", color = "#2B2B30", accent = "#FF4A4A", weight = 0.25, quip = "So THAT's where it went!" },
 }
 
 -- Every world's treasures are known everywhere (bags, trophies and boards

@@ -62,6 +62,8 @@ local AssetIds = {
 		RevealEpic = { clips = { clip(1848287311, 0.43, 0.1, 2.5) }, duck = true }, -- "The Little Things - Hit" (APM)
 		StingLegendary = { clips = { clip(1842141561, 0.40, 0, 5.0) }, duck = true }, -- "Celebration Nation (sting a)" (APM)
 		StingSecret = { clips = { clip(1840095069, 0.62, 0, 7.5) }, duck = true }, -- "Make It Happen (sting b)" (APM)
+		-- Junk finds: a squeaky toy.
+		Squeak = { clips = { clip(9125994570, 0.9) }, jitter = 0.08 }, -- Squeeze Toy Squeaky Rubber (PSE)
 		Whoosh = { clips = { clip(15675028888, 0.51) }, jitter = 0.05 }, -- Roblox_UI_Whoosh_02: find flies to the bag
 
 		Streak = { clips = { clip(9126073001, 1.68, 0.1, 1.0) } }, -- Synth Sparkle Bell Ding (PSE)

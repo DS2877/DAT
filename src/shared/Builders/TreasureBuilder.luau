@@ -359,6 +359,97 @@ function Archetypes.Toilet(ctx)
 	add(ctx, Shape.Block, Vector3.new(1.5, 0.12, 1.8), cf(0, 0.2, 0.05, -12, 0, 0), ctx.color, Mat.Metal)
 end
 
+-- Junk ---------------------------------------------------------------------
+
+function Archetypes.Boot(ctx)
+	add(ctx, Shape.Block, Vector3.new(0.8, 1.5, 0.8), cf(0, 0.25, -0.35), ctx.color, Mat.Fabric)
+	add(ctx, Shape.Block, Vector3.new(0.85, 0.6, 1.7), cf(0, -0.45, 0.1), ctx.color, Mat.Fabric)
+	add(ctx, Shape.Ball, Vector3.new(0.85, 0.6, 0.6), cf(0, -0.45, 0.95), ctx.color, Mat.Fabric)
+	add(ctx, Shape.Block, Vector3.new(0.95, 0.18, 1.9), cf(0, -0.78, 0.15), ctx.accent)
+	for i = 0, 2 do
+		add(
+			ctx,
+			Shape.Block,
+			Vector3.new(0.9, 0.08, 0.12),
+			cf(0, 0.35 - i * 0.3, 0.06),
+			Color3.new(0.9, 0.85, 0.7)
+		)
+	end
+end
+
+function Archetypes.Duck(ctx)
+	add(ctx, Shape.Ball, Vector3.new(1.4, 1.1, 1.7), cf(0, -0.35, 0))
+	add(ctx, Shape.Ball, Vector3.new(0.95, 0.95, 0.95), cf(0, 0.5, 0.45))
+	add(ctx, Shape.Ball, Vector3.new(0.5, 0.25, 0.6), cf(0, 0.42, 1.0), ctx.accent)
+	for _, x in { -0.25, 0.25 } do
+		add(ctx, Shape.Ball, Vector3.new(0.16, 0.16, 0.16), cf(x, 0.68, 0.86), Color3.new(0.1, 0.1, 0.1))
+	end
+	add(ctx, Shape.Ball, Vector3.new(0.5, 0.45, 0.6), cf(0, 0.0, -0.85))
+end
+
+function Archetypes.Dentures(ctx)
+	add(ctx, Shape.Ball, Vector3.new(1.8, 0.45, 1.3), cf(0, 0.28, 0), ctx.accent)
+	add(ctx, Shape.Ball, Vector3.new(1.8, 0.45, 1.3), cf(0, -0.28, 0), ctx.accent)
+	for i = -3, 3 do
+		local a = math.rad(i * 22)
+		local x, z = math.sin(a) * 0.72, math.cos(a) * 0.5
+		add(ctx, Shape.Block, Vector3.new(0.22, 0.3, 0.18), cf(x, 0.05, z, 0, math.deg(a), 0))
+		add(ctx, Shape.Block, Vector3.new(0.22, 0.28, 0.18), cf(x, -0.22, z, 0, math.deg(a), 0))
+	end
+end
+
+function Archetypes.Rock(ctx)
+	add(ctx, Shape.Ball, Vector3.new(1.7, 1.15, 1.4), cf(0, -0.1, 0, 0, 25, 8), ctx.color, Mat.Slate)
+	add(ctx, Shape.Ball, Vector3.new(0.7, 0.5, 0.6), cf(0.45, 0.35, 0.1), ctx.color, Mat.Slate)
+end
+
+function Archetypes.Paper(ctx)
+	local base = CFrame.Angles(math.rad(-8), math.rad(12), math.rad(4))
+	local function at(x: number, y: number, z: number): CFrame
+		return base * CFrame.new(x, y, z)
+	end
+	add(ctx, Shape.Block, Vector3.new(1.5, 0.06, 1.9), at(0, -0.1, 0), ctx.color)
+	add(
+		ctx,
+		Shape.Block,
+		Vector3.new(1.5, 0.06, 1.9),
+		at(0.1, -0.03, 0.06) * CFrame.Angles(0, math.rad(-8), 0),
+		ctx.color
+	)
+	for i = 0, 4 do
+		add(ctx, Shape.Block, Vector3.new(1.0, 0.04, 0.06), at(0.15, 0.01, -0.65 + i * 0.26), ctx.accent)
+	end
+	-- A big red F.
+	local red = Color3.fromRGB(220, 40, 40)
+	add(ctx, Shape.Block, Vector3.new(0.1, 0.05, 0.5), at(-0.45, 0.02, 0.62), red)
+	add(ctx, Shape.Block, Vector3.new(0.32, 0.05, 0.1), at(-0.31, 0.02, 0.42), red)
+	add(ctx, Shape.Block, Vector3.new(0.24, 0.05, 0.1), at(-0.35, 0.02, 0.6), red)
+end
+
+function Archetypes.Sock(ctx)
+	add(ctx, Shape.Block, Vector3.new(0.7, 1.4, 0.7), cf(0, 0.3, -0.2, 0, 0, 8), ctx.color, Mat.Fabric)
+	add(ctx, Shape.Ball, Vector3.new(0.75, 0.7, 1.3), cf(0.1, -0.45, 0.3, 0, 0, 8), ctx.color, Mat.Fabric)
+	add(ctx, Shape.Block, Vector3.new(0.75, 0.18, 0.75), cf(0, 0.85, -0.2, 0, 0, 8), ctx.accent, Mat.Fabric)
+	add(ctx, Shape.Block, Vector3.new(0.75, 0.12, 0.75), cf(0, 0.55, -0.2, 0, 0, 8), ctx.accent, Mat.Fabric)
+end
+
+function Archetypes.Remote(ctx)
+	local base = CFrame.Angles(0, math.rad(20), math.rad(-6))
+	add(ctx, Shape.Block, Vector3.new(0.7, 0.3, 2.0), base)
+	add(ctx, Shape.Ball, Vector3.new(0.24, 0.24, 0.24), base * CFrame.new(0, 0.17, -0.65), ctx.accent)
+	for i = 0, 2 do
+		for _, x in { -0.15, 0.15 } do
+			add(
+				ctx,
+				Shape.Block,
+				Vector3.new(0.18, 0.06, 0.18),
+				base * CFrame.new(x, 0.17, -0.15 + i * 0.3),
+				Color3.new(0.8, 0.8, 0.8)
+			)
+		end
+	end
+end
+
 function Archetypes.Chunk(ctx)
 	add(ctx, Shape.Block, Vector3.new(1.3, 1.3, 1.3), cf(0, 0, 0, 20, 30, 10), ctx.color)
 end

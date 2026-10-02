@@ -7,7 +7,6 @@
 local BadgeService = game:GetService("BadgeService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Areas = require(ReplicatedStorage.Shared.Config.Areas)
 local Collection = require(ReplicatedStorage.Shared.Logic.Collection)
 local CollectionConfig = require(ReplicatedStorage.Shared.Config.Collection)
 local CurrentWorld = require(ReplicatedStorage.Shared.Logic.CurrentWorld)
@@ -49,12 +48,12 @@ local function checkSets(player: Player, data: { [string]: any }, announce: bool
 		local key = setKey(areaId)
 		if not data.setsAwarded[key] then
 			data.setsAwarded[key] = true
-			if world == "Island" then
+			if world == "Island" and CollectionConfig.setBadges[areaId] then
 				awardBadge(player, areaId)
 			end
 			Analytics.custom(player, "SetComplete_" .. (string.gsub(key, ":", "_")))
 			if announce then
-				local name = string.upper(Areas.Defs[areaId].displayName)
+				local name = string.upper(Collection.setName(areaId))
 				local bonus = math.floor(CollectionConfig.setBonus * 100 + 0.5)
 				Net.fire(
 					"Notify",
@@ -66,7 +65,7 @@ local function checkSets(player: Player, data: { [string]: any }, announce: bool
 					text = string.format(
 						"🏆 %s completed the %s collection!",
 						player.DisplayName,
-						Areas.Defs[areaId].displayName
+						Collection.setName(areaId)
 					),
 					color = "#5BE36B",
 					secret = false,

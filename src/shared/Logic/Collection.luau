@@ -13,11 +13,39 @@ export type BestFind = { id: string, m: string? }
 
 local Collection = {}
 
--- Found / total base treasures in an area's set.
-function Collection.setProgress(discovered: Discovered, areaId: string): (number, number)
+-- Every set: one per area, then the extra sets (Config/Collection).
+function Collection.sets(): { string }
+	local sets = table.clone(Areas.Order)
+	for _, extra in CollectionConfig.extraSets do
+		table.insert(sets, extra.id)
+	end
+	return sets
+end
+
+-- A set's display name ("Beach", "Junk Collector").
+function Collection.setName(setId: string): string
+	local area = Areas.Defs[setId]
+	if area then
+		return area.displayName
+	end
+	for _, extra in CollectionConfig.extraSets do
+		if extra.id == setId then
+			return extra.name
+		end
+	end
+	return setId
+end
+
+-- The set a treasure counts toward (its area's unless it names one).
+function Collection.setOf(def: Treasures.TreasureDef): string
+	return def.set or def.area
+end
+
+-- Found / total base treasures in a set.
+function Collection.setProgress(discovered: Discovered, setId: string): (number, number)
 	local found, total = 0, 0
 	for _, def in Treasures.List do
-		if def.area == areaId and def.rebirths == nil then
+		if Collection.setOf(def) == setId and def.rebirths == nil then
 			total += 1
 			if discovered[def.id] ~= nil then
 				found += 1
@@ -29,10 +57,10 @@ end
 
 function Collection.completedSets(discovered: Discovered): { string }
 	local done = {}
-	for _, areaId in Areas.Order do
-		local found, total = Collection.setProgress(discovered, areaId)
+	for _, setId in Collection.sets() do
+		local found, total = Collection.setProgress(discovered, setId)
 		if total > 0 and found >= total then
-			table.insert(done, areaId)
+			table.insert(done, setId)
 		end
 	end
 	return done

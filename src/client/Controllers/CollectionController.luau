@@ -6,7 +6,6 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Areas = require(ReplicatedStorage.Shared.Config.Areas)
 local Collection = require(ReplicatedStorage.Shared.Logic.Collection)
 local CollectionConfig = require(ReplicatedStorage.Shared.Config.Collection)
 local Rarities = require(ReplicatedStorage.Shared.Config.Rarities)
@@ -38,6 +37,7 @@ local AREA_COLORS = {
 	Ruins = Color3.fromRGB(79, 209, 197),
 	Volcano = Color3.fromRGB(255, 106, 26),
 	Rebirth = Color3.fromRGB(180, 92, 255),
+	Junk = Color3.fromRGB(150, 140, 120),
 }
 
 local panel: Frame
@@ -243,9 +243,9 @@ local function build()
 			end
 		end
 	end
-	for _, areaId in Areas.Order do
-		section(areaId, function(def)
-			return def.area == areaId and def.rebirths == nil
+	for _, setId in Collection.sets() do
+		section(setId, function(def)
+			return Collection.setOf(def) == setId and def.rebirths == nil
 		end)
 	end
 	section("Rebirth", function(def)
@@ -269,10 +269,10 @@ local function refresh()
 	summaryChips.Bonus.Text = string.format("💰 Set bonus +%d%% cash", bonus)
 
 	local setPercent = math.floor(CollectionConfig.setBonus * 100 + 0.5)
-	for _, areaId in Areas.Order do
-		local found, count = Collection.setProgress(discovered, areaId)
-		local header = setHeaders[areaId]
-		header.title.Text = string.upper(Areas.Defs[areaId].displayName)
+	for _, setId in Collection.sets() do
+		local found, count = Collection.setProgress(discovered, setId)
+		local header = setHeaders[setId]
+		header.title.Text = string.upper(Collection.setName(setId))
 		header.count.Text = string.format("%d/%d", found, count)
 		header.fill.Size = UDim2.fromScale(math.clamp(found / math.max(count, 1), 0, 1), 1)
 		header.fill.BackgroundColor3 = if found >= count then C.Green else C.Gold
