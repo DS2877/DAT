@@ -36,6 +36,8 @@ export type Spot = {
 	lootArea: string?, -- roll treasure from this area instead (admin spots)
 	-- A moonlit spot (night only, better odds; see NightService).
 	moonlit: boolean?,
+	-- A meteor spot from an eruption (better odds; see EruptionService).
+	meteor: boolean?,
 }
 
 local DigSpotService = {}
@@ -491,7 +493,7 @@ function DigSpotService.consume(spotId: number)
 		return
 	end
 	active[spotId] = nil
-	if spot.mega or spot.forceRarity or spot.moonlit then
+	if spot.mega or spot.forceRarity or spot.moonlit or spot.meteor then
 		-- One-off spots: gone for good.
 		spot.model:Destroy()
 		return

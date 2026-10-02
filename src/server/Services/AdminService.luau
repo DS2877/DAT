@@ -38,6 +38,7 @@ local DigSpotService = require(script.Parent.DigSpotService)
 local EconomyService = require(script.Parent.EconomyService)
 local GlobalMessageService = require(script.Parent.GlobalMessageService)
 local JackpotService = require(script.Parent.JackpotService)
+local EruptionService = require(script.Parent.EruptionService)
 local MegaDigService = require(script.Parent.MegaDigService)
 local PartyService = require(script.Parent.PartyService)
 local Net = require(script.Parent.Parent.Net)
@@ -503,6 +504,9 @@ local SERVER_ACTIONS: { [string]: (admin: Player, args: { any }) -> string? } = 
 			return nil
 		end
 		return if MegaDigService.start(at) then "Mega Dig started" else "A Mega Dig is already open"
+	end,
+	Eruption = function()
+		return if EruptionService.start() then "The volcano is waking up!" else "An eruption is already going"
 	end,
 	Time = function(_, args)
 		local clock = tonumber(args[1])

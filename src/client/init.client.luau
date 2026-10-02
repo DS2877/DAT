@@ -48,6 +48,7 @@ local ChatterController = require(Controllers.ChatterController)
 local BountyController = require(Controllers.BountyController)
 local PerkController = require(Controllers.PerkController)
 local DayNightController = require(Controllers.DayNightController)
+local EruptionController = require(Controllers.EruptionController)
 
 ClientState.init()
 AudioController.init()
@@ -84,6 +85,7 @@ ChatterController.init()
 BountyController.init()
 PerkController.init()
 DayNightController.init()
+EruptionController.init()
 
 -- Listeners are connected; request the snapshot (the server also pushes one
 -- on load, this covers the case where it arrived before we were ready).

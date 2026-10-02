@@ -33,6 +33,7 @@ local MapLayout = H.require(Shared.Config.MapLayout)
 do
 	local MegaDigService = H.require(game:GetService("ServerScriptService").Server.Services.MegaDigService)
 	H.require(game:GetService("ServerScriptService").Server.Services.NightService).setScheduled(false) -- nights only when a test forces one
+	H.require(game:GetService("ServerScriptService").Server.Services.EruptionService).setScheduled(false) -- eruptions only when a test starts one
 	MegaDigService.setScheduled(false)
 	MegaDigService.cancel()
 end
@@ -862,6 +863,27 @@ do
 	check(DayNightController.nightness() == 1, "a night darkens the sky")
 	H.workspace:SetAttribute("ForceNight", nil)
 	task.wait(3)
+end
+
+print("\n== Eruption ==")
+do
+	local EruptionService = H.require(game:GetService("ServerScriptService").Server.Services.EruptionService)
+	local EruptionController = H.require(clientScript.Controllers.EruptionController)
+	EruptionService.setTiming({ rumble = 0.6, erupt = 1.2, meteors = 3, flight = 0.8 })
+	EruptionService.start()
+	local seen = 0
+	local banner = false
+	H.waitFor(function()
+		seen = math.max(seen, EruptionController.flying())
+		local timer = root:FindFirstChild("EruptionTimer")
+		banner = banner or (timer ~= nil and timer.Visible and timer.Text:find("ERUPTION") ~= nil)
+		return H.workspace:GetAttribute("Eruption") == nil
+	end, 8, "the eruption")
+	check(banner, "the HUD shouts ERUPTION while it happens")
+	check(seen > 0, "fireballs fly across the sky")
+	task.wait(1)
+	check(EruptionController.flying() == 0, "fireballs land and clean up")
+	EruptionService.setTiming(nil)
 end
 
 print("\n== Wind ==")

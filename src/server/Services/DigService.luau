@@ -30,6 +30,7 @@ local EconomyService = require(script.Parent.EconomyService)
 local FriendsService = require(script.Parent.FriendsService)
 local LeaderboardService = require(script.Parent.LeaderboardService)
 local LootService = require(script.Parent.LootService)
+local EruptionService = require(script.Parent.EruptionService)
 local MegaDigService = require(script.Parent.MegaDigService)
 local NightService = require(script.Parent.NightService)
 local Net = require(script.Parent.Parent.Net)
@@ -257,6 +258,8 @@ function finish(
 		DigSpotService.consume(spotId)
 		if spot.moonlit then
 			NightService.onDug(spotId)
+		elseif spot.meteor then
+			EruptionService.onDug(spotId)
 		end
 	end
 	local serverNow = workspace:GetServerTimeNow()
@@ -283,6 +286,7 @@ function finish(
 		goldenX = isGoldenX,
 		friends = FriendsService.count(player),
 		moonlit = spot.moonlit,
+		meteor = spot.meteor,
 	})
 	LeaderboardService.onFind(data, find)
 	local capacity = Perks.bagCapacity(data)

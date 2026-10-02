@@ -36,6 +36,7 @@ local workspace = H.workspace
 do
 	local MegaDigService = H.require(game:GetService("ServerScriptService").Server.Services.MegaDigService)
 	H.require(game:GetService("ServerScriptService").Server.Services.NightService).setScheduled(false) -- nights only when a test forces one
+	H.require(game:GetService("ServerScriptService").Server.Services.EruptionService).setScheduled(false) -- eruptions only when a test starts one
 	MegaDigService.setScheduled(false)
 	MegaDigService.cancel()
 end
@@ -1023,6 +1024,51 @@ do
 		return workspace:GetAttribute("Night") == false
 	end, 4, "dawn")
 	check(NightService.count() == 0, "at dawn the moonlit spots fade away")
+end
+
+print("\n== Eruption ==")
+do
+	local EruptionService = H.require(Services.EruptionService)
+	check(
+		type(workspace:GetAttribute("EruptionNext")) == "number",
+		"the island knows when the volcano erupts next"
+	)
+	-- A quick eruption for the test.
+	EruptionService.setTiming({
+		rumble = 0.3,
+		erupt = 0.8,
+		meteors = 4,
+		flight = 0.3,
+		areaWeights = { Beach = 1, Jungle = 0, Ruins = 0, Volcano = 0 },
+	})
+	check(EruptionService.start(), "an eruption starts")
+	check(not EruptionService.start(), "only one at a time")
+	check(workspace:GetAttribute("Eruption") == "Rumble", "it rumbles first")
+	H.waitFor(function()
+		return workspace:GetAttribute("Eruption") == nil
+	end, 6, "eruption over")
+	local meteor = H.lastClientEvent("Meteor")
+	check(meteor ~= nil and typeof(meteor[1]) == "Vector3", "fireballs fly for everyone")
+	check(EruptionService.count() >= 3, "meteors land as dig spots (" .. EruptionService.count() .. ")")
+	local rockSpot = nil
+	for _, spot in spots:GetChildren() do
+		if spot:GetAttribute("Meteor") then
+			rockSpot = spot
+		end
+	end
+	check(rockSpot and rockSpot:FindFirstChild("MeteorRock") ~= nil, "a smoking meteor rock marks them")
+	local before = EruptionService.count()
+	local digger = H.addPlayer("MeteorFan", 5023)
+	H.waitFor(function()
+		return PlayerData.get(digger) ~= nil and digger.Character ~= nil
+	end, 5, "meteor fan")
+	local find = rockSpot and digSpot(digger, rockSpot)
+	check(
+		find ~= nil and EruptionService.count() == before - 1 and rockSpot.Parent == nil,
+		"a meteor spot can be dug once (" .. tostring(find and find.rarity) .. ")"
+	)
+	digger:Kick("done")
+	EruptionService.setTiming(nil)
 end
 
 print("\n== Golden X ==")

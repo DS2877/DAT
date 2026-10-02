@@ -54,6 +54,7 @@ local workspace = H.workspace
 do
 	local MegaDigService = H.require(game:GetService("ServerScriptService").Server.Services.MegaDigService)
 	H.require(game:GetService("ServerScriptService").Server.Services.NightService).setScheduled(false) -- nights only when a test forces one
+	H.require(game:GetService("ServerScriptService").Server.Services.EruptionService).setScheduled(false) -- eruptions only when a test starts one
 	MegaDigService.setScheduled(false)
 	MegaDigService.cancel()
 end

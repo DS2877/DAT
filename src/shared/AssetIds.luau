@@ -62,6 +62,8 @@ local AssetIds = {
 		RevealEpic = { clips = { clip(1848287311, 0.43, 0.1, 2.5) }, duck = true }, -- "The Little Things - Hit" (APM)
 		StingLegendary = { clips = { clip(1842141561, 0.40, 0, 5.0) }, duck = true }, -- "Celebration Nation (sting a)" (APM)
 		StingSecret = { clips = { clip(1840095069, 0.62, 0, 7.5) }, duck = true }, -- "Make It Happen (sting b)" (APM)
+		-- The volcano eruption: the ground rumbles.
+		Rumble = { clips = { clip(9112775165, 0.8) } }, -- Earthquake Rumble 1 (PSE)
 		-- Night: an owl now and then (the crickets are an ambience loop).
 		Owl = { clips = { clip(9117182187, 0.5) }, jitter = 0.05 }, -- Owl Hooting Reverberant Several 2 (PSE)
 		-- Junk finds: a squeaky toy.
