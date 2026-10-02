@@ -3,7 +3,9 @@
 -- counter the server bumps on their characters for each accepted hit.
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local DigAnimation = require(ReplicatedStorage.Shared.Config.DigAnimation)
 local Effects = require(script.Parent.Parent.Effects)
 
 local OtherPlayersController = {}
@@ -15,8 +17,9 @@ local function watchCharacter(character: Model)
 		if not root or not camera or (camera.CFrame.Position - root.Position).Magnitude > 150 then
 			return
 		end
-		Effects.swingOther(character, 0.4)
-		task.delay(0.2, function()
+		local swing = DigAnimation.minDuration
+		Effects.swingOther(character, swing)
+		task.delay(swing * DigAnimation.impact, function()
 			Effects.dirtBurst(root.Position + root.CFrame.LookVector * 3 - Vector3.new(0, 2.5, 0), 4)
 		end)
 	end)

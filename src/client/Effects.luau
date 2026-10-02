@@ -190,15 +190,18 @@ local function startCoded(character: Model, duration: number)
 	}
 end
 
--- Plays one dig on `character` (this player's) over `duration` seconds. A
--- dig already playing finishes first (fast shovels just dig back to back).
-function Effects.swing(character: Model, duration: number)
+-- Plays one dig on `character` (this player's) over `duration` seconds.
+-- A dig already playing finishes first (a fast shovel's hits land during
+-- it). True when a new dig started.
+function Effects.swing(character: Model, duration: number): boolean
 	if digs[character] or (trackEnds[character] or 0) > os.clock() then
-		return
+		return false
 	end
 	if not playTrack(character, duration) then
 		startCoded(character, duration)
+		return digs[character] ~= nil
 	end
+	return true
 end
 
 -- Another player's dig: their uploaded animation reaches us through Roblox;

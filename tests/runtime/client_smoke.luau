@@ -165,8 +165,11 @@ do
 	local character = player.Character
 	local shoulder = character:FindFirstChild("RightShoulder", true)
 		or character:FindFirstChild("Right Shoulder", true)
+	H.waitFor(function()
+		return not Effects.isDigging(character)
+	end, 2, "the last tap's swing")
 	local rest = shoulder.C0
-	Effects.swing(character, 0.4)
+	check(Effects.swing(character, 0.4), "a new swing starts once the last one is done")
 	task.wait(0.18)
 	local moved = shoulder.C0 ~= rest
 	check(Effects.isDigging(character) and moved, "digging plays the dig animation")
