@@ -177,6 +177,14 @@ do
 	task.wait(0.4)
 	check(not Effects.isDigging(character) and shoulder.C0 == rest, "and the body goes back to rest after")
 
+	-- The victory dance (a big find): plays, and a new dig cuts it short.
+	character:SetAttribute("Celebrate", (character:GetAttribute("Celebrate") or 0) + 1)
+	task.wait(0.8)
+	check(Effects.isDancing(character) and shoulder.C0 ~= rest, "a big find makes you dance")
+	Effects.swing(character, 0.6)
+	check(not Effects.isDancing(character) and Effects.isDigging(character), "digging again stops the dance")
+	task.wait(0.8)
+
 	-- A rig with the newer joints (AnimationConstraint instead of Motor6D).
 	local rig = roblox.Instance.new("Model")
 	rig.Name = "ConstraintRig"

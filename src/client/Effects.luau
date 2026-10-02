@@ -8,6 +8,7 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 local AssetIds = require(ReplicatedStorage.Shared.AssetIds)
+local DanceAnimation = require(ReplicatedStorage.Shared.Config.DanceAnimation)
 local DigAnimation = require(ReplicatedStorage.Shared.Config.DigAnimation)
 
 local Effects = {}
@@ -32,6 +33,7 @@ type Dig = {
 	duration: number,
 	keys: { DigAnimation.Key },
 	joints: { [string]: Joint },
+	dance: boolean, -- the victory dance (a new dig cuts it short)
 }
 
 local digs: { [Model]: Dig } = {}
@@ -162,12 +164,13 @@ local function playTrack(character: Model, duration: number): boolean
 	return true
 end
 
--- Starts the coded dig on `character`.
-local function startCoded(character: Model, duration: number)
+-- Starts the coded dig (or the victory dance) on `character`.
+local function startCoded(character: Model, duration: number, dance: boolean?)
 	if digs[character] then
 		return
 	end
-	local keys = if isR15(character) then DigAnimation.R15 else DigAnimation.R6
+	local source = if dance then DanceAnimation else DigAnimation
+	local keys = if isR15(character) then source.R15 else source.R6
 	local all = jointsOf(character)
 	local used: { [string]: Joint } = {}
 	for _, key in keys do
@@ -187,6 +190,7 @@ local function startCoded(character: Model, duration: number)
 		duration = math.max(0.12, duration),
 		keys = keys,
 		joints = used,
+		dance = dance == true,
 	}
 end
 
@@ -194,6 +198,10 @@ end
 -- A dig already playing finishes first (a fast shovel's hits land during
 -- it). True when a new dig started.
 function Effects.swing(character: Model, duration: number): boolean
+	local current = digs[character]
+	if current and current.dance then
+		finish(character, current) -- back to digging
+	end
 	if digs[character] or (trackEnds[character] or 0) > os.clock() then
 		return false
 	end
@@ -207,6 +215,10 @@ end
 -- Another player's dig: their uploaded animation reaches us through Roblox;
 -- if it isn't playing (not loaded, or none uploaded), play the coded one.
 function Effects.swingOther(character: Model, duration: number)
+	local current = digs[character]
+	if current and current.dance then
+		finish(character, current)
+	end
 	local id = animationId(character)
 	if id == "" then
 		startCoded(character, duration)
@@ -228,7 +240,23 @@ end
 
 -- Is a dig playing on `character` (tests)?
 function Effects.isDigging(character: Model): boolean
-	return digs[character] ~= nil or (trackEnds[character] or 0) > os.clock()
+	local d = digs[character]
+	return (d ~= nil and not d.dance) or (trackEnds[character] or 0) > os.clock()
+end
+
+-- The victory dance (Config/DanceAnimation), once any dig has finished.
+function Effects.dance(character: Model)
+	local current = digs[character]
+	if current then
+		finish(character, current)
+	end
+	startCoded(character, DanceAnimation.length, true)
+end
+
+-- Is `character` dancing (tests)?
+function Effects.isDancing(character: Model): boolean
+	local d = digs[character]
+	return d ~= nil and d.dance
 end
 
 RunService.RenderStepped:Connect(function()

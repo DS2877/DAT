@@ -569,10 +569,15 @@ do
 	if spot then
 		local saved = data.shovelLevel
 		data.shovelLevel = 5
+		local celebrated = player.Character:GetAttribute("Celebrate") or 0
 		local find = digSpot(player, spot.model)
 		check(
 			find ~= nil and (find.rarity == "Mythic" or find.rarity == "Secret"),
 			"digging it gives the Mythic (" .. tostring(find and find.rarity) .. ")"
+		)
+		check(
+			(player.Character:GetAttribute("Celebrate") or 0) == celebrated + 1,
+			"and the finder does a victory dance (for everyone to see)"
 		)
 		task.wait(0.1)
 		local found = false

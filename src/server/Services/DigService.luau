@@ -11,10 +11,12 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Bag = require(ReplicatedStorage.Shared.Logic.Bag)
 local Bonuses = require(ReplicatedStorage.Shared.Logic.Bonuses)
+local DanceAnimation = require(ReplicatedStorage.Shared.Config.DanceAnimation)
 local DigConfig = require(ReplicatedStorage.Shared.Config.Dig)
 local Loot = require(ReplicatedStorage.Shared.Config.Loot)
 local Perks = require(ReplicatedStorage.Shared.Logic.Perks)
 local Progression = require(ReplicatedStorage.Shared.Logic.Progression)
+local Rarities = require(ReplicatedStorage.Shared.Config.Rarities)
 local Rush = require(ReplicatedStorage.Shared.Logic.Rush)
 local Streak = require(ReplicatedStorage.Shared.Logic.Streak)
 local Signal = require(ReplicatedStorage.Shared.Util.Signal)
@@ -295,6 +297,13 @@ function finish(
 	})
 	CollectionService.onFind(player, data, find)
 	DigService.Found:Fire(player, data, find, spot)
+	-- Something big: everyone sees this player do a victory dance.
+	if Rarities.rank(find.rarity) >= Rarities.rank(DanceAnimation.minRarity) or find.mutation == "Golden" then
+		local character = player.Character
+		if character then
+			character:SetAttribute("Celebrate", ((character:GetAttribute("Celebrate") :: number?) or 0) + 1)
+		end
+	end
 	if spot.jackpot then
 		DigService.onHiddenFound(player, spotId, find)
 	else
