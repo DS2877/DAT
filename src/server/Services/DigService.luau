@@ -17,6 +17,7 @@ local Loot = require(ReplicatedStorage.Shared.Config.Loot)
 local Perks = require(ReplicatedStorage.Shared.Logic.Perks)
 local Progression = require(ReplicatedStorage.Shared.Logic.Progression)
 local Rarities = require(ReplicatedStorage.Shared.Config.Rarities)
+local RebirthPerks = require(ReplicatedStorage.Shared.Logic.RebirthPerks)
 local Rush = require(ReplicatedStorage.Shared.Logic.Rush)
 local Streak = require(ReplicatedStorage.Shared.Logic.Streak)
 local Signal = require(ReplicatedStorage.Shared.Util.Signal)
@@ -192,7 +193,8 @@ local function onDigHit(player: Player, spotId: any, perfect: any)
 		and not s.deep
 		and not isGoldenX
 		and Loot.deepDig.areas[spot.areaId]
-		and random:NextNumber() < Loot.deepDig.areas[spot.areaId].chance
+		and random:NextNumber()
+			< Loot.deepDig.areas[spot.areaId].chance * (1 + RebirthPerks.value(data, "DeepDiver"))
 	then
 		s.deep = true
 		s.required += Loot.deepDig.areas[spot.areaId].extraHits

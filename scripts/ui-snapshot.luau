@@ -265,6 +265,19 @@ H.signal(root:FindFirstChild("BountyTracker"), "Activated"):Fire({})
 snap("bounties")
 root.Bounties.Visible = false
 
+-- The rebirth perk cards (one perk already at level 1).
+data.rebirths = 2
+data.rebirthPerks = { Haggler = 1 }
+data.perksEarned = 1
+data.perkChoices = { { "Haggler", "BigPockets", "Perfectionist" } }
+H.fireServer(player, "RequestSync")
+snap("perks")
+root.PerkPicker.Visible = false
+data.perkChoices = {}
+data.rebirths = 0
+data.perksEarned = 0
+H.fireServer(player, "RequestSync")
+
 H.signal(root.TopButtons:FindFirstChild("SettingsButton"), "Activated"):Fire({})
 snap("settings")
 H.signal(root.TopButtons:FindFirstChild("SettingsButton"), "Activated"):Fire({})

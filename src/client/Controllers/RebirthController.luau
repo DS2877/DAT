@@ -12,6 +12,7 @@ local Retention = require(ReplicatedStorage.Shared.Config.Retention)
 local Ui = require(script.Parent.Parent.Ui)
 local ClientState = require(script.Parent.ClientState)
 local HudController = require(script.Parent.HudController)
+local PerkController = require(script.Parent.PerkController)
 
 local C = Ui.Colors
 local player = Players.LocalPlayer
@@ -35,7 +36,8 @@ local function refresh()
 	local cost = Rebirth.cost(data.rebirths)
 	infoLabel.Text = string.format(
 		"Become a %s: +%d%% cash forever, +%d%% walk speed, a new title and shovel color.\n"
-			.. "Resets: cash, shovel, bag and bag contents.\nKeeps: collection, trophies, rank and purchases.",
+			.. "Resets: cash, shovel, bag and bag contents.\nKeeps: collection, trophies, rank, perks and purchases.\n"
+			.. "Every rebirth: pick a new PERK card!",
 		Rebirth.title(next),
 		bonus,
 		math.floor(
@@ -43,6 +45,10 @@ local function refresh()
 				+ 0.5
 		)
 	)
+	local perks = PerkController.summary()
+	if perks ~= "" then
+		infoLabel.Text ..= "\nYour perks: " .. perks
+	end
 	local ok, reason, missing = Rebirth.canRebirth(data :: any)
 	if reason == "IslandOnly" then
 		infoLabel.Text = "A rebirth resets your island run, so it happens at the island's altar.\n"
@@ -71,7 +77,7 @@ local function build()
 		icon = "✨",
 		accent = C.Purple,
 		width = 520,
-		height = 300,
+		height = 340,
 		parent = HudController.root(),
 		position = UDim2.new(0.5, 0, 1, -20),
 		anchor = Vector2.new(0.5, 1),

@@ -17,6 +17,7 @@ local DigAnimation = require(ReplicatedStorage.Shared.Config.DigAnimation)
 local DigConfig = require(ReplicatedStorage.Shared.Config.Dig)
 local Monetization = require(ReplicatedStorage.Shared.Config.Monetization)
 local Progression = require(ReplicatedStorage.Shared.Logic.Progression)
+local RebirthPerks = require(ReplicatedStorage.Shared.Logic.RebirthPerks)
 local Zones = require(ReplicatedStorage.Shared.Logic.Zones)
 local Effects = require(script.Parent.Parent.Effects)
 local ImpactFx = require(script.Parent.Parent.ImpactFx)
@@ -347,12 +348,19 @@ local function ringPhase(): number
 	return ((os.clock() - cycleStart) % DigConfig.perfect.cycle) / DigConfig.perfect.cycle
 end
 
+-- The PERFECT window (wider with the Perfectionist rebirth perk).
+local function perfectWindow(): number
+	local data = ClientState.data
+	local bonus = if data then RebirthPerks.value(data :: any, "Perfectionist") else 0
+	return DigConfig.perfect.window * (1 + bonus)
+end
+
 -- Is this tap PERFECT? (The ring is on the button; one per cycle.)
 local function judgeTap(): boolean
 	local cfg = DigConfig.perfect
 	local now = os.clock()
 	local phase = ringPhase()
-	local onButton = phase >= 1 - cfg.window / cfg.cycle or phase <= 0.05
+	local onButton = phase >= 1 - perfectWindow() / cfg.cycle or phase <= 0.05
 	if onButton and now - lastPerfectTap >= cfg.cycle * 0.8 then
 		lastPerfectTap = now
 		return true
@@ -541,7 +549,7 @@ function DigController.init()
 			local phase = ringPhase()
 			local scale = 1 + (1 - phase) * 0.8
 			ring.Size = UDim2.fromOffset(150 * scale, 150 * scale)
-			local perfectNow = phase >= 1 - cfg.window / cfg.cycle or phase <= 0.05
+			local perfectNow = phase >= 1 - perfectWindow() / cfg.cycle or phase <= 0.05
 			ringStroke.Color = if perfectNow then C.Gold else Color3.new(1, 1, 1)
 			ringStroke.Thickness = if perfectNow then 9 else 5
 			ringStroke.Transparency = if perfectNow then 0 else 0.15 + phase * 0.25

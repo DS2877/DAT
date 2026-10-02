@@ -46,6 +46,7 @@ local WindController = require(Controllers.WindController)
 local DanceController = require(Controllers.DanceController)
 local ChatterController = require(Controllers.ChatterController)
 local BountyController = require(Controllers.BountyController)
+local PerkController = require(Controllers.PerkController)
 
 ClientState.init()
 AudioController.init()
@@ -80,6 +81,7 @@ WindController.init()
 DanceController.init()
 ChatterController.init()
 BountyController.init()
+PerkController.init()
 
 -- Listeners are connected; request the snapshot (the server also pushes one
 -- on load, this covers the case where it arrived before we were ready).

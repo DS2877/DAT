@@ -7,6 +7,7 @@ local Collection = require(script.Parent.Collection)
 local Goals = require(script.Parent.Goals)
 local Perks = require(script.Parent.Perks)
 local Progression = require(script.Parent.Progression)
+local RebirthPerks = require(script.Parent.RebirthPerks)
 local Retention = require(script.Parent.Parent.Config.Retention)
 
 local Bonuses = {}
@@ -39,7 +40,10 @@ function Bonuses.parts(
 	boost *= Boosts.multiplier(data.activeBoosts, "CoconutCash", now)
 	return {
 		sets = Collection.cashMultiplier(data.discovered),
-		rebirths = 1 + data.rebirths * Retention.rebirth.cashBonusPerRebirth,
+		-- Rebirths, and the Haggler rebirth perk.
+		rebirths = 1
+			+ data.rebirths * Retention.rebirth.cashBonusPerRebirth
+			+ RebirthPerks.value(data, "Haggler"),
 		friends = 1 + Bonuses.friendsBonus(friendCount),
 		boost = boost,
 		passes = Perks.cashMultiplier(data),

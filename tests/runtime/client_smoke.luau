@@ -767,6 +767,36 @@ do
 	H.signal(root.TopButtons.GuideButton, "Activated"):Fire({})
 end
 
+print("\n== Rebirth perk cards ==")
+do
+	data.rebirths += 1
+	H.require(Shared.Logic.RebirthPerks).grantChoices(data, function()
+		return 0.3
+	end)
+	H.fireServer(player, "RequestSync")
+	task.wait(0.4)
+	local picker = root:FindFirstChild("PerkPicker")
+	check(picker and picker.Visible, "a rebirth shows the perk cards")
+	local cards = picker:FindFirstChild("Cards", true)
+	local first = nil
+	for _, child in cards:GetChildren() do
+		if child:IsA("TextButton") then
+			first = child
+			break
+		end
+	end
+	check(first ~= nil, "three cards to pick from")
+	local id = string.sub(first.Name, 6)
+	H.signal(first, "Activated"):Fire({})
+	task.wait(0.6)
+	check(
+		(data.rebirthPerks[id] or 0) == 1 and not picker.Visible,
+		"tapping a card keeps the perk (" .. id .. ")"
+	)
+	data.rebirths -= 1
+	data.perksEarned -= 1
+end
+
 print("\n== Bounty Board ==")
 do
 	local tracker = root:FindFirstChild("BountyTracker")

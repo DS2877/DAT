@@ -1043,6 +1043,22 @@ check(data.shovelLevel == 1 and data.cash == 0 and data.bagLevel == 1, "run rese
 check(next(data.discovered) ~= nil, "collection kept")
 local head = player.Character:FindFirstChild("Head")
 check(head and head:FindFirstChild("RankTitle") ~= nil, "rank title shown above head")
+do
+	local RebirthPerks = H.require(Shared.Logic.RebirthPerks)
+	local set = data.perkChoices[1]
+	check(set and #set == 3, "the rebirth offers three perk cards")
+	local bagBefore = H.require(Shared.Logic.Perks).bagCapacity(data)
+	H.fireServer(player, "ChoosePerk", "NotAPerk")
+	task.wait(0.05)
+	check(#data.perkChoices == 1, "a perk that wasn't offered can't be picked")
+	local pick = if table.find(set, "BigPockets") then "BigPockets" else set[1]
+	H.fireServer(player, "ChoosePerk", pick)
+	task.wait(0.05)
+	check(RebirthPerks.level(data, pick) == 1 and #data.perkChoices == 0, "picking a card keeps the perk")
+	if pick == "BigPockets" then
+		check(H.require(Shared.Logic.Perks).bagCapacity(data) == bagBefore + 1, "Big Pockets adds bag space")
+	end
+end
 
 ---------------------------------------------------------------------------
 print("\n== Second player, shelf, leaderboards ==")

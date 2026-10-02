@@ -47,6 +47,11 @@ function DataSchema.template(): { [string]: any }
 		worldSaves = {},
 		-- The Bounty Board: { slots = { bounty }, completed = n } (Logic/Bounties).
 		bounties = {},
+		-- Rebirth perks (Logic/RebirthPerks): levels, card sets to pick from,
+		-- and how many sets were ever given.
+		rebirthPerks = {},
+		perkChoices = {},
+		perksEarned = 0,
 		activeBoosts = {}, -- [boostId] = expiry unix time
 		pausedBoosts = {}, -- [boostId] = seconds left (switched off by the player)
 		-- Audio settings, and on/off switches for perks the player owns.

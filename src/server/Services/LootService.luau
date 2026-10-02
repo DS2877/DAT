@@ -15,6 +15,7 @@ local Boosts = require(ReplicatedStorage.Shared.Logic.Boosts)
 local Collection = require(ReplicatedStorage.Shared.Logic.Collection)
 local Guarantees = require(ReplicatedStorage.Shared.Logic.Guarantees)
 local Loot = require(ReplicatedStorage.Shared.Config.Loot)
+local RebirthPerks = require(ReplicatedStorage.Shared.Logic.RebirthPerks)
 local LootRoller = require(ReplicatedStorage.Shared.Logic.LootRoller)
 local Rarities = require(ReplicatedStorage.Shared.Config.Rarities)
 local Retention = require(ReplicatedStorage.Shared.Config.Retention)
@@ -74,6 +75,19 @@ local function combineMultipliers(a: { [string]: number }?, b: { [string]: numbe
 	return out
 end
 
+-- The Treasure Sense rebirth perk: better odds for Rare and up.
+local function treasureSense(data: { [string]: any }): { [string]: number }?
+	local bonus = RebirthPerks.value(data, "TreasureSense")
+	if bonus <= 0 then
+		return nil
+	end
+	local out = {}
+	for _, rarity in Rarities.Order do
+		out[rarity] = if Rarities.rank(rarity) >= Rarities.rank("Rare") then 1 + bonus else 1
+	end
+	return out
+end
+
 local function adminAbuse(): boolean
 	local untilTime = workspace:GetAttribute("AdminAbuseUntil")
 	return type(untilTime) == "number" and untilTime > workspace:GetServerTimeNow()
@@ -112,18 +126,20 @@ function LootService.rollFor(data: { [string]: any }, context: DigContext): Find
 				if context.clue or adminAbuse() then Loot.clueOddsMultipliers else nil,
 				if rushActive then Retention.rush.oddsMultipliers else nil
 			),
-			context.luck
+			combineMultipliers(context.luck, treasureSense(data))
 		),
 		rebirths = data.rebirths,
 	})
 	Guarantees.afterRoll(data.onboarding, roll.rarity)
 
-	local mutation, multiplier =
-		LootRoller.rollMutation(rng, Boosts.multiplier(data.activeBoosts, "LuckyLemonade", now))
+	local mutation, multiplier = LootRoller.rollMutation(
+		rng,
+		Boosts.multiplier(data.activeBoosts, "LuckyLemonade", now) * (1 + RebirthPerks.value(data, "Lucky"))
+	)
 	local streakBonus = Streak.bonus(context.streak)
 	local entry = data.discovered[roll.id]
 	local isNew = entry == nil
-	local firstFind = if isNew then Loot.firstFindMultiplier else 1
+	local firstFind = if isNew then Loot.firstFindMultiplier + RebirthPerks.value(data, "Collector") else 1
 	-- Bonuses are taken before recording this find, so the find that
 	-- completes a set isn't boosted by its own set bonus.
 	local cashMultiplier = Bonuses.cashMultiplier(data, context.friends, now, context.serverBoost)

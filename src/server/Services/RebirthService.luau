@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local CurrentWorld = require(ReplicatedStorage.Shared.Logic.CurrentWorld)
 local Rebirth = require(ReplicatedStorage.Shared.Logic.Rebirth)
+local RebirthPerks = require(ReplicatedStorage.Shared.Logic.RebirthPerks)
 local Retention = require(ReplicatedStorage.Shared.Config.Retention)
 local Analytics = require(script.Parent.Analytics)
 local AnnouncementService = require(script.Parent.AnnouncementService)
@@ -21,6 +22,11 @@ local World = require(script.Parent.Parent.World.World)
 local STATION_SLACK = 8
 
 local RebirthService = {}
+
+local random = Random.new()
+local function rng(): number
+	return random:NextNumber()
+end
 
 local function nearAltar(player: Player): boolean
 	local station = World.get().stations.Rebirth
@@ -59,6 +65,8 @@ local function onRebirth(player: Player)
 	local spent = data.cash
 	EconomyService.spendCash(player, data, spent, "Shop", "Rebirth_" .. (data.rebirths + 1))
 	Rebirth.apply(data)
+	-- A rebirth perk to pick (PerkController shows the cards).
+	RebirthPerks.grantChoices(data, rng)
 	data.weekly.rebirths += 1
 	Analytics.funnel(player, data, "FirstRebirth")
 	CharacterService.refreshShovel(player)
@@ -81,8 +89,48 @@ local function onRebirth(player: Player)
 	PlayerData.changed(player)
 end
 
+local function onChoosePerk(player: Player, id: any)
+	local data = PlayerData.get(player)
+	if not data or type(id) ~= "string" then
+		return
+	end
+	if RebirthPerks.choose(data, id) then
+		local perk = RebirthPerks.byId[id]
+		local level = RebirthPerks.level(data, id)
+		Net.fire(
+			"Notify",
+			player,
+			string.format(
+				"%s %s %s: %s",
+				perk.icon,
+				perk.name,
+				string.rep("I", level),
+				RebirthPerks.describe(id, level)
+			),
+			"Big"
+		)
+		Analytics.custom(player, "PerkChosen_" .. id)
+		-- Faster feet / bigger pockets apply right away.
+		CharacterService.refreshShovel(player)
+		PlayerData.changed(player)
+	end
+end
+
 function RebirthService.init()
 	Net.on("Rebirth", 0.5, 1, onRebirth)
+	Net.on("ChoosePerk", 1, 2, onChoosePerk)
+	-- Older saves (rebirths before perks existed) get their card sets too.
+	PlayerData.Loaded:Connect(function(_player: Player, data: { [string]: any })
+		RebirthPerks.grantChoices(data, rng)
+	end)
+	PlayerData.extendSnapshot(function(_player, data)
+		local waiting = if type(data.perkChoices) == "table" then data.perkChoices else {}
+		return {
+			rebirthPerks = data.rebirthPerks,
+			perkChoice = waiting[1],
+			perkChoicesWaiting = #waiting,
+		}
+	end)
 end
 
 return RebirthService

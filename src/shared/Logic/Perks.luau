@@ -9,6 +9,7 @@ export type Data = { [string]: any }
 local Boosts = require(script.Parent.Boosts)
 local Monetization = require(script.Parent.Parent.Config.Monetization)
 local Progression = require(script.Parent.Progression)
+local RebirthPerks = require(script.Parent.RebirthPerks)
 
 local Perks = {}
 
@@ -69,9 +70,10 @@ end
 function Perks.bagCapacity(data: { [string]: any }): number
 	local base = Progression.bagCapacity(data.bagLevel)
 	if Perks.enabled(data, "BigBag") then
-		return math.ceil(base * P.bigBagMultiplier) -- rounded up
+		base = math.ceil(base * P.bigBagMultiplier) -- rounded up
 	end
-	return base
+	-- The Big Pockets rebirth perk.
+	return base + RebirthPerks.value(data, "BigPockets")
 end
 
 -- Dig speed: 1 + 1 for the 2x Dig Speed pass + 1 for the boost (capped).

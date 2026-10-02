@@ -15,6 +15,7 @@ local Format = require(ReplicatedStorage.Shared.Util.Format)
 local Tutorial = require(ReplicatedStorage.Shared.Logic.Tutorial)
 local Movement = require(ReplicatedStorage.Shared.Config.Movement)
 local Retention = require(ReplicatedStorage.Shared.Config.Retention)
+local RebirthPerks = require(ReplicatedStorage.Shared.Logic.RebirthPerks)
 local Analytics = require(script.Parent.Analytics)
 local EconomyService = require(script.Parent.EconomyService)
 local Net = require(script.Parent.Parent.Net)
@@ -40,7 +41,7 @@ local function applyMovement(player: Player)
 	local adminSpeed = (player:GetAttribute("AdminSpeed") :: number?) or 1
 	local adminJump = (player:GetAttribute("AdminJump") :: number?) or 1
 	local speed = Movement.walkSpeed
-		* (1 + rebirthBonus)
+		* (1 + rebirthBonus + RebirthPerks.value(data, "FastFeet"))
 		* Boosts.multiplier(data.activeBoosts, "SpeedSoda", now)
 		* adminSpeed
 	local jump = Boosts.multiplier(data.activeBoosts, "JumpJuice", now) * adminJump

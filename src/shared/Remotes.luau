@@ -17,6 +17,7 @@ return table.freeze({
 	SellAnywhere = "SellAnywhere", -- () Auto Sell's SELL button
 	BuyDrink = "BuyDrink", -- (drinkId: string) at the Tiki Bar
 	AdminAction = "AdminAction", -- (action, targetUserId?, ...args) admins only
+	ChoosePerk = "ChoosePerk", -- (perkId: string) a rebirth perk card
 	ClaimBounty = "ClaimBounty", -- (slot: number) a finished bounty's reward
 	ShopEvent = "ShopEvent", -- (event: "ShopOpened" | "OfferShown" | "PurchasePrompted", key: string?)
 
