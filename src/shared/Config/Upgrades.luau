@@ -18,6 +18,10 @@ export type ShovelDef = {
 	handleColor: string,
 	bladeMaterial: string,
 	glow: boolean,
+	-- What happens where it hits the ground (client ImpactFx): "Dust",
+	-- "Pebbles", "Sparks", "Coins", "Sparkle", "Rainbow", "Lava", "Cosmic",
+	-- "Snow", "Shards", "Aurora".
+	impact: string?,
 }
 
 export type BagDef = {
@@ -33,14 +37,14 @@ local Upgrades = {}
 
 -- stylua: ignore
 Upgrades.Shovels = {
-	{ level = 1, name = "Wooden Shovel", cost = 0, hits = 3, hitInterval = 0.5, bladeColor = "#C0602A", handleColor = "#5B3A22", bladeMaterial = "Wood", glow = false },
-	{ level = 2, name = "Stone Shovel", cost = 250, hits = 3, hitInterval = 0.43, bladeColor = "#5E6A78", handleColor = "#4A2F1C", bladeMaterial = "Slate", glow = false },
-	{ level = 3, name = "Iron Shovel", cost = 5000, hits = 3, hitInterval = 0.37, bladeColor = "#9FB3CC", handleColor = "#2E2A33", bladeMaterial = "Metal", glow = false },
-	{ level = 4, name = "Golden Shovel", cost = 20000, hits = 3, hitInterval = 0.32, bladeColor = "#FFC933", handleColor = "#5B3A22", bladeMaterial = "Metal", glow = false },
-	{ level = 5, name = "Diamond Shovel", cost = 80000, hits = 3, hitInterval = 0.27, bladeColor = "#7FF3FF", handleColor = "#2E4A6B", bladeMaterial = "Glass", glow = false },
-	{ level = 6, name = "Rainbow Shovel", cost = 400000, hits = 3, hitInterval = 0.23, bladeColor = "#FF5FD2", handleColor = "#FFFFFF", bladeMaterial = "Neon", glow = true },
-	{ level = 7, name = "Magma Shovel", cost = 800000, hits = 3, hitInterval = 0.2, bladeColor = "#FF6A1A", handleColor = "#2B2323", bladeMaterial = "Neon", glow = true },
-	{ level = 8, name = "Legendary Shovel", cost = 5000000, hits = 3, hitInterval = 0.17, bladeColor = "#B66BFF", handleColor = "#FFD24A", bladeMaterial = "Neon", glow = true },
+	{ level = 1, name = "Wooden Shovel", cost = 0, hits = 3, hitInterval = 0.5, bladeColor = "#C0602A", handleColor = "#5B3A22", bladeMaterial = "Wood", glow = false, impact = "Dust" },
+	{ level = 2, name = "Stone Shovel", cost = 250, hits = 3, hitInterval = 0.43, bladeColor = "#5E6A78", handleColor = "#4A2F1C", bladeMaterial = "Slate", glow = false, impact = "Pebbles" },
+	{ level = 3, name = "Iron Shovel", cost = 5000, hits = 3, hitInterval = 0.37, bladeColor = "#9FB3CC", handleColor = "#2E2A33", bladeMaterial = "Metal", glow = false, impact = "Sparks" },
+	{ level = 4, name = "Golden Shovel", cost = 20000, hits = 3, hitInterval = 0.32, bladeColor = "#FFC933", handleColor = "#5B3A22", bladeMaterial = "Metal", glow = false, impact = "Coins" },
+	{ level = 5, name = "Diamond Shovel", cost = 80000, hits = 3, hitInterval = 0.27, bladeColor = "#7FF3FF", handleColor = "#2E4A6B", bladeMaterial = "Glass", glow = false, impact = "Sparkle" },
+	{ level = 6, name = "Rainbow Shovel", cost = 400000, hits = 3, hitInterval = 0.23, bladeColor = "#FF5FD2", handleColor = "#FFFFFF", bladeMaterial = "Neon", glow = true, impact = "Rainbow" },
+	{ level = 7, name = "Magma Shovel", cost = 800000, hits = 3, hitInterval = 0.2, bladeColor = "#FF6A1A", handleColor = "#2B2323", bladeMaterial = "Neon", glow = true, impact = "Lava" },
+	{ level = 8, name = "Legendary Shovel", cost = 5000000, hits = 3, hitInterval = 0.17, bladeColor = "#B66BFF", handleColor = "#FFD24A", bladeMaterial = "Neon", glow = true, impact = "Cosmic" },
 } :: { ShovelDef }
 
 -- stylua: ignore
@@ -59,14 +63,14 @@ Upgrades.Bags = {
 -- design each) and bags, priced for the bigger frost treasure values.
 -- stylua: ignore
 local FrostShovels = {
-	{ level = 1, name = "Frostbite Shovel", cost = 0, hits = 3, hitInterval = 0.5, bladeColor = "#BFE6F2", handleColor = "#3B4A5A", bladeMaterial = "Ice", glow = false },
-	{ level = 2, name = "Icicle Shovel", cost = 3750, hits = 3, hitInterval = 0.43, bladeColor = "#A8E6FF", handleColor = "#5A6E80", bladeMaterial = "Glass", glow = false },
-	{ level = 3, name = "Snowdrift Shovel", cost = 75000, hits = 3, hitInterval = 0.37, bladeColor = "#F4FBFF", handleColor = "#2E4A6B", bladeMaterial = "Snow", glow = false },
-	{ level = 4, name = "Glacier Shovel", cost = 300000, hits = 3, hitInterval = 0.32, bladeColor = "#5CC6F2", handleColor = "#1E3A5A", bladeMaterial = "Glacier", glow = false },
-	{ level = 5, name = "Aurora Shovel", cost = 1200000, hits = 3, hitInterval = 0.27, bladeColor = "#6CFFC4", handleColor = "#3B2A6B", bladeMaterial = "Neon", glow = true },
-	{ level = 6, name = "Blizzard Shovel", cost = 6000000, hits = 3, hitInterval = 0.23, bladeColor = "#E8F8FF", handleColor = "#5CC6F2", bladeMaterial = "Neon", glow = true },
-	{ level = 7, name = "Permafrost Shovel", cost = 12000000, hits = 3, hitInterval = 0.2, bladeColor = "#2E6FD8", handleColor = "#0F1E33", bladeMaterial = "Neon", glow = true },
-	{ level = 8, name = "Frost King Shovel", cost = 75000000, hits = 3, hitInterval = 0.17, bladeColor = "#7FDBFF", handleColor = "#FFD24A", bladeMaterial = "Neon", glow = true },
+	{ level = 1, name = "Frostbite Shovel", cost = 0, hits = 3, hitInterval = 0.5, bladeColor = "#BFE6F2", handleColor = "#3B4A5A", bladeMaterial = "Ice", glow = false, impact = "Snow" },
+	{ level = 2, name = "Icicle Shovel", cost = 3750, hits = 3, hitInterval = 0.43, bladeColor = "#A8E6FF", handleColor = "#5A6E80", bladeMaterial = "Glass", glow = false, impact = "Shards" },
+	{ level = 3, name = "Snowdrift Shovel", cost = 75000, hits = 3, hitInterval = 0.37, bladeColor = "#F4FBFF", handleColor = "#2E4A6B", bladeMaterial = "Snow", glow = false, impact = "Snow" },
+	{ level = 4, name = "Glacier Shovel", cost = 300000, hits = 3, hitInterval = 0.32, bladeColor = "#5CC6F2", handleColor = "#1E3A5A", bladeMaterial = "Glacier", glow = false, impact = "Shards" },
+	{ level = 5, name = "Aurora Shovel", cost = 1200000, hits = 3, hitInterval = 0.27, bladeColor = "#6CFFC4", handleColor = "#3B2A6B", bladeMaterial = "Neon", glow = true, impact = "Aurora" },
+	{ level = 6, name = "Blizzard Shovel", cost = 6000000, hits = 3, hitInterval = 0.23, bladeColor = "#E8F8FF", handleColor = "#5CC6F2", bladeMaterial = "Neon", glow = true, impact = "Snow" },
+	{ level = 7, name = "Permafrost Shovel", cost = 12000000, hits = 3, hitInterval = 0.2, bladeColor = "#2E6FD8", handleColor = "#0F1E33", bladeMaterial = "Neon", glow = true, impact = "Shards" },
+	{ level = 8, name = "Frost King Shovel", cost = 75000000, hits = 3, hitInterval = 0.17, bladeColor = "#7FDBFF", handleColor = "#FFD24A", bladeMaterial = "Neon", glow = true, impact = "Cosmic" },
 } :: { ShovelDef }
 
 -- stylua: ignore

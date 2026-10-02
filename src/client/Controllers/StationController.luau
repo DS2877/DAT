@@ -33,6 +33,21 @@ local statLabel: TextLabel
 local buyButton: TextButton
 local header: Frame
 
+-- What each shovel's dig looks like (Config/Upgrades `impact`).
+local IMPACT_NAMES: { [string]: string } = {
+	Dust = "a puff of dust",
+	Pebbles = "flying pebbles",
+	Sparks = "sparks",
+	Coins = "popping gold coins",
+	Sparkle = "diamond sparkles",
+	Rainbow = "rainbow rings",
+	Lava = "lava embers",
+	Cosmic = "a cosmic shockwave",
+	Snow = "snow bursts",
+	Shards = "ice shards",
+	Aurora = "aurora rings",
+}
+
 local function describe(kind: string, level: number): (string, string?)
 	if kind == "Shovel" then
 		local current = Progression.getShovel(level)
@@ -42,12 +57,14 @@ local function describe(kind: string, level: number): (string, string?)
 		end
 		local now = current.hits * current.hitInterval
 		local after = nextDef.hits * nextDef.hitInterval
+		local effect = nextDef.impact and IMPACT_NAMES[nextDef.impact]
 		return current.name,
 			string.format(
-				"Dig time: %.2fs -> %.2fs (%d%% faster)",
+				"Dig time: %.2fs -> %.2fs (%d%% faster)%s",
 				now,
 				after,
-				math.floor((1 - after / now) * 100 + 0.5)
+				math.floor((1 - after / now) * 100 + 0.5),
+				if effect then "\nEvery dig: " .. effect .. "!" else ""
 			)
 	else
 		local current = Progression.getBag(level)
@@ -122,7 +139,7 @@ local function build()
 	statLabel = Ui.plainLabel({
 		Name = "Stat",
 		Position = UDim2.fromOffset(0, 40),
-		Size = UDim2.new(1, 0, 0, 28),
+		Size = UDim2.new(1, 0, 0, 48),
 		TextColor3 = Color3.fromRGB(110, 80, 50),
 		Parent = p.body,
 	})

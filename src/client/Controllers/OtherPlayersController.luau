@@ -6,7 +6,9 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local DigAnimation = require(ReplicatedStorage.Shared.Config.DigAnimation)
+local Progression = require(ReplicatedStorage.Shared.Logic.Progression)
 local Effects = require(script.Parent.Parent.Effects)
+local ImpactFx = require(script.Parent.Parent.ImpactFx)
 
 local OtherPlayersController = {}
 
@@ -20,7 +22,12 @@ local function watchCharacter(character: Model)
 		local swing = DigAnimation.minDuration
 		Effects.swingOther(character, swing)
 		task.delay(swing * DigAnimation.impact, function()
-			Effects.dirtBurst(root.Position + root.CFrame.LookVector * 3 - Vector3.new(0, 2.5, 0), 4)
+			local at = root.Position + root.CFrame.LookVector * 3 - Vector3.new(0, 2.5, 0)
+			Effects.dirtBurst(at, 4)
+			local level = character:GetAttribute("ShovelLevel")
+			if type(level) == "number" then
+				ImpactFx.play(Progression.getShovel(level).impact, at)
+			end
 		end)
 	end)
 end

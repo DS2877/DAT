@@ -751,6 +751,30 @@ do
 	H.signal(root.TopButtons.GuideButton, "Activated"):Fire({})
 end
 
+print("\n== Shovel impacts ==")
+do
+	local ImpactFx = H.require(clientScript.ImpactFx)
+	local Upgrades = H.require(Shared.Config.Upgrades)
+	local known = {}
+	for _, kind in ImpactFx.kinds() do
+		known[kind] = true
+		ImpactFx.play(kind, V3(0, 20, 150))
+	end
+	local all = true
+	for _, shovel in Upgrades.Shovels do
+		all = all and shovel.impact ~= nil and known[shovel.impact] == true
+	end
+	check(all, "every shovel has an impact effect")
+	task.wait(1.8)
+	local leftover = 0
+	for _, d in H.workspace:GetDescendants() do
+		if d.Name == "ImpactFx" or d.Name == "ImpactRing" then
+			leftover += 1
+		end
+	end
+	check(leftover == 0, "impact effects clean up after themselves (" .. leftover .. " left)")
+end
+
 print("\n== Wind ==")
 do
 	local WindController = H.require(clientScript.Controllers.WindController)

@@ -26,6 +26,8 @@ function CharacterService.refreshShovel(player: Player)
 		local skinId = Perks.equippedSkin(data)
 		local skin = if skinId then (Monetization.Skins :: any)[skinId] else nil
 		ShovelBuilder.attach(character, data.shovelLevel, Rebirth.tint(data.rebirths), skin)
+		-- Lets every client play this shovel's impact effect (ImpactFx).
+		character:SetAttribute("ShovelLevel", data.shovelLevel)
 	end
 end
 

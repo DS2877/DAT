@@ -19,6 +19,7 @@ local Monetization = require(ReplicatedStorage.Shared.Config.Monetization)
 local Progression = require(ReplicatedStorage.Shared.Logic.Progression)
 local Zones = require(ReplicatedStorage.Shared.Logic.Zones)
 local Effects = require(script.Parent.Parent.Effects)
+local ImpactFx = require(script.Parent.Parent.ImpactFx)
 local Sound = require(script.Parent.Parent.Sound)
 local Ui = require(script.Parent.Parent.Ui)
 local ClientState = require(script.Parent.ClientState)
@@ -211,8 +212,10 @@ local function tryHit()
 	local swing = math.clamp(interval * 0.95, DigAnimation.minDuration, DigAnimation.maxDuration)
 	if Effects.swing(character, swing) then
 		local hitSound = DIG_SOUND[spot:GetAttribute("AreaId") :: string? or "Beach"] or "DigHitSand"
+		local impact = shovel.impact
 		task.delay(swing * DigAnimation.impact, function()
 			Effects.dirtBurst(position, 6)
+			ImpactFx.play(impact, position)
 			Effects.cameraNudge()
 			Sound.play(hitSound)
 		end)
