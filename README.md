@@ -174,7 +174,10 @@ meaningful at every stage. Buying one that's running adds 5 minutes.
   Rebirth 3 a sheet of ice seals it and it pushes you back. When it opens
   the ice shatters, sparkles swirl in and snow blows out. At Rebirth 3 it
   opens for you for good (fanfare, server announcement, your name on the
-  First Explorers board), and stepping in takes you to Frostbite Peaks. With
+  First Explorers board), and stepping in takes you to Frostbite Peaks.
+  Admins can always step through, and their tests never count: no board
+  entry or announcement (old admin entries are removed from the board).
+  The admin panel's TELEPORT row also has TO FROSTBITE / TO ISLAND. With
   `Worlds.next.open = false` it shows a "being built" window instead, whose
   GET NOTIFIED button opens the Island Guide's events.
 * **Admin panel** (🛠️, `Config/Admin.luau`): for the game's owner (and any

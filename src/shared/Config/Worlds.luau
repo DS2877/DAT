@@ -25,9 +25,10 @@ local Worlds = {
 		color = "#FFD24A",
 	},
 	portal = {
-		ringRadius = 13, -- the portal ring (studs)
-		triggerRadius = 6, -- how close to its center counts as stepping in
-		pushBack = 18, -- where a locked (or returning) player is put, in front
+		scale = 0.75, -- the whole portal is built at this size
+		ringRadius = 13, -- the portal ring (studs, before `scale`)
+		triggerRadius = 5, -- how close to its center counts as stepping in
+		pushBack = 14, -- where a locked (or returning) player is put, in front
 		cooldown = 5, -- seconds before the portal reacts to the same player again
 		explorersShown = 10, -- names on the First Explorers board
 		boardRefresh = 120, -- seconds between board reads

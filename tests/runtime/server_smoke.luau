@@ -764,6 +764,14 @@ do
 	otherData.ownedCosmetics.Pirate = true
 	otherData.equippedSkin = "Pirate"
 	otherData.instantDeepDigs = 2
+	-- Straight to Frostbite Peaks from the panel.
+	local tripsBefore = #H.teleports
+	act("Travel", nil, "Frost")
+	local trip = H.teleports[#H.teleports]
+	check(
+		#H.teleports == tripsBefore + 1 and trip.players[1] == admin and trip.data.world == "Frost",
+		"admin: TO FROSTBITE teleports you to Frostbite Peaks"
+	)
 	act("ResetProgress", 5004)
 	check(
 		otherData.cash == 0
@@ -881,6 +889,34 @@ do
 	task.wait(0.5)
 	trip = H.teleports[#H.teleports]
 	check(trip and trip.code == "code-2", "a full server gets a new one next to it")
+
+	-- Admins pass at any rebirth, and testing doesn't put them on the board.
+	local Admin = H.require(Shared.Config.Admin)
+	local tester = H.addPlayer("PortalAdmin", 5010)
+	H.waitFor(function()
+		return PlayerData.get(tester) ~= nil and tester.Character ~= nil
+	end, 5, "portal admin")
+	table.insert(Admin.userIds, 5010)
+	H.ordered["FirstExplorers_Frost"]["u5011"] = 1 -- an admin from an earlier test
+	table.insert(Admin.userIds, 5011)
+	local before = #H.teleports
+	H.moveTo(tester, center)
+	task.wait(0.5)
+	check(#H.teleports == before + 1, "an admin below Rebirth 3 can step through")
+	PlayerData.get(tester).rebirths = Worlds.next.requiredRebirths
+	task.wait(0.5)
+	check(type(PlayerData.get(tester).worldUnlocks.Frost) == "number", "the portal opens for the admin")
+	H.clockOffset += Worlds.portal.boardRefresh + 1
+	task.wait(1.5)
+	check(
+		H.ordered["FirstExplorers_Frost"]["u5010"] == nil
+			and H.ordered["FirstExplorers_Frost"]["u5011"] == nil,
+		"admins aren't First Explorers (and old admin entries are removed)"
+	)
+	check(not list.Text:find("PortalAdmin"), "the board leaves admins out")
+	table.remove(Admin.userIds)
+	table.remove(Admin.userIds)
+	tester:Kick("done")
 	explorer:Kick("done")
 end
 

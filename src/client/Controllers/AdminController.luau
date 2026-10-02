@@ -14,6 +14,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local CurrentWorld = require(ReplicatedStorage.Shared.Logic.CurrentWorld)
 local Format = require(ReplicatedStorage.Shared.Util.Format)
 local Monetization = require(ReplicatedStorage.Shared.Config.Monetization)
 local Retention = require(ReplicatedStorage.Shared.Config.Retention)
@@ -336,6 +337,10 @@ local function build()
 		{ "VIP site", "Teleport", C.Purple, "VIP" },
 		{ "Tiki Bar", "Teleport", C.Orange, "Tiki" },
 		{ "❄️ Portal", "Teleport", C.Blue, "Portal" },
+		-- To the other world (a real teleport).
+		if CurrentWorld.isFrost()
+			then { "🏝️ To Island", "Travel", C.Gold, "Island" }
+			else { "❄️ To Frostbite", "Travel", C.Blue, "Frost" },
 	})
 	section(worldPage, 2, "🌅 TIME OF DAY", {
 		{ "Morning", "Time", C.Gold, 8 },

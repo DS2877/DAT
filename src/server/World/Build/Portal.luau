@@ -468,11 +468,27 @@ function Portal.build(rng: Random): Built
 	list.TextYAlignment = Enum.TextYAlignment.Top
 	list.Parent = gui
 
+	-- Built full size, then shrunk around its foot (Worlds.portal.scale).
+	local scale = cfg.scale
+	local foot = Vector3.new(p.x, groundY, p.z)
+	local anchor = part(model, {
+		name = "PortalAnchor",
+		size = Vector3.new(1, 1, 1),
+		cframe = CFrame.fromMatrix(foot, right, up),
+		transparency = 1,
+		canCollide = false,
+		castShadow = false,
+	})
+	model.PrimaryPart = anchor
+	model:ScaleTo(scale)
+	center = foot + (center - foot) * scale
+	daisTop = groundY + (daisTop - groundY) * scale
+
 	model:SetAttribute("Center", center)
 	model:SetAttribute("Normal", n)
 	model:SetAttribute("Ground", daisTop)
 	model.Parent = workspace
-	Kit.addObstacle(Vector3.new(p.x, 0, p.z), 28)
+	Kit.addObstacle(Vector3.new(p.x, 0, p.z), 28 * scale)
 	return { model = model, center = center, ground = daisTop, normal = n }
 end
 

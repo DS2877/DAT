@@ -61,13 +61,14 @@ function WorldServers.find(worldId: string): string?
 end
 
 -- A new reserved server for the world, listed straight away (empty).
-local function reserve(worldId: string): string?
+-- Nil and the reason when Roblox refuses.
+local function reserve(worldId: string): (string?, string?)
 	local ok, code, serverId = pcall(function()
 		return TeleportService:ReserveServer(game.PlaceId)
 	end)
 	if not ok or type(code) ~= "string" then
 		warn("[WorldServers] ReserveServer failed: " .. tostring(code))
-		return nil
+		return nil, "couldn't open a server (" .. tostring(code) .. ")"
 	end
 	local map = list(worldId)
 	if map and type(serverId) == "string" then
@@ -75,15 +76,19 @@ local function reserve(worldId: string): string?
 			map:SetAsync(serverId, { code = code, players = 0 }, Worlds.servers.expires)
 		end)
 	end
-	return code
+	return code, nil
 end
 
--- Sends the player to a server of `worldId`. False if the trip couldn't
--- start (the caller tells the player).
-function WorldServers.send(player: Player, worldId: string): boolean
-	local code = WorldServers.find(worldId) or reserve(worldId)
+-- Sends the player to a server of `worldId`. False and the reason if the
+-- trip couldn't start (the caller tells the player).
+function WorldServers.send(player: Player, worldId: string): (boolean, string?)
+	local code = WorldServers.find(worldId)
 	if not code then
-		return false
+		local reason
+		code, reason = reserve(worldId)
+		if not code then
+			return false, reason
+		end
 	end
 	local ok, err = pcall(function()
 		local options = Instance.new("TeleportOptions")
@@ -94,11 +99,11 @@ function WorldServers.send(player: Player, worldId: string): boolean
 	if not ok then
 		warn("[WorldServers] Teleport failed: " .. tostring(err))
 	end
-	return ok
+	return ok, if ok then nil else tostring(err)
 end
 
 -- Sends the player back to a public island server.
-function WorldServers.sendHome(player: Player): boolean
+function WorldServers.sendHome(player: Player): (boolean, string?)
 	local ok, err = pcall(function()
 		local options = Instance.new("TeleportOptions")
 		options:SetTeleportData({ world = Worlds.home.id })
@@ -107,7 +112,7 @@ function WorldServers.sendHome(player: Player): boolean
 	if not ok then
 		warn("[WorldServers] Teleport home failed: " .. tostring(err))
 	end
-	return ok
+	return ok, if ok then nil else tostring(err)
 end
 
 -- This server's access code, from a traveller's TeleportData (only trusted

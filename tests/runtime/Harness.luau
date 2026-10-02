@@ -952,6 +952,9 @@ methods.GetOrderedDataStore = function(_proxy, _inst, name)
 		end
 		return result
 	end
+	function store.RemoveAsync(_self, key)
+		data[key] = nil
+	end
 	function store.GetSortedAsync(_self, ascending, pageSize)
 		local rows = {}
 		for key, value in data do

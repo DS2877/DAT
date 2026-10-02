@@ -28,6 +28,8 @@ local Progression = require(ReplicatedStorage.Shared.Logic.Progression)
 local Rarities = require(ReplicatedStorage.Shared.Config.Rarities)
 local Retention = require(ReplicatedStorage.Shared.Config.Retention)
 local Treasures = require(ReplicatedStorage.Shared.Config.Treasures)
+local Worlds = require(ReplicatedStorage.Shared.Config.Worlds)
+local CurrentWorld = require(ReplicatedStorage.Shared.Logic.CurrentWorld)
 local Zones = require(ReplicatedStorage.Shared.Logic.Zones)
 local Analytics = require(script.Parent.Analytics)
 local AnnouncementService = require(script.Parent.AnnouncementService)
@@ -40,6 +42,7 @@ local MegaDigService = require(script.Parent.MegaDigService)
 local PartyService = require(script.Parent.PartyService)
 local Net = require(script.Parent.Parent.Net)
 local PlayerData = require(script.Parent.PlayerData)
+local WorldServers = require(script.Parent.WorldServers)
 local World = require(script.Parent.Parent.World.World)
 
 local AdminService = {}
@@ -57,6 +60,18 @@ function AdminService.isAdmin(player: Player): boolean
 		return player:GetRankInGroup(game.CreatorId) >= Admin.groupMinRank
 	end)
 	return ok and result == true
+end
+
+-- Admins by user id (players who may be offline): the listed ids and the
+-- owner of a user-owned game.
+function AdminService.isAdminId(userId: number): boolean
+	if table.find(Admin.userIds, userId) then
+		return true
+	end
+	local ok, owner = pcall(function()
+		return game.CreatorType == Enum.CreatorType.User and game.CreatorId == userId
+	end)
+	return ok and owner == true
 end
 
 local function say(player: Player, text: string)
@@ -106,7 +121,7 @@ local function place(name: string): Vector3?
 		return if drinks then drinks.position else nil
 	elseif name == "Portal" then
 		local portal = world.portal
-		return Vector3.new(portal.center.X, portal.ground, portal.center.Z) + portal.normal * 16
+		return Vector3.new(portal.center.X, portal.ground, portal.center.Z) + portal.normal * 12
 	elseif name == "Summit" then
 		local v = MapLayout.volcano
 		return ground(v.x + 22, v.z)
@@ -355,6 +370,24 @@ local PLAYER_ACTIONS: { [string]: Handler } = {
 
 -- Server-wide actions.
 local SERVER_ACTIONS: { [string]: (admin: Player, args: { any }) -> string? } = {
+	-- To the other world (Frostbite Peaks, or back to the island).
+	Travel = function(admin, args)
+		local target = tostring(args[1])
+		local here = CurrentWorld.id()
+		if target == here then
+			return "You're already here"
+		end
+		local name = if target == Worlds.next.id then Worlds.next.name else Worlds.home.name
+		Net.fire("Portal", admin, "Teleporting", { name = name })
+		local ok, reason = if target == Worlds.next.id
+			then WorldServers.send(admin, target)
+			else WorldServers.sendHome(admin)
+		if not ok then
+			Net.fire("Portal", admin, "TripFailed", nil)
+			return "Teleport failed: " .. tostring(reason)
+		end
+		return "Off to " .. name .. "!"
+	end,
 	Teleport = function(admin, args)
 		local position = place(tostring(args[1]))
 		if not position then

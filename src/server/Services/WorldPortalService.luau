@@ -18,6 +18,7 @@ local TeleportService = game:GetService("TeleportService")
 
 local CurrentWorld = require(ReplicatedStorage.Shared.Logic.CurrentWorld)
 local Worlds = require(ReplicatedStorage.Shared.Config.Worlds)
+local AdminService = require(script.Parent.AdminService)
 local Analytics = require(script.Parent.Analytics)
 local AnnouncementService = require(script.Parent.AnnouncementService)
 local LeaderboardService = require(script.Parent.LeaderboardService)
@@ -44,12 +45,14 @@ function WorldPortalService.isOpenFor(data: { [string]: any }): boolean
 	return data.rebirths >= Worlds.next.requiredRebirths
 end
 
--- The portal opens for this player (once).
+-- The portal opens for this player (once). Admins (testing) get the
+-- fanfare but aren't explorers: no board entry, no announcement.
 local function attune(player: Player, data: { [string]: any })
 	local w = Worlds.next
 	local now = os.time()
 	data.worldUnlocks[w.id] = now
-	local store = explorers()
+	local admin = AdminService.isAdmin(player)
+	local store = if admin then nil else explorers()
 	if store then
 		task.spawn(function()
 			pcall(function()
@@ -62,11 +65,13 @@ local function attune(player: Player, data: { [string]: any })
 		end)
 	end
 	Net.fire("Portal", player, "Attuned", { name = w.name })
-	AnnouncementService.announce({
-		text = string.format("❄️ %s opened the FROST PORTAL!", player.DisplayName),
-		color = w.color,
-		secret = false,
-	})
+	if not admin then
+		AnnouncementService.announce({
+			text = string.format("❄️ %s opened the FROST PORTAL!", player.DisplayName),
+			color = w.color,
+			secret = false,
+		})
+	end
 	Analytics.custom(player, "PortalUnlocked_" .. w.id)
 	PlayerData.changed(player)
 end
@@ -84,12 +89,22 @@ local function stepOut(player: Player)
 	character:PivotTo(CFrame.lookAt(spot, spot + portal.normal))
 end
 
-local function travel(player: Player, name: string, go: () -> boolean)
+-- Tells the player a trip failed (admins also see why).
+local function tripFailed(player: Player, reason: string?)
+	stepOut(player)
+	Net.fire("Portal", player, "TripFailed", nil)
+	local text = "The portal flickered... try again in a moment!"
+	if reason and AdminService.isAdmin(player) then
+		text ..= " (" .. reason .. ")"
+	end
+	Net.fire("Notify", player, text, "Denied")
+end
+
+local function travel(player: Player, name: string, go: () -> (boolean, string?))
 	Net.fire("Portal", player, "Teleporting", { name = name })
-	if not go() then
-		stepOut(player)
-		Net.fire("Portal", player, "TripFailed", nil)
-		Net.fire("Notify", player, "The portal flickered... try again in a moment!", "Denied")
+	local ok, reason = go()
+	if not ok then
+		tripFailed(player, reason)
 	end
 end
 
@@ -101,7 +116,8 @@ local function enter(player: Player, data: { [string]: any })
 		end)
 		return
 	end
-	if not WorldPortalService.isOpenFor(data) then
+	-- Admins may always pass (to test the world).
+	if not WorldPortalService.isOpenFor(data) and not AdminService.isAdmin(player) then
 		stepOut(player)
 		Net.fire("Portal", player, "Locked", { have = data.rebirths, need = w.requiredRebirths })
 		Net.fire(
@@ -137,7 +153,7 @@ local function refreshBoard()
 		return
 	end
 	local ok, pages = pcall(function()
-		return store:GetSortedAsync(true, Worlds.portal.explorersShown)
+		return store:GetSortedAsync(true, Worlds.portal.explorersShown + 5)
 	end)
 	if not ok then
 		return
@@ -145,11 +161,19 @@ local function refreshBoard()
 	local ids = {}
 	for _, entry in pages:GetCurrentPage() do
 		local userId = tonumber(string.sub(entry.key, 2))
-		if userId then
+		if userId and AdminService.isAdminId(userId) then
+			-- Admins testing the portal aren't explorers: drop old entries.
+			task.spawn(function()
+				pcall(function()
+					store:RemoveAsync(entry.key)
+				end)
+			end)
+		elseif userId and #ids < Worlds.portal.explorersShown then
 			table.insert(ids, userId)
 		end
 	end
 	if #ids == 0 then
+		list.Text = "Be the first!\nReach Rebirth " .. Worlds.next.requiredRebirths
 		return
 	end
 	local names = LeaderboardService.names(ids)
@@ -182,7 +206,7 @@ local function tick()
 				local flat = Vector3.new(offset.X, 0, offset.Z).Magnitude
 				if
 					flat <= Worlds.portal.triggerRadius
-					and math.abs(offset.Y) <= Worlds.portal.ringRadius + 2
+					and math.abs(offset.Y) <= Worlds.portal.ringRadius * Worlds.portal.scale + 2
 				then
 					nextReactAt[player] = now + Worlds.portal.cooldown
 					enter(player, data)
@@ -200,9 +224,7 @@ function WorldPortalService.init()
 	TeleportService.TeleportInitFailed:Connect(function(player: Player, _result, message: string)
 		warn("[WorldPortalService] Teleport failed: " .. tostring(message))
 		if player.Parent then
-			stepOut(player)
-			Net.fire("Portal", player, "TripFailed", nil)
-			Net.fire("Notify", player, "The portal flickered... try again in a moment!", "Denied")
+			tripFailed(player, tostring(message))
 		end
 	end)
 	task.spawn(function()
