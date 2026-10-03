@@ -25,6 +25,10 @@ function NightService.isNight(): boolean
 	if workspace:GetAttribute("ForceNight") == true then
 		return true
 	end
+	-- An admin can switch the cycle off (workspace NightCycleOff: always day).
+	if workspace:GetAttribute("NightCycleOff") == true then
+		return false
+	end
 	return scheduled and DayNight.isNight(workspace:GetServerTimeNow())
 end
 
@@ -129,6 +133,22 @@ function NightService.onDug(spotId: number)
 			spawnIn(areaId)
 		end
 	end)
+end
+
+-- A moonlit spot at `position` (admins). It fades at dawn (in daytime,
+-- after 5 minutes).
+function NightService.spawnAt(position: Vector3, areaId: string)
+	local spot = DigSpotService.spawnAt(position, areaId, { moonlit = true })
+	dress(spot.model, position)
+	moonlit[spot.id] = areaId
+	if not night then
+		task.delay(300, function()
+			if not night and moonlit[spot.id] then
+				moonlit[spot.id] = nil
+				DigSpotService.remove(spot.id)
+			end
+		end)
+	end
 end
 
 -- How many moonlit spots are out (tests).

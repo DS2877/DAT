@@ -84,6 +84,33 @@ local function onClaim(player: Player, slot: any)
 	PlayerData.changed(player)
 end
 
+-- Admin tools: finish every bounty on the board ("Finish"), deal a new
+-- board ("New") or make the next claim the bonus one ("BonusNext").
+function BountyService.adminAction(player: Player, data: { [string]: any }, what: string): string?
+	local state = board(data)
+	if what == "Finish" then
+		for slot, bounty in state.slots do
+			if not Bounties.isDone(bounty) then
+				bounty.progress = bounty.target
+				Net.fire("BountyDone", player, slot, Bounties.describe(bounty))
+			end
+		end
+		PlayerData.changed(player)
+		return "All bounties finished: claim them on the board"
+	elseif what == "New" then
+		state.slots = {}
+		board(data)
+		PlayerData.changed(player)
+		return "A new Bounty Board"
+	elseif what == "BonusNext" then
+		local every = BountyConfig.bonusEvery
+		state.completed = state.completed - state.completed % every + every - 1
+		PlayerData.changed(player)
+		return "The next claimed bounty gives the bonus"
+	end
+	return nil
+end
+
 function BountyService.init()
 	PlayerData.Loaded:Connect(function(_player: Player, data: { [string]: any })
 		board(data)

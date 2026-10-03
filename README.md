@@ -249,8 +249,14 @@ All numbers are in `Config/`; each feature has offline and smoke tests.
   Island, 4 in Frostbite Peaks). The one that's out follows you and gives a
   small cash bonus; a pet you have levels up. Eggs only come from digging.
 
-Admin panel (WORLD tab): Eruption, Steal my hat, Hatch a pet; time of day
-for night. Previews: `scripts/export-map.luau` with `NIGHT_PREVIEW`,
+Admin panel: PLAYER tab (for the selected player): junk, pets (egg next
+dig, level up, all / max / remove, hatch any pet), rebirth perks (cards,
+max, clear), bounties (finish all, new board, bonus next), dance, steal
+their hat, always-PERFECT hits. EVENTS tab: night now / end / always day,
+the volcano (erupt, stop, clear meteors, eruptions on/off), seagulls
+(steal my hat, random player, bring it back, on/off), Egg Rush (pet eggs
+10x). WORLD tab: moonlit / meteor spot where you stand. INFO tab: what's
+on right now. Previews: `scripts/export-map.luau` with `NIGHT_PREVIEW`,
 `SEAGULL_PREVIEW` or `PET_PREVIEW` (view `treasures`), and
 `scripts/ui-snapshot.luau` (bounties, perks, pets scenes).
 

@@ -67,13 +67,34 @@ function PetService.hatch(player: Player, id: string): string?
 	return outcome
 end
 
+-- Sets a pet's level without the hatch show (admins): 0 removes it.
+function PetService.setLevel(player: Player, id: string, level: number)
+	local data = PlayerData.get(player)
+	if not data or not Pets.byId[id] or type(data.pets) ~= "table" then
+		return
+	end
+	level = math.clamp(math.floor(level), 0, Config.maxLevel)
+	data.pets.owned[id] = if level > 0 then level else nil
+	if level > 0 and Pets.equipped(data) == "" then
+		data.pets.equipped = id
+	end
+	show(player)
+	PlayerData.changed(player)
+end
+
 local function onFound(
 	player: Player,
 	data: { [string]: any },
 	find: { [string]: any },
 	spot: { [string]: any }
 )
-	local ctx = { deep = find.deep, moonlit = spot.moonlit, meteor = spot.meteor }
+	local rushUntil = workspace:GetAttribute("EggRushUntil")
+	local ctx = {
+		deep = find.deep,
+		moonlit = spot.moonlit,
+		meteor = spot.meteor,
+		eggRush = type(rushUntil) == "number" and rushUntil > workspace:GetServerTimeNow(),
+	}
 	if not Pets.rollEgg(data, ctx, rng:NextNumber()) then
 		return
 	end

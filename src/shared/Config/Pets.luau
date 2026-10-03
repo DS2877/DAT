@@ -38,7 +38,7 @@ local Pets = {
 	firstEggAt = 40, -- digs: the first egg comes by then for sure
 	pity = 220, -- digs without an egg before one is certain
 	-- More eggs from special digs.
-	multipliers = { deep = 2, moonlit = 3, meteor = 3 },
+	multipliers = { deep = 2, moonlit = 3, meteor = 3, eggRush = 10 }, -- eggRush: an admin Egg Rush
 	maxLevel = 5,
 	-- Cash bonus while the pet is out, by rarity, and what each level adds.
 	bonus = { Common = 0.04, Uncommon = 0.06, Rare = 0.08, Epic = 0.12 } :: { [string]: number },

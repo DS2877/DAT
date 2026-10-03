@@ -161,7 +161,7 @@ function EruptionController.init()
 				label.Visible = true
 				label.Text = icon .. (if frost then " COMET SHOWER!" else " ERUPTION!")
 				label.TextColor3 = color
-			elseif type(nextAt) == "number" then
+			elseif type(nextAt) == "number" and workspace:GetAttribute("EruptionsOff") ~= true then
 				local left = nextAt - workspace:GetServerTimeNow()
 				label.Visible = left > 0 and left <= 300
 				label.Text = string.format(

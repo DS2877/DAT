@@ -50,15 +50,23 @@ local function update()
 	local nightness = DayNight.nightness(now)
 	local override = workspace:GetAttribute("ClockOverride")
 	local overrideUntil = workspace:GetAttribute("ClockOverrideUntil")
+	local cycleOff = workspace:GetAttribute("NightCycleOff") == true -- an admin: always day
 	if type(override) == "number" and type(overrideUntil) == "number" and overrideUntil > now then
 		clock = override
 		nightness = if override >= 19 or override < 6 then 1 else 0
 	elseif workspace:GetAttribute("ForceNight") == true then
+		clock = 0
 		nightness = 1
+	elseif cycleOff then
+		clock = 14
+		nightness = 0
 	end
 	current = nightness
 	local isNight = workspace:GetAttribute("Night") == true
-	if isNight then
+	if cycleOff and not isNight then
+		label.Text = "☀️ Always day (admin)"
+		label.TextColor3 = Color3.new(1, 1, 1)
+	elseif isNight then
 		label.Text = "🌙 Night: dig the moonlit spots!"
 		label.TextColor3 = Color3.fromHex(Config.moonlit.color)
 	else

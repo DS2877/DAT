@@ -737,6 +737,130 @@ do
 	act("MegaDig", nil, "Stop")
 	check(not MegaDigService.isActive(), "admin: close a Mega Dig")
 
+	-- The new things: pets, perks, bounties, junk, PERFECT, dance.
+	local PetsLogic = H.require(Shared.Logic.Pets)
+	local PetConfig = H.require(Shared.Config.Pets)
+	act("PetGive", nil, "Crab")
+	check(PetsLogic.level(adminData, "Crab") == 1, "admin: hatch a chosen pet")
+	act("PetsAll")
+	check(PetsLogic.count(adminData) == #PetConfig.list, "admin: every pet")
+	act("PetsMax")
+	check(PetsLogic.level(adminData, "Yeti") == PetConfig.maxLevel, "admin: every pet maxed")
+	local cashBeforeMaxed = adminData.cash
+	act("PetLevelUp")
+	check(adminData.cash > cashBeforeMaxed, "admin: level up the pet that's out (maxed: cash)")
+	act("PetEgg")
+	check(adminData.pets.digsSinceEgg == PetConfig.pity - 1, "admin: an egg on the next dig")
+	act("PetsClear")
+	check(
+		PetsLogic.count(adminData) == 0 and admin.Character:GetAttribute("Pet") == nil,
+		"admin: remove every pet"
+	)
+	adminData.pets.digsSinceEgg = 0
+	act("PerkCards")
+	check(#adminData.perkChoices == 1, "admin: perk cards to pick from")
+	act("PerksMax")
+	local PerkConfig = H.require(Shared.Config.RebirthPerks)
+	check(
+		adminData.rebirthPerks.Haggler == PerkConfig.list[1].max and #adminData.perkChoices == 0,
+		"admin: every perk maxed"
+	)
+	act("PerksClear")
+	check(next(adminData.rebirthPerks) == nil, "admin: perks cleared")
+	act("Bounty", nil, "Finish")
+	local allDone = true
+	for _, b in adminData.bounties.slots do
+		allDone = allDone and b.progress >= b.target
+	end
+	check(allDone, "admin: finish every bounty")
+	local oldFirst = adminData.bounties.slots[1]
+	act("Bounty", nil, "New")
+	check(adminData.bounties.slots[1] ~= oldFirst and #adminData.bounties.slots == 3, "admin: a new board")
+	act("Bounty", nil, "BonusNext")
+	check(adminData.bounties.completed % 5 == 4, "admin: the next claim gives the bonus")
+	local bagBefore = #adminData.bagContents
+	act("Junk")
+	local junk = adminData.bagContents[#adminData.bagContents]
+	check(
+		#adminData.bagContents == bagBefore + 1 and Treasures.ById[junk.id].set == "Junk",
+		"admin: a junk find"
+	)
+	local celebrate = admin.Character:GetAttribute("Celebrate") or 0
+	act("Dance")
+	check(admin.Character:GetAttribute("Celebrate") == celebrate + 1, "admin: make them dance")
+	act("Perfect", nil, true)
+	check(admin:GetAttribute("AdminPerfect") == true, "admin: every hit PERFECT")
+	local perfectSpot = spotList("Beach")[2]
+	H.moveTo(admin, perfectSpot.PrimaryPart.Position + V3(2, 0, 0))
+	H.clockOffset += 1
+	H.fireServer(admin, "DigHit", perfectSpot:GetAttribute("SpotId"), false)
+	task.wait(0.1)
+	local hitResult = H.lastClientEvent("DigResult", admin)
+	check(hitResult and hitResult[1].perfect == true, "an untimed hit counts as PERFECT")
+	act("Perfect", nil, false)
+	check(admin:GetAttribute("AdminPerfect") == nil, "admin: PERFECT back to normal")
+	H.moveTo(admin, here)
+
+	-- Night, the volcano, seagulls, Egg Rush.
+	local NightService = H.require(Services.NightService)
+	local EruptionService = H.require(Services.EruptionService)
+	act("Night", nil, "On")
+	check(
+		workspace:GetAttribute("ForceNight") == true and workspace:GetAttribute("ClockOverride") == 0,
+		"admin: night now"
+	)
+	act("Night", nil, "Off")
+	check(workspace:GetAttribute("ForceNight") == nil, "admin: end the night")
+	act("Night", nil, "CycleOff")
+	check(workspace:GetAttribute("NightCycleOff") == true and not NightService.isNight(), "admin: always day")
+	act("Night", nil, "CycleOn")
+	check(workspace:GetAttribute("NightCycleOff") == nil, "admin: day and night back on")
+	local moonBefore = NightService.count()
+	act("MoonSpot")
+	check(NightService.count() == moonBefore + 1, "admin: a moonlit spot in front of you")
+	local moonSpot = nil
+	for _, spot in spots:GetChildren() do
+		if spot:GetAttribute("Moonlit") then
+			moonSpot = spot
+		end
+	end
+	check(moonSpot and digSpot(admin, moonSpot) ~= nil, "it can be dug")
+	H.moveTo(admin, here)
+	act("Eruption")
+	check(EruptionService.isRunning(), "admin: erupt now")
+	act("Eruption", nil, "Stop")
+	check(
+		not EruptionService.isRunning() and workspace:GetAttribute("Eruption") == nil,
+		"admin: stop the eruption"
+	)
+	act("Eruption", nil, "Off")
+	check(workspace:GetAttribute("EruptionsOff") == true, "admin: eruptions off")
+	act("Eruption", nil, "On")
+	check(workspace:GetAttribute("EruptionsOff") == nil, "admin: eruptions back on")
+	local meteorsBefore = EruptionService.count()
+	act("MeteorSpot")
+	check(H.lastClientEvent("Meteor") ~= nil, "admin: a fireball to where you stand")
+	H.waitFor(function()
+		return EruptionService.count() > meteorsBefore
+	end, 6, "the meteor to land")
+	check(EruptionService.count() == meteorsBefore + 1, "it lands as a meteor spot")
+	act("Eruption", nil, "Clear")
+	check(EruptionService.count() == 0, "admin: clear the meteor spots")
+	act("Seagull", nil, "Off")
+	check(workspace:GetAttribute("SeagullsOff") == true, "admin: seagulls off")
+	act("Seagull", nil, "On")
+	check(workspace:GetAttribute("SeagullsOff") == nil, "admin: seagulls back on")
+	act("Seagull", nil, "Recall")
+	local recall = H.lastClientEvent("Notify", admin)
+	check(recall and recall[1]:find("No seagull") ~= nil, "admin: recall with no seagull out says so")
+	act("EggRush", nil, 10)
+	check(type(workspace:GetAttribute("EggRushUntil")) == "number", "admin: Egg Rush")
+	act("Info")
+	local info = H.lastClientEvent("AdminInfo", admin)
+	check(info and #info[1].events == 4, "the INFO tab shows the events")
+	act("EggRush", nil, 0)
+	check(workspace:GetAttribute("EggRushUntil") == nil, "admin: stop the Egg Rush")
+
 	-- Messages to every server.
 	local published = #H.published
 	act("GlobalMessage", nil, "Hello everyone!")

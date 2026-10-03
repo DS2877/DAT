@@ -5,12 +5,14 @@
 --
 -- Actions on a player (target = a user id, default yourself): cash, shovel,
 -- bag, rebirths, passes (for testing: the profile only, not Roblox), boosts,
--- Instant Deep Digs, treasures, tutorial / progress / full reset, teleport,
--- bring, kick.
--- Server actions: Treasure Rush, server 2x Cash, ADMIN ABUSE, hidden
--- treasures, announcements, messages to every server, time of day, your
--- own speed / jump, and spawning things where you stand (treasure spots,
--- clue rings, money rain, fireworks, a Mega Dig), an eruption, a seagull.
+-- Instant Deep Digs, treasures, junk, pets, rebirth perks, bounties, always
+-- PERFECT hits, a victory dance, a seagull, tutorial / progress / full
+-- reset, teleport, bring, kick.
+-- Server actions: Treasure Rush, server 2x Cash, ADMIN ABUSE, Egg Rush,
+-- hidden treasures, announcements, messages to every server, time of day,
+-- night (now / off), eruptions, seagulls, your own speed / jump, and
+-- spawning things where you stand (treasure / moonlit / meteor spots, clue
+-- rings, money rain, fireworks, a Mega Dig).
 
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
@@ -42,6 +44,11 @@ local EruptionService = require(script.Parent.EruptionService)
 local SeagullService = require(script.Parent.SeagullService)
 local PetService = require(script.Parent.PetService)
 local Pets = require(ReplicatedStorage.Shared.Logic.Pets)
+local PetConfig = require(ReplicatedStorage.Shared.Config.Pets)
+local PerkConfig = require(ReplicatedStorage.Shared.Config.RebirthPerks)
+local RebirthPerks = require(ReplicatedStorage.Shared.Logic.RebirthPerks)
+local BountyService = require(script.Parent.BountyService)
+local NightService = require(script.Parent.NightService)
 local MegaDigService = require(script.Parent.MegaDigService)
 local PartyService = require(script.Parent.PartyService)
 local Net = require(script.Parent.Parent.Net)
@@ -151,6 +158,27 @@ local function giveTreasure(data: { [string]: any }, rarity: string): string?
 	table.insert(data.bagContents, { id = def.id, v = def.value })
 	data.discovered[def.id] = data.discovered[def.id] or { normal = true }
 	return def.name
+end
+
+-- A random junk find, straight into the bag (and collection).
+local function giveJunk(data: { [string]: any }): string?
+	local pool = {}
+	for _, def in Treasures.List do
+		if def.set == "Junk" then
+			table.insert(pool, def)
+		end
+	end
+	if #pool == 0 then
+		return nil
+	end
+	local def = pool[math.random(1, #pool)]
+	table.insert(data.bagContents, { id = def.id, v = def.value })
+	data.discovered[def.id] = data.discovered[def.id] or { normal = true }
+	return def.name
+end
+
+local function random01(): number
+	return math.random()
 end
 
 local function abuseActive(): boolean
@@ -305,6 +333,100 @@ local PLAYER_ACTIONS: { [string]: Handler } = {
 		local name = giveTreasure(data, rarity)
 		PlayerData.changed(target)
 		return if name then name .. " added to the bag" else nil
+	end,
+	Junk = function(_, target, data)
+		local name = giveJunk(data)
+		PlayerData.changed(target)
+		return if name then name .. " added to the bag" else nil
+	end,
+	-- Pets: one by id (with the hatch show), all, max, level up the one
+	-- that's out, an egg on the next dig, remove them all.
+	PetGive = function(_, target, _data, args)
+		local id = args[1]
+		if type(id) ~= "string" or not Pets.byId[id] then
+			return nil
+		end
+		local outcome = PetService.hatch(target, id)
+		return if outcome then Pets.byId[id].name .. ": " .. outcome else nil
+	end,
+	PetsAll = function(_, target, data)
+		for id in Pets.byId do
+			PetService.setLevel(target, id, math.max(1, Pets.level(data, id)))
+		end
+		return "Every pet (" .. Pets.count(data) .. ")"
+	end,
+	PetsMax = function(_, target)
+		for id in Pets.byId do
+			PetService.setLevel(target, id, PetConfig.maxLevel)
+		end
+		return "Every pet at level " .. PetConfig.maxLevel
+	end,
+	PetLevelUp = function(_, target, data)
+		local id = Pets.equipped(data)
+		if id == "" then
+			return "No pet out"
+		end
+		return Pets.byId[id].name .. ": " .. tostring(PetService.hatch(target, id))
+	end,
+	PetEgg = function(_, target, data)
+		data.pets.digsSinceEgg = PetConfig.pity - 1
+		PlayerData.changed(target)
+		return "An egg on the next dig"
+	end,
+	PetsClear = function(_, target, data)
+		for id in Pets.byId do
+			if Pets.level(data, id) > 0 then
+				PetService.setLevel(target, id, 0)
+			end
+		end
+		return "Pets removed"
+	end,
+	-- Rebirth perks: a card set to pick from, every perk maxed, or none.
+	PerkCards = function(_, target, data)
+		local set = RebirthPerks.roll(data, random01)
+		if #set == 0 then
+			return "Every perk is maxed"
+		end
+		table.insert(data.perkChoices, set)
+		PlayerData.changed(target)
+		return "Perk cards to pick from"
+	end,
+	PerksMax = function(_, target, data)
+		for _, perk in PerkConfig.list do
+			data.rebirthPerks[perk.id] = perk.max
+		end
+		table.clear(data.perkChoices)
+		PlayerData.changed(target)
+		return "Every perk maxed"
+	end,
+	PerksClear = function(_, target, data)
+		table.clear(data.rebirthPerks)
+		table.clear(data.perkChoices)
+		data.perksEarned = data.rebirths -- (no cards come back for old rebirths)
+		PlayerData.changed(target)
+		return "Perks cleared"
+	end,
+	Bounty = function(_, target, data, args)
+		return BountyService.adminAction(target, data, tostring(args[1]))
+	end,
+	-- Every dig hit counts as PERFECT (on / off).
+	Perfect = function(_, target, _data, args)
+		local on = args[1] == true
+		target:SetAttribute("AdminPerfect", if on then true else nil)
+		return if on then "Every hit is PERFECT" else "PERFECT hits back to normal"
+	end,
+	Dance = function(_, target)
+		local character = target.Character
+		if not character then
+			return nil
+		end
+		character:SetAttribute("Celebrate", ((character:GetAttribute("Celebrate") :: number?) or 0) + 1)
+		return "Dance!"
+	end,
+	StealHat = function(_, target)
+		return if SeagullService.steal(target)
+			then "A seagull is after their hat!"
+			else "No seagull: they need a hat and palms nearby (Island), one at a time"
 	end,
 	ResetTutorial = function(_, target, data)
 		data.onboarding.guideDone = false
@@ -508,22 +630,86 @@ local SERVER_ACTIONS: { [string]: (admin: Player, args: { any }) -> string? } = 
 		end
 		return if MegaDigService.start(at) then "Mega Dig started" else "A Mega Dig is already open"
 	end,
-	Eruption = function()
+	-- Start / Stop / Clear (meteor spots) / Off / On (the schedule).
+	Eruption = function(_, args)
+		local what = args[1]
+		if what == "Stop" then
+			return if EruptionService.cancel() then "Eruption stopped" else "No eruption going"
+		elseif what == "Clear" then
+			return EruptionService.clear() .. " meteor spots cooled off"
+		elseif what == "Off" or what == "On" then
+			workspace:SetAttribute("EruptionsOff", if what == "Off" then true else nil)
+			return if what == "Off" then "Eruptions off" else "Eruptions back on (:05 and :35)"
+		end
 		return if EruptionService.start() then "The volcano is waking up!" else "An eruption is already going"
 	end,
-	Pet = function(admin)
-		local list = {}
-		for id, pet in Pets.byId do
-			if pet.world == CurrentWorld.id() then
-				table.insert(list, id)
-			end
+	MeteorSpot = function(admin)
+		local at = inFront(admin, Admin.spawn.spotDistance)
+		if not at then
+			return nil
 		end
-		table.sort(list)
-		local id = list[math.random(1, #list)]
-		local outcome = PetService.hatch(admin, id)
-		return if outcome then "Hatched " .. Pets.byId[id].name .. " (" .. outcome .. ")" else nil
+		EruptionService.meteorAt(at, Zones.areaAt(at.X, at.Z))
+		return "Incoming meteor!"
 	end,
-	Seagull = function(admin)
+	MoonSpot = function(admin)
+		local at = inFront(admin, Admin.spawn.spotDistance)
+		if not at then
+			return nil
+		end
+		NightService.spawnAt(at, Zones.areaAt(at.X, at.Z))
+		return "Moonlit spot in front of you"
+	end,
+	-- On (night now, until Off) / Off / CycleOff (always day) / CycleOn.
+	Night = function(_, args)
+		local what = args[1]
+		local now = workspace:GetServerTimeNow()
+		if what == "On" then
+			workspace:SetAttribute("NightCycleOff", nil)
+			workspace:SetAttribute("ForceNight", true)
+			workspace:SetAttribute("ClockOverride", 0)
+			workspace:SetAttribute("ClockOverrideUntil", now + 3600)
+			return "Night! (until you end it, or an hour)"
+		elseif what == "Off" or what == "CycleOff" then
+			workspace:SetAttribute("ForceNight", nil)
+			workspace:SetAttribute("ClockOverride", nil)
+			workspace:SetAttribute("ClockOverrideUntil", nil)
+			if what == "CycleOff" then
+				workspace:SetAttribute("NightCycleOff", true)
+				return "Always day (nights off)"
+			end
+			return "Night ended"
+		elseif what == "CycleOn" then
+			workspace:SetAttribute("NightCycleOff", nil)
+			return "Day and night back on"
+		end
+		return nil
+	end,
+	EggRush = function(_, args)
+		local minutes = tonumber(args[1]) or 0
+		if minutes <= 0 then
+			workspace:SetAttribute("EggRushUntil", nil)
+			return "Egg Rush stopped"
+		end
+		workspace:SetAttribute("EggRushUntil", workspace:GetServerTimeNow() + minutes * 60)
+		local text = string.format("🥚 EGG RUSH for %d minutes! Pet eggs are 10x more common!", minutes)
+		AnnouncementService.announce({ text = text, color = "#7CFC8A", secret = false })
+		Net.fireAll("Notify", text, "Big")
+		return "Egg Rush for " .. minutes .. " min"
+	end,
+	-- (none: your hat) / Random / Recall / Off / On.
+	Seagull = function(admin, args)
+		local what = args[1]
+		if what == "Random" then
+			local victim = SeagullService.stealRandom()
+			return if victim
+				then "A seagull is after " .. victim.DisplayName .. "'s hat!"
+				else "Nobody to rob: needs a hat and palms nearby (Island), one at a time"
+		elseif what == "Recall" then
+			return if SeagullService.recall() then "The seagull brings the hat back" else "No seagull out"
+		elseif what == "Off" or what == "On" then
+			workspace:SetAttribute("SeagullsOff", if what == "Off" then true else nil)
+			return if what == "Off" then "Seagulls off" else "Seagulls back on"
+		end
 		return if SeagullService.steal(admin)
 			then "Incoming seagull!"
 			else "No seagull: wear a hat, stand near palms (Island), one at a time"
@@ -565,6 +751,10 @@ function AdminService.info(): { [string]: any }
 				shovel = data.shovelLevel,
 				bag = data.bagLevel,
 				rebirths = data.rebirths,
+				pets = Pets.count(data),
+				petOut = Pets.equipped(data),
+				bounties = type(data.bounties) == "table" and data.bounties.completed or 0,
+				perfect = player:GetAttribute("AdminPerfect") == true,
 			})
 		end
 	end
@@ -572,11 +762,40 @@ function AdminService.info(): { [string]: any }
 	for _, entry in JackpotService.list() do
 		table.insert(hidden, entry.rarity .. " in " .. entry.area)
 	end
+	local now = workspace:GetServerTimeNow()
+	local function minutesLeft(attribute: string): string?
+		local untilTime = workspace:GetAttribute(attribute)
+		return if type(untilTime) == "number" and untilTime > now
+			then string.format("%d min", math.ceil((untilTime - now) / 60))
+			else nil
+	end
+	local nextEruption = workspace:GetAttribute("EruptionNext")
+	local events = {
+		"Night: "
+			.. (if NightService.isNight() then "NOW" else "day")
+			.. (if workspace:GetAttribute("NightCycleOff") then " (nights off)" else "")
+			.. (if workspace:GetAttribute("ForceNight") then " (forced)" else "")
+			.. " · moonlit spots "
+			.. NightService.count(),
+		"Eruption: " .. (if EruptionService.isRunning()
+			then "NOW"
+			elseif workspace:GetAttribute("EruptionsOff") then "off"
+			elseif type(nextEruption) == "number" then string.format(
+				"next in %d min",
+				math.max(0, math.ceil((nextEruption - now) / 60))
+			)
+			else "?") .. " · meteor spots " .. EruptionService.count(),
+		"Seagull: "
+			.. (if SeagullService.isBusy() then "out stealing" else "waiting")
+			.. (if workspace:GetAttribute("SeagullsOff") then " (off)" else ""),
+		"Egg Rush: " .. (minutesLeft("EggRushUntil") or "off"),
+	}
 	return {
 		uptime = math.floor(os.clock() - started),
 		players = players,
 		hidden = hidden,
 		abuse = abuseActive(),
+		events = events,
 	}
 end
 

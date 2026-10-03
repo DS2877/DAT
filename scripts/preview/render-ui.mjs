@@ -244,6 +244,7 @@ function draw(n, parentEl, x, y, w, h) {
 	parentEl.appendChild(el);
 	if (n.autoSize === "Y" || n.autoSize === "XY") res = layoutChildren(n, cx, cy, cw, h - cy - (h - ch - cy));
 	for (const r of res.out) draw(r.node, el, r.x, r.y, r.w, r.h);
+	if (n.scrollY) el.scrollTop = n.scrollY;
 }
 
 window.loadFonts = async () => {

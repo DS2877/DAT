@@ -31,6 +31,7 @@ type Bird = {
 
 local scheduled = true
 local busy = false
+local recalled = false -- an admin asked for the hat back
 local palms: { Vector3 } = {} -- crowns (where a seagull sits)
 local joinedAt: { [Player]: number } = {}
 local lastRobbed: { [number]: number } = {} -- userId -> os.clock
@@ -298,7 +299,7 @@ local function caper(player: Player, palm: Vector3)
 			found = true
 			break
 		end
-		if os.clock() - sitting >= timing.giveUpAfter then
+		if recalled or os.clock() - sitting >= timing.giveUpAfter then
 			break
 		end
 		-- A little head bob now and then.
@@ -376,6 +377,7 @@ function SeagullService.steal(player: Player): boolean
 		return false
 	end
 	busy = true
+	recalled = false
 	lastRobbed[player.UserId] = os.clock()
 	task.spawn(function()
 		local ok, err = pcall(caper, player, palm :: Vector3)
@@ -384,6 +386,31 @@ function SeagullService.steal(player: Player): boolean
 		end
 		busy = false
 	end)
+	return true
+end
+
+-- Sends a seagull after a random player who can be robbed (admins).
+-- Returns who, or nil.
+function SeagullService.stealRandom(): Player?
+	local list = Players:GetPlayers()
+	for i = #list, 2, -1 do
+		local j = rng:NextInteger(1, i)
+		list[i], list[j] = list[j], list[i]
+	end
+	for _, player in list do
+		if SeagullService.steal(player) then
+			return player
+		end
+	end
+	return nil
+end
+
+-- Makes a sitting seagull bring the hat back now (admins). False if none.
+function SeagullService.recall(): boolean
+	if not busy then
+		return false
+	end
+	recalled = true
 	return true
 end
 
@@ -435,7 +462,8 @@ function SeagullService.start()
 	task.spawn(function()
 		while true do
 			task.wait(Config.checkEvery)
-			if scheduled and not busy then
+			-- (An admin can switch them off: workspace SeagullsOff.)
+			if scheduled and not busy and workspace:GetAttribute("SeagullsOff") ~= true then
 				local now = os.clock()
 				for _, player in Players:GetPlayers() do
 					if rng:NextNumber() < Config.chance and eligible(player, now, false) then

@@ -81,7 +81,9 @@ local function onDigHit(player: Player, spotId: any, perfect: any)
 	if type(spotId) ~= "number" or spotId ~= spotId or spotId % 1 ~= 0 then
 		return -- malformed
 	end
-	perfect = perfect == true
+	-- (Admins can make every hit PERFECT for someone, to test it.)
+	local forcedPerfect = player:GetAttribute("AdminPerfect") == true
+	perfect = perfect == true or forcedPerfect
 	local data = PlayerData.get(player)
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
@@ -172,7 +174,10 @@ local function onDigHit(player: Player, spotId: any, perfect: any)
 	s.lastHit = now
 	-- A PERFECT tap (timed on the client's ring) digs extra, once per cycle.
 	local wasPerfect = false
-	if perfect and now - (lastPerfect[player] or -math.huge) >= DigConfig.perfect.cycle * 0.75 then
+	if
+		perfect
+		and (forcedPerfect or now - (lastPerfect[player] or -math.huge) >= DigConfig.perfect.cycle * 0.75)
+	then
 		lastPerfect[player] = now
 		s.hits += DigConfig.perfect.bonusHits
 		wasPerfect = true

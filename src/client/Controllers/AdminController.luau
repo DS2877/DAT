@@ -2,14 +2,16 @@
 -- The 🛠️ admin panel (only for admins: the server sets the "Admin"
 -- attribute and checks every action again). Tabs:
 --   PLAYER  reset your own progress (to test the game as a new player);
---           cash, shovel, bag, rebirths, passes, boosts, treasures, resets,
---           teleport to / bring / kick (for the selected player)
+--           cash, shovel, bag, rebirths, passes, boosts, treasures, junk,
+--           pets, rebirth perks, bounties, PERFECT hits, dance, hat thief,
+--           resets, teleport to / bring / kick (for the selected player)
 --   WORLD   teleports, time of day, your own speed and jump, and spawning
---           things where you stand (treasure spots, money rain, fireworks,
---           a Mega Dig)
+--           things where you stand (treasure / moonlit / meteor spots,
+--           money rain, fireworks, a Mega Dig)
 --   EVENTS  Treasure Rush, server 2x Cash, ADMIN ABUSE, hidden treasures,
---           announcements, messages to every server
---   INFO    uptime, players, hidden treasures right now
+--           night, the volcano, seagulls, Egg Rush, announcements,
+--           messages to every server
+--   INFO    uptime, players, events and hidden treasures right now
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -17,6 +19,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CurrentWorld = require(ReplicatedStorage.Shared.Logic.CurrentWorld)
 local Format = require(ReplicatedStorage.Shared.Util.Format)
 local Monetization = require(ReplicatedStorage.Shared.Config.Monetization)
+local PetConfig = require(ReplicatedStorage.Shared.Config.Pets)
 local Retention = require(ReplicatedStorage.Shared.Config.Retention)
 local Sound = require(script.Parent.Parent.Sound)
 local Ui = require(script.Parent.Parent.Ui)
@@ -281,7 +284,7 @@ local function build()
 		{ "+1B", "AddCash", C.Green, 1000000000 },
 		{ "Cash = 0", "SetCash", C.Grey, 0 },
 	})
-	section(playerPage, 2, "⛏️ PROGRESS", {
+	section(playerPage, 2, "⛏️ PROGRESS (the shovel also sets the hit effect)", {
 		{ "Shovel -", "Shovel", C.Grey, -1 },
 		{ "Shovel +", "Shovel", C.Blue, 1 },
 		{ "Bag -", "Bag", C.Grey, -1 },
@@ -314,6 +317,7 @@ local function build()
 		{ "Legendary", "Treasure", C.Orange, "Legendary" },
 		{ "Mythic", "Treasure", C.Red, "Mythic" },
 		{ "Secret", "Treasure", C.Gold, "Secret" },
+		{ "🗑️ Junk", "Junk", C.Grey },
 	})
 	section(playerPage, 6, "🧭 PLAYER", {
 		{ "Go to them", "GoTo", C.Blue },
@@ -321,7 +325,35 @@ local function build()
 		{ "Reset tutorial", "ResetTutorial", C.Grey },
 		{ "KICK", "Kick", C.Red },
 	})
-	section(playerPage, 7, "🔄 RESET THE SELECTED PLAYER (keeps what they bought with Robux)", {
+	section(playerPage, 8, "🐾 PETS", {
+		{ "🥚 Egg next dig", "PetEgg", C.Green },
+		{ "Level up pet out", "PetLevelUp", C.Blue },
+		{ "All pets", "PetsAll", C.Purple },
+		{ "Max all pets", "PetsMax", C.Gold },
+		{ "Remove pets", "PetsClear", C.Grey },
+	})
+	local petButtons = {}
+	for _, pet in PetConfig.list do
+		table.insert(petButtons, { pet.icon .. " " .. pet.name, "PetGive", C.Green, pet.id })
+	end
+	section(playerPage, 9, "🐣 HATCH A PET", petButtons)
+	section(playerPage, 10, "✨ REBIRTH PERKS", {
+		{ "Give perk cards", "PerkCards", C.Purple },
+		{ "Max all perks", "PerksMax", C.Gold },
+		{ "Clear perks", "PerksClear", C.Grey },
+	})
+	section(playerPage, 11, "📜 BOUNTY BOARD", {
+		{ "Finish all", "Bounty", C.Green, "Finish" },
+		{ "New board", "Bounty", C.Blue, "New" },
+		{ "Bonus on next claim", "Bounty", C.Gold, "BonusNext" },
+	})
+	section(playerPage, 12, "🎉 FUN", {
+		{ "💃 Dance", "Dance", C.Purple },
+		{ "🐦 Steal their hat", "StealHat", C.Blue },
+		{ "PERFECT: always", "Perfect", C.Gold, true },
+		{ "PERFECT: normal", "Perfect", C.Grey, false },
+	})
+	section(playerPage, 20, "🔄 RESET THE SELECTED PLAYER (keeps what they bought with Robux)", {
 		{ "RESET PROGRESS", "ResetProgress", C.Red },
 	}, { cell = UDim2.fromOffset(280, 54) })
 
@@ -365,9 +397,8 @@ local function build()
 		{ "⛏️ Mega Dig here", "MegaDig", C.Gold, "Here" },
 		{ "Mega Dig (beach)", "MegaDig", C.Orange },
 		{ "Close Mega Dig", "MegaDig", C.Grey, "Stop" },
-		{ "🌋 Eruption", "Eruption", C.Red },
-		{ "🐦 Steal my hat", "Seagull", C.Blue },
-		{ "🥚 Hatch a pet", "Pet", C.Green },
+		{ "🌙 Moonlit spot", "MoonSpot", C.Purple },
+		{ "☄️ Meteor spot", "MeteorSpot", C.Red },
 	})
 
 	-- EVENTS (everyone in the server).
@@ -393,6 +424,31 @@ local function build()
 		{ "Mythic: Volcano", "Hide", C.Red, "Mythic", "Volcano" },
 		{ "Secret: Volcano", "Hide", C.Gold, "Secret", "Volcano" },
 		{ "Legendary: Jungle", "Hide", C.Orange, "Legendary", "Jungle" },
+	})
+	section(eventsPage, 5, "🌙 NIGHT (moonlit dig spots)", {
+		{ "Night now", "Night", C.Purple, "On" },
+		{ "End night", "Night", C.Gold, "Off" },
+		{ "Always day", "Night", C.Grey, "CycleOff" },
+		{ "Day + night on", "Night", C.Blue, "CycleOn" },
+	})
+	section(eventsPage, 6, "🌋 VOLCANO (meteor dig spots)", {
+		{ "Erupt now", "Eruption", C.Red },
+		{ "Stop eruption", "Eruption", C.Grey, "Stop" },
+		{ "Clear meteors", "Eruption", C.Grey, "Clear" },
+		{ "Eruptions off", "Eruption", C.Grey, "Off" },
+		{ "Eruptions on", "Eruption", C.Orange, "On" },
+	})
+	section(eventsPage, 7, "🐦 SEAGULL HAT THIEF", {
+		{ "Steal my hat", "Seagull", C.Blue },
+		{ "Random player", "Seagull", C.Blue, "Random" },
+		{ "Bring hat back", "Seagull", C.Green, "Recall" },
+		{ "Seagulls off", "Seagull", C.Grey, "Off" },
+		{ "Seagulls on", "Seagull", C.Blue, "On" },
+	})
+	section(eventsPage, 8, "🥚 EGG RUSH (pet eggs 10x)", {
+		{ "10 min", "EggRush", C.Green, 10 },
+		{ "30 min", "EggRush", C.Green, 30 },
+		{ "Stop", "EggRush", C.Grey, 0 },
 	})
 	textRow(eventsPage, 20, "📢 ANNOUNCE TO THIS SERVER", "Announce", C.Green)
 	textRow(
@@ -434,14 +490,23 @@ local function showInfo(info: { [string]: any })
 		table.insert(
 			lines,
 			string.format(
-				"  %s · %s · shovel %d · bag %d · rebirths %d",
+				"  %s · %s · shovel %d · bag %d · rebirths %d · pets %d%s · bounties %d%s",
 				p.name,
 				Format.cash(p.cash),
 				p.shovel,
 				p.bag,
-				p.rebirths
+				p.rebirths,
+				p.pets or 0,
+				if p.petOut and p.petOut ~= "" then " (" .. p.petOut .. " out)" else "",
+				p.bounties or 0,
+				if p.perfect then " · ALWAYS PERFECT" else ""
 			)
 		)
+	end
+	table.insert(lines, "")
+	table.insert(lines, "EVENTS")
+	for _, line in info.events or {} do
+		table.insert(lines, "  " .. line)
 	end
 	table.insert(lines, "")
 	table.insert(

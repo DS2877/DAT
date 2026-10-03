@@ -153,6 +153,8 @@ local function serialize(inst: any): { [string]: any }?
 		end
 		if class == "ScrollingFrame" then
 			node.clips = true
+			local canvas = get(inst, "CanvasPosition")
+			node.scrollY = if canvas then canvas.Y else 0
 		end
 	elseif class == "UICorner" then
 		node.radius = udim(get(inst, "CornerRadius"))
@@ -302,8 +304,19 @@ snap("guide_events")
 H.signal(root.TopButtons:FindFirstChild("GuideButton"), "Activated"):Fire({})
 H.signal(root.TopButtons:FindFirstChild("AdminButton"), "Activated"):Fire({})
 snap("admin_player")
+-- (scrolled down: pets, perks, bounties, fun)
+local playerPage = root.Admin:FindFirstChild("PlayerPage", true)
+playerPage.CanvasPosition = roblox.Vector2.new(0, 720)
+snap("admin_player_2")
+playerPage.CanvasPosition = roblox.Vector2.new(0, 1180)
+snap("admin_player_3")
+playerPage.CanvasPosition = roblox.Vector2.new(0, 0)
 H.signal(root.Admin:FindFirstChild("Events", true), "Activated"):Fire({})
 snap("admin_events")
+local eventsPage = root.Admin:FindFirstChild("EventsPage", true)
+eventsPage.CanvasPosition = roblox.Vector2.new(0, 440)
+snap("admin_events_2")
+eventsPage.CanvasPosition = roblox.Vector2.new(0, 0)
 H.signal(root.Admin:FindFirstChild("World", true), "Activated"):Fire({})
 snap("admin_world")
 H.signal(root.TopButtons:FindFirstChild("AdminButton"), "Activated"):Fire({})

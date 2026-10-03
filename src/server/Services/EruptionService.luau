@@ -23,6 +23,7 @@ local EruptionService = {}
 
 local scheduled = true
 local running = false
+local generation = 0 -- bumps on every start / cancel (a cancelled run stops)
 local meteorSpots: { [number]: number } = {} -- spot id -> cools off at (os.clock)
 local rng = Random.new()
 -- The timings and landing weights (Config/Eruption; tests shorten them).
@@ -112,7 +113,17 @@ local function pickArea(): string
 	return Areas.Order[1]
 end
 
--- One fireball: drawn by every client, then a meteor spot where it lands.
+-- A fireball to `landing` (every client draws it), then a meteor spot there.
+local function land(from: Vector3, landing: Vector3, areaId: string)
+	Net.fireAll("Meteor", from, landing, timing.flight)
+	task.delay(timing.flight, function()
+		local spot = DigSpotService.spawnAt(landing, areaId, { meteor = true })
+		dress(spot.model, landing)
+		meteorSpots[spot.id] = os.clock() + Eruption.linger
+	end)
+end
+
+-- One fireball to a free point in a random area.
 local function launch(from: Vector3)
 	local areaId = pickArea()
 	local points = World.get().candidates[areaId]
@@ -137,13 +148,7 @@ local function launch(from: Vector3)
 	if not target then
 		return
 	end
-	local landing = target :: Vector3
-	Net.fireAll("Meteor", from, landing, timing.flight)
-	task.delay(timing.flight, function()
-		local spot = DigSpotService.spawnAt(landing, areaId, { meteor = true })
-		dress(spot.model, landing)
-		meteorSpots[spot.id] = os.clock() + Eruption.linger
-	end)
+	land(from, target :: Vector3, areaId)
 end
 
 -- Starts an eruption now (admins; tests). False if one is running.
@@ -152,6 +157,11 @@ function EruptionService.start(): boolean
 		return false
 	end
 	running = true
+	generation += 1
+	local mine = generation
+	local function stopped(): boolean
+		return generation ~= mine
+	end
 	task.spawn(function()
 		workspace:SetAttribute("Eruption", "Rumble")
 		tell(
@@ -160,6 +170,9 @@ function EruptionService.start(): boolean
 				else "🌋 The volcano is rumbling... get ready for meteors!"
 		)
 		task.wait(timing.rumble)
+		if stopped() then
+			return
+		end
 		workspace:SetAttribute("Eruption", "Erupt")
 		tell(
 			if frost()
@@ -169,14 +182,51 @@ function EruptionService.start(): boolean
 		local from = crater()
 		local gap = timing.erupt / math.max(1, timing.meteors)
 		for _ = 1, timing.meteors do
+			if stopped() then
+				return
+			end
 			launch(from)
 			task.wait(gap)
 		end
 		task.wait(timing.flight)
+		if stopped() then
+			return
+		end
 		workspace:SetAttribute("Eruption", nil)
 		running = false
 	end)
 	return true
+end
+
+-- Stops a running eruption (admins). Meteors already out stay.
+function EruptionService.cancel(): boolean
+	if not running then
+		return false
+	end
+	generation += 1
+	running = false
+	workspace:SetAttribute("Eruption", nil)
+	return true
+end
+
+function EruptionService.isRunning(): boolean
+	return running
+end
+
+-- A fireball from the crater to `position` (admins).
+function EruptionService.meteorAt(position: Vector3, areaId: string)
+	land(crater(), position, areaId)
+end
+
+-- Cools off every meteor spot now (admins). Returns how many.
+function EruptionService.clear(): number
+	local n = 0
+	for id in meteorSpots do
+		DigSpotService.remove(id)
+		n += 1
+	end
+	table.clear(meteorSpots)
+	return n
 end
 
 -- A meteor spot was dug (it's gone for good).
@@ -220,7 +270,8 @@ function EruptionService.run()
 			local previous = nextStart - Eruption.interval
 			if t >= rumbleAt and nextStart > lastScheduled then
 				lastScheduled = nextStart
-				if scheduled then
+				-- (An admin can switch them off: workspace EruptionsOff.)
+				if scheduled and workspace:GetAttribute("EruptionsOff") ~= true then
 					EruptionService.start()
 				end
 			elseif previous > lastScheduled then
